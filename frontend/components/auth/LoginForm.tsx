@@ -1,0 +1,76 @@
+"use client";
+
+import { useState } from "react";
+import { User } from "@/types/user";
+
+type Props = {
+  onLogin: (user: User) => void;
+  onSwitchToRegister: () => void;
+};
+
+export default function LoginForm({ onLogin, onSwitchToRegister }: Props) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim()) {
+      setError("Bitte eine E-Mail-Adresse eingeben.");
+      return;
+    }
+
+    // Kein Passwort, keine Überprüfung — einfach einloggen
+    onLogin({ name: email.split("@")[0], email });
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">
+        Willkommen zurück
+      </h1>
+      <p className="text-zinc-500 dark:text-zinc-400 mb-8 text-sm">
+        Gib deine E-Mail-Adresse ein, um fortzufahren.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            E-Mail-Adresse
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="du@beispiel.de"
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2"
+        >
+          Anmelden
+        </button>
+      </form>
+
+      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
+        Noch kein Konto?{" "}
+        <button
+          onClick={onSwitchToRegister}
+          className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
+        >
+          Registrieren
+        </button>
+      </p>
+    </div>
+  );
+}
