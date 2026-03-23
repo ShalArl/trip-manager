@@ -1,20 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { components } from "@/generated/types";
 import { User } from "@/types/user";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 
-
 type AuthMode = "login" | "register";
-type CreateUserRequest = components["schemas"]["CreateUserRequest"];
-type LoginRequest = components["schemas"]["LoginRequest"];
-
 
 type Props = {
-  onLoginAction: (loginRequest: LoginRequest) => void;
-  onRegisterAction: (createUserRequest: CreateUserRequest) => void;
+  onAuth: (user: User) => void;
 };
 
 const BRAND_FEATURES = [
@@ -23,7 +17,7 @@ const BRAND_FEATURES = [
   { emoji: "🪙", text: "Budget-Tracking" },
 ];
 
-export default function AuthPage({ onLoginAction, onRegisterAction }: Props) {
+export default function AuthPage({ onAuth }: Props) {
   const [mode, setMode] = useState<AuthMode>("login");
 
   return (
@@ -79,13 +73,13 @@ export default function AuthPage({ onLoginAction, onRegisterAction }: Props) {
 
           {mode === "login" ? (
             <LoginForm
-              onLoginAction={onLoginAction}
-              onSwitchToRegisterAction={() => setMode("register")}
+              onLogin={onAuth}
+              onSwitchToRegister={() => setMode("register")}
             />
           ) : (
             <RegisterForm
-              onRegisterAction={onRegisterAction}
-              onSwitchToLoginAction={() => setMode("login")}
+              onRegister={onAuth}
+              onSwitchToLogin={() => setMode("login")}
             />
           )}
         </div>

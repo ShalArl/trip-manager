@@ -1,31 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { components } from "@/generated/types";
-
-type LoginRequest = components["schemas"]["LoginRequest"];
+import { User } from "@/types/user";
 
 type Props = {
-  onLoginAction: (loginRequest: LoginRequest) => void;
-  onSwitchToRegisterAction: () => void;
+  onLogin: (user: User) => void;
+  onSwitchToRegister: () => void;
 };
 
-export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: Props) {
+export default function LoginForm({ onLogin, onSwitchToRegister }: Props) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Bitte alle Felder ausfüllen.");
+    if (!email.trim()) {
+      setError("Bitte eine E-Mail-Adresse eingeben.");
       return;
     }
 
     // Kein Passwort, keine Überprüfung — einfach einloggen
-    onLoginAction({ email, password });
+    onLogin({ name: email.split("@")[0], email });
   }
 
   return (
@@ -50,18 +47,6 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
             className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-            Passwort
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
-          />
-        </div>
 
         {error && (
           <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3">
@@ -80,7 +65,7 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
       <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
         Noch kein Konto?{" "}
         <button
-          onClick={onSwitchToRegisterAction}
+          onClick={onSwitchToRegister}
           className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
         >
           Registrieren

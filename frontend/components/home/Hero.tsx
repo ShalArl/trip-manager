@@ -1,6 +1,8 @@
-import Link from "next/link";
+type Props = {
+  onCTA: () => void;
+};
 
-export default function Hero() {
+export default function Hero({ onCTA }: Props) {
   return (
     <header className="bg-white dark:bg-black border-b border-zinc-100 dark:border-zinc-900 py-24">
       <div className="mx-auto max-w-4xl px-6 text-center flex flex-col items-center">
@@ -14,12 +16,12 @@ export default function Hero() {
         <p className="mb-10 max-w-2xl text-xl leading-relaxed text-zinc-500 dark:text-zinc-400">
           Organisiere deine Trips, erstelle Packlisten und behalte dein Budget im Griff.
         </p>
-        <Link
-          href="/trips/new"
-          className="h-14 rounded-2xl bg-sky-600 px-12 font-semibold text-white hover:bg-sky-700 active:scale-[0.98] transition-all shadow-lg shadow-sky-500/25 text-base inline-flex items-center"
+        <button
+          onClick={onCTA}
+          className="h-14 rounded-2xl bg-sky-600 px-12 font-semibold text-white hover:bg-sky-700 active:scale-[0.98] transition-all shadow-lg shadow-sky-500/25 text-base"
         >
-          Reise planen
-        </Link>
+          Erste Reise planen
+        </button>
       </div>
     </header>
   );

@@ -2,22 +2,18 @@
 
 import { useState } from "react";
 import { User } from "@/types/user";
-import { components } from "@/generated/types";
-
-type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 
 type Props = {
-  onRegisterAction: (createUserRequest: CreateUserRequest) => void;
-  onSwitchToLoginAction: () => void;
+  onRegister: (user: User) => void;
+  onSwitchToLogin: () => void;
 };
 
-export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }: Props) {
+export default function RegisterForm({ onRegister, onSwitchToLogin }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("")
   const [error, setError] = useState("");
 
-  function handleSubmit(e: React.SyntheticEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -26,21 +22,8 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
       return;
     }
 
-    if (password.length < 8) {
-      setError("Passwort muss mindestens 8 Zeichen lang sein.");
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setError("Passwort muss mindestens einen Großbuchstaben enthalten.");
-      return;
-    }
-    if (!/[0-9]/.test(password)) {
-      setError("Passwort muss mindestens eine Zahl enthalten.");
-      return;
-    }
-
     // Kein Passwort, keine Überprüfung — direkt registrieren
-    onRegisterAction({ name, email, password });
+    onRegister({ name, email });
   }
 
   return (
@@ -79,19 +62,6 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-            Passwort
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
-          />
-        </div>
-
         {error && (
           <p className="text-sm text-red-500 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3">
             {error}
@@ -109,7 +79,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
       <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
         Bereits registriert?{" "}
         <button
-          onClick={onSwitchToLoginAction}
+          onClick={onSwitchToLogin}
           className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
         >
           Anmelden
