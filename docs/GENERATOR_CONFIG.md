@@ -182,7 +182,9 @@ func (h *Handler) ListTrips(ctx context.Context, params generated.ListTripsParam
 **Frontend service layer:**
 ```typescript
 // frontend/src/api/trips.ts
-import { TripsApi, Trip, CreateTripRequest } from '@/generated'
+import type { Trip, CreateTripRequest, ListTripsParams } from '@/generated/types'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 export async function listTrips(params?: ListTripsParams) {
   const query = new URLSearchParams()
@@ -357,8 +359,6 @@ pnpm add -D openapi-typescript@latest
 
 ### Installing New Tools
 
-If you modify generators, ensure tools are installed:
-
 ```bash
 # Update pnpm/Node packages
 pnpm install
@@ -375,6 +375,7 @@ go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
 The script now creates directories automatically with `mkdir -p`:
 ```json
+"gen:ts": "mkdir -p ./frontend/src/generated && openapi-typescript ...",
 "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ... && oapi-codegen ..."
 ```
 
@@ -384,12 +385,11 @@ mkdir -p backend/internal/generated frontend/src/generated
 pnpm gen
 ```
 
-### Generated Code Not Updated
+### "Cannot find module openapi-typescript"
 
-Clear Turbo cache:
+Ensure packages are installed:
 ```bash
-turbo prune --docker --scope=backend --scope=frontend
-pnpm gen
+pnpm install
 ```
 
 ### Generated Files Not Updated
@@ -397,15 +397,15 @@ pnpm gen
 Clear and regenerate:
 ```bash
 pnpm clean
-pnpm gen
+pnpm gen:ts
 ```
 
-### "Cannot find module" Errors in Frontend
+### OpenAPI YAML Syntax Errors
 
-Ensure packages are installed:
+Validate your spec:
 ```bash
-cd frontend
-pnpm install
+# Using openapi-typescript's built-in validation
+pnpm gen:ts
 ```
 
 If you see parsing errors, check:
@@ -473,7 +473,7 @@ Added automatically by `go mod tidy` after generation.
 
 ## References
 
-- [OpenAPI Generator - TypeScript Fetch](https://openapi-generator.tech/docs/generators/typescript-fetch/)
+- [openapi-typescript Documentation](https://openapi-ts.dev/)
 - [oapi-codegen - Go Code Generator](https://github.com/oapi-codegen/oapi-codegen)
 - [OpenAPI 3.0 Specification](https://spec.openapis.org/oas/v3.0.3)
 - [Chi Router Documentation](https://github.com/go-chi/chi)
