@@ -5,11 +5,17 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,go,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,go,md}\"",
+    "gen": "turbo run gen",
+    "gen:ts": "openapi-generator-cli generate -i ./api-spec/openapi.yaml -g typescript-fetch -o ./frontend/src/generated --additional-properties=npmName=trip-manager-api,npmVersion=1.0.0",
+    "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/* && oapi-codegen -generate types -package api ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
+    "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/src/generated/{src,docs,.openapi-generator} ./frontend/src/generated/{*.json,*.md}"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
-    "prettier": "latest"
+    "prettier": "latest",
+    "@openapitools/openapi-generator-cli": "^2.13.0",
+    "openapi-typescript": "^6.7.5"
   },
   "packageManager": "pnpm@9.0.0"
 }

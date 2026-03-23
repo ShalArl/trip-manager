@@ -1,5 +1,4 @@
 # Trip Manager
----
 
 Developed for Cloud Application Development @HTWG Konstanz in SS26.
 
@@ -9,15 +8,66 @@ The trips should be managed as a list, which can be accessed and modified
 
 ---
 
-## Technologies:
+## Quick Start
 
-### Frontend:
-- NextJS (React)
+```bash
+# Install & generate code
+pnpm install
+pnpm gen
 
-### Backend:
-- Go
+# Start development
+pnpm dev
+```
+
+👉 **[Full Setup Guide →](./SETUP.md)**
 
 ---
+
+## Technologies
+
+### Frontend
+- **Next.js** (React + TypeScript)
+- Auto-generated types from OpenAPI spec
+
+### Backend
+- **Go** (1.21+)
+- Auto-generated server code from OpenAPI spec
+
+### API Specification
+- **OpenAPI 3.0.0** (`api-spec/openapi.yaml`)
+- Shared contract between frontend & backend
+
+---
+
+## Project Structure
+
+```
+trip-manager
+├─ api-spec/           # OpenAPI specification (source of truth)
+├─ frontend/           # Next.js app (auto-generated types in src/generated/)
+├─ backend/            # Go API server (auto-generated code in internal/api/)
+├─ docs/               # Documentation
+├─ package.json        # pnpm workspace config
+├─ pnpm-workspace.yaml # Monorepo definition
+├─ turbo.json          # Build tasks
+└─ SETUP.md            # Detailed setup guide
+```
+
+---
+
+## Code Generation
+
+When `api-spec/openapi.yaml` changes, regenerate:
+
+```bash
+pnpm gen
+```
+
+This updates:
+- `frontend/src/generated/types.ts` (TypeScript)
+- `backend/internal/api/generated.go` (Go)
+
+Turbo automatically invalidates cache on spec changes.
 
 Developed by
 

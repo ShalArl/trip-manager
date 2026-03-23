@@ -16,6 +16,12 @@
     "test": {
       "outputs": ["coverage/**"],
       "inputs": ["src/**", "app/**", "test/**", "*.go"]
+    },
+    "gen": {
+      "description": "Generate API client/server code from OpenAPI spec",
+      "inputs": ["api-spec/openapi.yaml"],
+      "outputs": ["backend/internal/api/generated.go", "frontend/src/generated/**"],
+      "cache": false
     }
   }
 }
