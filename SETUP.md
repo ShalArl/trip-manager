@@ -3,11 +3,7 @@
 ## Prerequisites
 
 - **Node.js** 18+ & pnpm 9.0.0+
-<<<<<<< HEAD
 - **Go** 1.24+ (für Backend)
-=======
-- **Go** 1.21+ (für Backend)
->>>>>>> 237f655 (Implement codegen based on openapi spec)
 - **Docker** (optional, für Containerisierung)
 
 ## Quick Start
@@ -31,13 +27,8 @@ pnpm gen
 ```
 
 This auto-generates:
-<<<<<<< HEAD
 - **TypeScript types** → files in `frontend/src/generated/`
 - **Go server code** → `backend/internal/generated/models.go`
-=======
-- **TypeScript types** → `frontend/src/generated/types.ts`
-- **Go server code** → `backend/internal/api/generated.go`
->>>>>>> 237f655 (Implement codegen based on openapi spec)
 
 ### 3. Start Development
 
@@ -77,15 +68,9 @@ pnpm build      # Production build
 pnpm lint       # Run ESLint
 ```
 
-<<<<<<< HEAD
 **Generated Types** (`frontend/src/generated/types.ts`):
 - Auto-generated TypeScript interfaces from OpenAPI spec
 - Use directly in your API service layer (build your own fetch wrapper)
-=======
-**Generated API Client** (`frontend/src/generated/types.ts`):
-- Auto-generated TypeScript types from OpenAPI spec
-- Use directly in API service layer
->>>>>>> 237f655 (Implement codegen based on openapi spec)
 
 ### Backend Development
 
@@ -96,7 +81,6 @@ go test ./...      # Run tests
 go mod tidy        # Manage dependencies
 ```
 
-<<<<<<< HEAD
 **Generated Models** (`backend/internal/generated/models.go`):
 - Auto-generated Go structs from OpenAPI spec
 - Import and use directly in your handlers
@@ -125,29 +109,6 @@ pnpm gen
 pnpm gen:ts   # TypeScript types only
 pnpm gen:go   # Go models only
 ```
-=======
-**Generated Server Code** (`backend/internal/api/generated.go`):
-- Auto-generated Go types & HTTP client
-- Implement interfaces as needed
-
----
-
-## Local Setup for Go Code Generation
-
-### Option 1: Using oapi-codegen (Recommended)
-
-```bash
-# Install oapi-codegen globally
-go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
-
-# Generate Go code
-pnpm gen:go
-```
-
-### Option 2: Using openapi-generator-cli
-
-Already included in `package.json`. No additional setup needed.
->>>>>>> 237f655 (Implement codegen based on openapi spec)
 
 ---
 
@@ -218,7 +179,6 @@ Reinstall dependencies if code generators are missing.
 ### Generated files not updating
 
 ```bash
-<<<<<<< HEAD
 # Clean generated files and regenerate
 pnpm clean
 pnpm gen
@@ -227,16 +187,6 @@ pnpm gen
 ### "oapi-codegen: not found"
 
 Ensure oapi-codegen is installed globally:
-=======
-# Clear Turbo cache and regenerate
-rm -rf .turbo
-pnpm gen
-```
-
-### Go code generation fails
-
-Ensure `oapi-codegen` is installed:
->>>>>>> 237f655 (Implement codegen based on openapi spec)
 ```bash
 go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 which oapi-codegen  # Verify installation
