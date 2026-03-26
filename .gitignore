@@ -36,7 +36,7 @@ node_modules/
 
 # Generated API code - ignore contents but track config files
 # Frontend
-frontend/src/generated/*
+frontend/generated/*
 
 # Backend
 backend/internal/generated/

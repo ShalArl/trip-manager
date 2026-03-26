@@ -10,9 +10,6 @@ RUN npm install -g pnpm@9.0.0
 # Copy monorepo files
 COPY . .
 
-# Install dependencies (needed for code generation)
-RUN CI=true pnpm install --frozen-lockfile
-
 # Install oapi-codegen (Go tool for code generation)
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
