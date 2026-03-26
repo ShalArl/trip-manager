@@ -19,20 +19,17 @@ RUN pnpm gen:ts
 WORKDIR /app/frontend
 RUN pnpm build
 
+# Deploy production dependencies using workspace root lockfile
+WORKDIR /app
+RUN pnpm --filter frontend deploy --prod /deploy
+
 # Runtime stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install pnpm in runtime
-RUN npm install -g pnpm@9.0.0
-
-# Copy package files
-COPY --from=builder /app/frontend/package.json .
-COPY --from=builder /app/frontend/pnpm-lock.yaml .
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Copy production dependencies (resolved from workspace root lockfile via pnpm deploy)
+COPY --from=builder /deploy .
 
 # Copy built application and public assets
 COPY --from=builder /app/frontend/.next ./.next
@@ -40,4 +37,4 @@ COPY --from=builder /app/frontend/public ./public
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["node_modules/.bin/next", "start"]
