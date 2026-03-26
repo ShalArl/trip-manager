@@ -69,6 +69,8 @@ This updates:
 
 Turbo automatically invalidates cache on spec changes.
 
+---
+
 Developed by
 
-Arlind Shala & André Königer
+Arlind Shala, André Königer & Reyhan Karamahmut

@@ -121,8 +121,8 @@ trip-manager/
 │   └── README.md         # API documentation
 │
 ├── frontend/             # Next.js TypeScript app
+│   ├── generated/        # Auto-generated from openapi.yaml
 │   ├── src/
-│   │   ├── generated/    # Auto-generated from openapi.yaml
 │   │   ├── app/          # Next.js app directory
 │   │   └── components/   # React components
 │   └── package.json
