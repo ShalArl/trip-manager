@@ -1,0 +1,494 @@
+openapi: 3.0.0
+info:
+  title: Trip Manager API
+  description: API for managing trips, locations, and travel itineraries
+  version: 1.0.0
+  contact:
+    name: Trip Manager Team
+
+servers:
+  - url: http://localhost:8000/api
+    description: Development server
+  - url: https://api.trip-manager.com
+    description: Production server
+
+paths:
+  /trips:
+    get:
+      summary: List all trips
+      operationId: listTrips
+      tags:
+        - Trips
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trip'
+                  total:
+                    type: integer
+
+    post:
+      summary: Create a new trip
+      operationId: createTrip
+      tags:
+        - Trips
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripRequest'
+      responses:
+        '201':
+          description: Trip created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          description: Invalid input
+
+  /trips/{tripId}:
+    get:
+      summary: Get trip details
+      operationId: getTrip
+      tags:
+        - Trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '404':
+          description: Trip not found
+
+    put:
+      summary: Update trip
+      operationId: updateTrip
+      tags:
+        - Trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripRequest'
+      responses:
+        '200':
+          description: Trip updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+
+    delete:
+      summary: Delete trip
+      operationId: deleteTrip
+      tags:
+        - Trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trip deleted
+
+  /trips/{tripId}/locations:
+    get:
+      summary: List trip locations
+      operationId: listLocations
+      tags:
+        - Locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+
+    post:
+      summary: Add location to trip
+      operationId: addLocation
+      tags:
+        - Locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
+      responses:
+        '201':
+          description: Location added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+
+  /trips/{tripId}/locations/{locationId}:
+    delete:
+      summary: Remove location from trip
+      operationId: deleteLocation
+      tags:
+        - Locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Location removed
+
+  /trips/{tripId}/activities:
+    get:
+      summary: List trip activities
+      operationId: listActivities
+      tags:
+        - Activities
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+
+    post:
+      summary: Add activity to trip
+      operationId: addActivity
+      tags:
+        - Activities
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          description: Activity added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+
+  /trips/{tripId}/activities/{activityId}:
+    put:
+      summary: Update activity
+      operationId: updateActivity
+      tags:
+        - Activities
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityRequest'
+      responses:
+        '200':
+          description: Activity updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+
+    delete:
+      summary: Delete activity
+      operationId: deleteActivity
+      tags:
+        - Activities
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Activity deleted
+
+components:
+  schemas:
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [planned, ongoing, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateTripRequest:
+      type: object
+      required:
+        - title
+        - startDate
+        - endDate
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+
+    UpdateTripRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [planned, ongoing, completed, cancelled]
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string
+        sequence:
+          type: integer
+          description: Visit sequence number
+
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+        - city
+        - country
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        notes:
+          type: string
+        sequence:
+          type: integer
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        locationId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum: [sightseeing, dining, transport, accommodation, other]
+        cost:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: USD
+
+    CreateActivityRequest:
+      type: object
+      required:
+        - name
+        - date
+        - locationId
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        locationId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum: [sightseeing, dining, transport, accommodation, other]
+        cost:
+          type: number
+        currency:
+          type: string
+
+    UpdateActivityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        locationId:
+          type: string
+          format: uuid
+        category:
+          type: string
+        cost:
+          type: number
+        currency:
+          type: string

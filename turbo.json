@@ -1,0 +1,27 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "bin/**"],
+      "inputs": ["api-spec/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "app/**", "test/**", "*.go"]
+    },
+    "gen": {
+      "description": "Generate API client/server code from OpenAPI spec",
+      "inputs": ["api-spec/openapi.yaml"],
+      "outputs": ["internal/generated/models.go", "src/generated/types.ts"],
+      "cache": true
+    }
+  }
+}
