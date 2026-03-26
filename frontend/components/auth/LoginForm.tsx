@@ -4,11 +4,11 @@ import { useState } from "react";
 import { User } from "@/types/user";
 
 type Props = {
-  onLogin: (user: User) => void;
-  onSwitchToRegister: () => void;
+  onLoginAction: (user: User) => void;
+  onSwitchToRegisterAction: () => void;
 };
 
-export default function LoginForm({ onLogin, onSwitchToRegister }: Props) {
+export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: Props) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
@@ -22,7 +22,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister }: Props) {
     }
 
     // Kein Passwort, keine Überprüfung — einfach einloggen
-    onLogin({ name: email.split("@")[0], email });
+    onLoginAction({ name: email.split("@")[0], email });
   }
 
   return (
@@ -65,7 +65,7 @@ export default function LoginForm({ onLogin, onSwitchToRegister }: Props) {
       <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
         Noch kein Konto?{" "}
         <button
-          onClick={onSwitchToRegister}
+          onClick={onSwitchToRegisterAction}
           className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
         >
           Registrieren

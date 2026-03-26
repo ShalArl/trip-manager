@@ -8,7 +8,7 @@ import RegisterForm from "./RegisterForm";
 type AuthMode = "login" | "register";
 
 type Props = {
-  onAuth: (user: User) => void;
+  onAuthAction: (user: User) => void;
 };
 
 const BRAND_FEATURES = [
@@ -17,7 +17,7 @@ const BRAND_FEATURES = [
   { emoji: "🪙", text: "Budget-Tracking" },
 ];
 
-export default function AuthPage({ onAuth }: Props) {
+export default function AuthPage({ onAuthAction }: Props) {
   const [mode, setMode] = useState<AuthMode>("login");
 
   return (
@@ -73,13 +73,13 @@ export default function AuthPage({ onAuth }: Props) {
 
           {mode === "login" ? (
             <LoginForm
-              onLogin={onAuth}
-              onSwitchToRegister={() => setMode("register")}
+              onLoginAction={onAuthAction}
+              onSwitchToRegisterAction={() => setMode("register")}
             />
           ) : (
             <RegisterForm
-              onRegister={onAuth}
-              onSwitchToLogin={() => setMode("login")}
+              onRegisterAction={onAuthAction}
+              onSwitchToLoginAction={() => setMode("login")}
             />
           )}
         </div>
