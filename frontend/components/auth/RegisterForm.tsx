@@ -4,16 +4,16 @@ import { useState } from "react";
 import { User } from "@/types/user";
 
 type Props = {
-  onRegister: (user: User) => void;
-  onSwitchToLogin: () => void;
+  onRegisterAction: (user: User) => void;
+  onSwitchToLoginAction: () => void;
 };
 
-export default function RegisterForm({ onRegister, onSwitchToLogin }: Props) {
+export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     setError("");
 
@@ -23,7 +23,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin }: Props) {
     }
 
     // Kein Passwort, keine Überprüfung — direkt registrieren
-    onRegister({ name, email });
+    onRegisterAction({ name, email });
   }
 
   return (
@@ -79,7 +79,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin }: Props) {
       <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-6">
         Bereits registriert?{" "}
         <button
-          onClick={onSwitchToLogin}
+          onClick={onSwitchToLoginAction}
           className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
         >
           Anmelden
