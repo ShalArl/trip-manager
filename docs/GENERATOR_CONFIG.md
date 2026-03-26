@@ -4,7 +4,7 @@
 
 This project uses **two specialized code generators** to automatically generate API types from the OpenAPI specification:
 
-- **TypeScript Frontend:** `@openapitools/openapi-generator-cli` (typescript-fetch)
+- **TypeScript Frontend:** `openapi-typescript` (types-only)
 - **Go Backend:** `oapi-codegen` (types-only generation)
 
 Generation is orchestrated via **Turbo** for caching and parallel execution across workspaces.
@@ -44,9 +44,9 @@ Current resources:
 {
   "scripts": {
     "gen": "turbo run gen",
-    "gen:ts": "openapi-generator-cli generate -i ./api-spec/openapi.yaml -g typescript-fetch -o ./frontend/src/generated --additional-properties=npmName=trip-manager-api,npmVersion=1.0.0",
-    "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/* && oapi-codegen -generate types -package api ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
-    "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/src/generated/{src,docs,.openapi-generator} ./frontend/src/generated/{*.json,*.md}"
+    "gen:ts": "mkdir -p ./frontend/src/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/src/generated/types.ts",
+    "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen -generate types -package api ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
+    "clean": "rm -rf ./frontend/src/generated/types.ts ./backend/internal/generated/models.go"
   }
 }
 ```
@@ -55,26 +55,23 @@ Current resources:
 
 ## Generator Tools
 
-### TypeScript: OpenAPI Generator CLI
+### TypeScript: openapi-typescript
 
-**Tool:** `@openapitools/openapi-generator-cli` v2.13.0  
-**Generator:** `typescript-fetch`  
-**Output:** `frontend/src/generated/`
+**Tool:** `openapi-typescript` v6.7.5
+**Mode:** Types-only generation (no HTTP client)
+**Output:** `frontend/src/generated/types.ts`
 
 **Generates:**
 - TypeScript interfaces for all data models
-- Fetch-based API client classes
-- API documentation markdown
+- Type definitions for all API operations
 
 **Configuration:**
 - Input: `./api-spec/openapi.yaml`
-- Package name: `trip-manager-api`
-- Version: `1.0.0`
 
 ### Go: oapi-codegen
 
-**Tool:** `github.com/oapi-codegen/oapi-codegen/v2`  
-**Mode:** `-generate types` (models-only)  
+**Tool:** `github.com/oapi-codegen/oapi-codegen/v2`
+**Mode:** `-generate types` (models-only)
 **Output:** `backend/internal/generated/models.go`
 
 **Generates:**
@@ -97,30 +94,21 @@ Current resources:
 
 ```
 frontend/src/generated/
-├── .openapi-generator-ignore      # Tracked by git
-├── .openapi-generator/            # Ignored by git (metadata)
-├── src/
-│   ├── models/                    # Ignored by git
-│   │   ├── Activity.ts
-│   │   ├── Trip.ts
-│   │   ├── Location.ts
-│   │   └── ...
-│   ├── apis/                      # Ignored by git
-│   │   ├── ActivitiesApi.ts
-│   │   ├── TripsApi.ts
-│   │   └── LocationsApi.ts
-│   ├── index.ts                   # Ignored by git
-│   └── runtime.ts                 # Ignored by git
-├── docs/                          # Ignored by git
-├── package.json                   # Ignored by git
-└── tsconfig.json                  # Ignored by git
+└── types.ts                       # Ignored by git
+    ├── Trip interface
+    ├── Activity interface
+    ├── Location interface
+    ├── CreateTripRequest interface
+    ├── CreateActivityRequest interface
+    ├── ActivityCategory type
+    ├── TripStatus type
+    └── ... (all types)
 ```
 
 ### Backend (Go)
 
 ```
 backend/internal/generated/
-├── .openapi-generator-ignore      # Tracked by git
 └── models.go                       # Ignored by git
     ├── Activity struct
     ├── Trip struct
@@ -196,10 +184,24 @@ func (h *Handler) ListTrips(ctx context.Context, params generated.ListTripsParam
 // frontend/src/api/trips.ts
 import { TripsApi, Trip, CreateTripRequest } from '@/generated'
 
-export const tripsApi = new TripsApi(config)
+export async function listTrips(params?: ListTripsParams) {
+  const query = new URLSearchParams()
+  if (params?.limit) query.append('limit', String(params.limit))
+  if (params?.offset) query.append('offset', String(params.offset))
 
-export async function listTrips(limit?: number) {
-    return await tripsApi.listTrips(limit)
+  const response = await fetch(`${API_BASE}/trips?${query}`)
+  if (!response.ok) throw new Error(`Failed to fetch trips: ${response.statusText}`)
+  return response.json() as Promise<Trip[]>
+}
+
+export async function createTrip(req: CreateTripRequest) {
+  const response = await fetch(`${API_BASE}/trips`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!response.ok) throw new Error(`Failed to create trip: ${response.statusText}`)
+  return response.json() as Promise<Trip>
 }
 ```
 
@@ -209,32 +211,28 @@ export async function listTrips(limit?: number) {
 
 ### What's Committed
 
-**Config files only:**
+**Nothing from generated directories** - all generated code is in `.gitignore`:
+```gitignore
+/frontend/src/generated/types.ts
+/backend/internal/generated/models.go
 ```
-frontend/src/generated/.openapi-generator-ignore
-backend/internal/generated/.openapi-generator-ignore
-```
-
-These are tracked to preserve generator configuration.
 
 ### What's Ignored
 
-**Generated code directories:**
+**Generated code files:**
 ```gitignore
 # Ignore generated files in frontend
-/frontend/src/generated/*
-!/frontend/src/generated/.openapi-generator-ignore
+/frontend/src/generated/types.ts
 
 # Ignore generated files in backend
-/backend/internal/generated/*
-!/backend/internal/generated/.openapi-generator-ignore
+/backend/internal/generated/models.go
 ```
 
 **Benefits:**
-- ✅ Config files are version controlled
-- ✅ Generated code is not committed (clean repo)
+- ✅ Generated code is never committed (clean repo)
 - ✅ New clones regenerate: `pnpm install && pnpm gen && pnpm build`
 - ✅ No merge conflicts on generation changes
+- ✅ Smaller git history
 
 ---
 
@@ -304,11 +302,16 @@ http.ListenAndServe(":8080", r)
 
 Update `frontend/src/api/trips.ts`:
 ```typescript
-import { TripsApi } from '@/generated'
+import type { Comment } from '@/generated/types'
 
 export async function addComment(tripId: string, text: string) {
-    const api = new TripsApi(config)
-    return await api.addComment(tripId, { text })
+    const response = await fetch(`/api/trips/${tripId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+    })
+    if (!response.ok) throw new Error('Failed to add comment')
+    return response.json() as Promise<Comment>
 }
 ```
 
@@ -330,33 +333,27 @@ git commit -m "feat: add comment endpoint"
 
 ## Cleaning Generated Code
 
-To remove all generated files (keeping config):
+To remove all generated files:
 
 ```bash
 pnpm clean
 ```
 
 This removes:
-- All `.go` files from `backend/internal/generated/`
-- `src/`, `docs/`, `.openapi-generator/` from `frontend/src/generated/`
-- Generated JSON and Markdown files
+- `backend/internal/generated/models.go`
+- `frontend/src/generated/types.ts`
 
-Config files (`.openapi-generator-ignore`) are preserved.
+Run `pnpm gen` to regenerate them.
 
 ---
 
 ## Changing Generators or Configuration
 
-### Using Different TypeScript Generator
+### Upgrading openapi-typescript
 
-Edit `package.json`:
-```json
-{
-  "gen:ts": "openapi-generator-cli generate -i ./api-spec/openapi.yaml -g typescript-axios ..."
-}
+```bash
+pnpm add -D openapi-typescript@latest
 ```
-
-Options: `typescript-fetch` (default), `typescript-axios`, `typescript-fetch-api`
 
 ### Installing New Tools
 
@@ -395,7 +392,9 @@ turbo prune --docker --scope=backend --scope=frontend
 pnpm gen
 ```
 
-Or force regeneration:
+### Generated Files Not Updated
+
+Clear and regenerate:
 ```bash
 pnpm clean
 pnpm gen
@@ -408,6 +407,11 @@ Ensure packages are installed:
 cd frontend
 pnpm install
 ```
+
+If you see parsing errors, check:
+- YAML indentation (must be 2 spaces)
+- Schema definitions under `components.schemas`
+- Path definitions have proper operationId
 
 ### Go Compilation Errors
 
@@ -426,9 +430,17 @@ cat backend/go.mod
 # Should be: module github.com/ShalArl/trip-manager
 ```
 
-Generated code imports from this module:
+Generated code imports from:
 ```go
 import "github.com/oapi-codegen/runtime/types"
+```
+
+### "oapi-codegen: not found"
+
+Ensure oapi-codegen is installed globally:
+```bash
+go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+which oapi-codegen  # Verify installation
 ```
 
 ---
@@ -441,7 +453,6 @@ import "github.com/oapi-codegen/runtime/types"
 {
   "devDependencies": {
     "turbo": "^2.0.0",
-    "@openapitools/openapi-generator-cli": "^2.13.0",
     "openapi-typescript": "^6.7.5",
     "prettier": "latest"
   }

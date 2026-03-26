@@ -7,7 +7,7 @@ info:
     name: Trip Manager Team
 
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:8000/api
     description: Development server
   - url: https://api.trip-manager.com
     description: Production server
@@ -458,6 +458,7 @@ components:
           format: time
         locationId:
           type: string
+          format: uuid
         category:
           type: string
           enum: [sightseeing, dining, transport, accommodation, other]
@@ -484,6 +485,7 @@ components:
           format: time
         locationId:
           type: string
+          format: uuid
         category:
           type: string
         cost:

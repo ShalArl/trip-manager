@@ -65,7 +65,7 @@ pnpm gen
 
 This updates:
 - `frontend/src/generated/types.ts` (TypeScript)
-- `backend/internal/api/generated.go` (Go)
+- `backend/internal/generated/models.go` (Go)
 
 Turbo automatically invalidates cache on spec changes.
 

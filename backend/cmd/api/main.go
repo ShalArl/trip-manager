@@ -34,11 +34,14 @@ func main() {
 
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		if _, err := w.Write([]byte(`{"status":"ok"}`)); err != nil {
+			log.Printf("Error writing health check response: %v", err)
+		}
 	})
 
-	port := ":8081"
+	port := ":8080"
 	fmt.Printf("🚀 Server starting on http://localhost%s\n", port)
 	if err := http.ListenAndServe(port, r); err != nil {
 		log.Fatalf("Server error: %v", err)
