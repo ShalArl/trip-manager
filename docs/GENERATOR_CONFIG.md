@@ -44,9 +44,9 @@ Current resources:
 {
   "scripts": {
     "gen": "turbo run gen",
-    "gen:ts": "mkdir -p ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
+    "gen:ts": "mkdir -p ./frontend/src/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/src/generated/types.ts",
     "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen -generate types -package api ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
-    "clean": "rm -rf ./frontend/generated/types.ts ./backend/internal/generated/models.go"
+    "clean": "rm -rf ./frontend/src/generated/types.ts ./backend/internal/generated/models.go"
   }
 }
 ```
@@ -59,7 +59,7 @@ Current resources:
 
 **Tool:** `openapi-typescript` v6.7.5
 **Mode:** Types-only generation (no HTTP client)
-**Output:** `frontend/generated/types.ts`
+**Output:** `frontend/src/generated/types.ts`
 
 **Generates:**
 - TypeScript interfaces for all data models
@@ -80,6 +80,12 @@ Current resources:
 - Enum types with validation methods
 - Parameter types (ListTripsParams, etc.)
 
+**Why models-only?**
+- Clean separation: Generated code = data types only
+- No HTTP scaffolding or client code
+- You control routing via Chi router in `backend/cmd/api/main.go`
+- Flexible: Handlers can be implemented independently
+
 ---
 
 ## Generated Code Structure
@@ -87,7 +93,7 @@ Current resources:
 ### Frontend (TypeScript)
 
 ```
-frontend/generated/
+frontend/src/generated/
 └── types.ts                       # Ignored by git
     ├── Trip interface
     ├── Activity interface
@@ -175,10 +181,8 @@ func (h *Handler) ListTrips(ctx context.Context, params generated.ListTripsParam
 
 **Frontend service layer:**
 ```typescript
-// frontend/api/trips.ts
-import type { Trip, CreateTripRequest, ListTripsParams } from '@/generated/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// frontend/src/api/trips.ts
+import { TripsApi, Trip, CreateTripRequest } from '@/generated'
 
 export async function listTrips(params?: ListTripsParams) {
   const query = new URLSearchParams()
@@ -209,7 +213,7 @@ export async function createTrip(req: CreateTripRequest) {
 
 **Nothing from generated directories** - all generated code is in `.gitignore`:
 ```gitignore
-/frontend/generated/types.ts
+/frontend/src/generated/types.ts
 /backend/internal/generated/models.go
 ```
 
@@ -218,7 +222,7 @@ export async function createTrip(req: CreateTripRequest) {
 **Generated code files:**
 ```gitignore
 # Ignore generated files in frontend
-/frontend/generated/types.ts
+/frontend/src/generated/types.ts
 
 # Ignore generated files in backend
 /backend/internal/generated/models.go
@@ -263,7 +267,7 @@ pnpm gen
 ```
 
 This generates:
-- New TypeScript types in `frontend/generated/types.ts`
+- New TypeScript types in `frontend/src/generated/`
 - New Go models in `backend/internal/generated/models.go`
 
 ### 3. Implement Backend Handlers
@@ -291,12 +295,12 @@ r := chi.NewRouter()
 h := handlers.NewHandler(db, logger)
 r.Post("/trips/{tripId}/comments", h.AddComment)
 
-http.ListenAndServe(":8000", r)
+http.ListenAndServe(":8080", r)
 ```
 
 ### 5. Use in Frontend
 
-Create `frontend/api/trips.ts`:
+Update `frontend/src/api/trips.ts`:
 ```typescript
 import type { Comment } from '@/generated/types'
 
@@ -321,7 +325,7 @@ pnpm gen
 pnpm build
 
 # Commit your custom code (generated files are ignored)
-git add backend/internal/handlers/ frontend/api/
+git add backend/internal/handlers/ frontend/src/api/
 git commit -m "feat: add comment endpoint"
 ```
 
@@ -337,7 +341,7 @@ pnpm clean
 
 This removes:
 - `backend/internal/generated/models.go`
-- `frontend/generated/types.ts`
+- `frontend/src/generated/types.ts`
 
 Run `pnpm gen` to regenerate them.
 
@@ -352,6 +356,8 @@ pnpm add -D openapi-typescript@latest
 ```
 
 ### Installing New Tools
+
+If you modify generators, ensure tools are installed:
 
 ```bash
 # Update pnpm/Node packages
@@ -369,21 +375,21 @@ go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
 The script now creates directories automatically with `mkdir -p`:
 ```json
-"gen:ts": "mkdir -p ./frontend/generated && openapi-typescript ...",
 "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ... && oapi-codegen ..."
 ```
 
 If issue persists:
 ```bash
-mkdir -p backend/internal/generated frontend/generated
+mkdir -p backend/internal/generated frontend/src/generated
 pnpm gen
 ```
 
-### "Cannot find module openapi-typescript"
+### Generated Code Not Updated
 
-Ensure packages are installed:
+Clear Turbo cache:
 ```bash
-pnpm install
+turbo prune --docker --scope=backend --scope=frontend
+pnpm gen
 ```
 
 ### Generated Files Not Updated
@@ -391,15 +397,15 @@ pnpm install
 Clear and regenerate:
 ```bash
 pnpm clean
-pnpm gen:ts
+pnpm gen
 ```
 
-### OpenAPI YAML Syntax Errors
+### "Cannot find module" Errors in Frontend
 
-Validate your spec:
+Ensure packages are installed:
 ```bash
-# Using openapi-typescript's built-in validation
-pnpm gen:ts
+cd frontend
+pnpm install
 ```
 
 If you see parsing errors, check:
@@ -467,7 +473,7 @@ Added automatically by `go mod tidy` after generation.
 
 ## References
 
-- [openapi-typescript Documentation](https://openapi-ts.dev/)
+- [OpenAPI Generator - TypeScript Fetch](https://openapi-generator.tech/docs/generators/typescript-fetch/)
 - [oapi-codegen - Go Code Generator](https://github.com/oapi-codegen/oapi-codegen)
 - [OpenAPI 3.0 Specification](https://spec.openapis.org/oas/v3.0.3)
 - [Chi Router Documentation](https://github.com/go-chi/chi)

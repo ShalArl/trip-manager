@@ -20,7 +20,7 @@
     "gen": {
       "description": "Generate API client/server code from OpenAPI spec",
       "inputs": ["api-spec/openapi.yaml"],
-      "outputs": ["internal/generated/models.go", "generated/types.ts"],
+      "outputs": ["internal/generated/models.go", "src/generated/types.ts"],
       "cache": true
     }
   }

@@ -1,71 +1,10 @@
 # Setup & Development Guide
 
-## 🚀 Quick Start with Makefile
-
-### Fastest Way to Get Started
-
-```bash
-cd trip-manager
-
-# Automated setup: Docker + database + build
-make dev-setup
-
-# Start the server
-make run
-```
-
-### Available Makefile Commands
-
-```bash
-make help              # Show all commands
-make build             # Build the backend binary
-make run               # Build and run
-make run-dev           # Run with auto-reload
-make test              # Run tests
-make docker-up         # Start PostgreSQL
-make docker-down       # Stop PostgreSQL
-make clean             # Clean binaries
-```
-
-See `Makefile` for all 20+ commands!
-
----
-
-## ✅ Automatic Database Migrations
-
-**No manual migrations needed!** The server automatically runs all `.sql` files from `backend/migrations/` on startup:
-
-```bash
-make run
-# Output:
-# Found 1 migration files
-# Running migration: 001_init_schema.sql
-# ✓ Migration 001_init_schema.sql completed
-# All migrations completed successfully
-```
-
-### Adding New Migrations
-
-```bash
-# Create new migration file
-touch backend/migrations/002_my_migration.sql
-
-# Add your SQL
-# Write migration SQL (uses CREATE IF NOT EXISTS for safety)
-
-# Next server start automatically runs it!
-make run
-```
-
----
-
 ## Prerequisites
 
 - **Node.js** 18+ & pnpm 9.0.0+
 - **Go** 1.24+ (für Backend)
 - **Docker** (optional, für Containerisierung)
-
-## Traditional Setup (without Makefile)
 
 ## Quick Start
 
@@ -99,7 +38,7 @@ pnpm dev
 
 Starts all workspaces in parallel:
 - Frontend: Next.js dev server (localhost:3000)
-- Backend: Go server (localhost:8000)
+- Backend: Go server (localhost:8080)
 
 ---
 
@@ -182,8 +121,8 @@ trip-manager/
 │   └── README.md         # API documentation
 │
 ├── frontend/             # Next.js TypeScript app
-│   ├── generated/        # Auto-generated from openapi.yaml
 │   ├── src/
+│   │   ├── generated/    # Auto-generated from openapi.yaml
 │   │   ├── app/          # Next.js app directory
 │   │   └── components/   # React components
 │   └── package.json
@@ -256,7 +195,7 @@ which oapi-codegen  # Verify installation
 ### Port conflicts
 
 - Frontend default: `3000` (set `PORT=3001 pnpm dev` to override)
-- Backend default: `8000` (check `backend/cmd/api/main.go`)
+- Backend default: `8080` (check `backend/cmd/api/main.go`)
 
 ---
 

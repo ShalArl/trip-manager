@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Trip Manager API
   description: API for managing trips, locations, and travel itineraries
-  version: 3.0.0
+  version: 1.0.0
   contact:
     name: Trip Manager Team
 
@@ -12,127 +12,10 @@ servers:
   - url: https://api.trip-manager.com
     description: Production server
 
-security:
-  - bearerAuth: []
-
 paths:
-
-  # ─── Authentication ────────────────────────────────────────────────────────
-
-  /auth/register:
-    post:
-      summary: Register a new user
-      operationId: registerUser
-      tags:
-        - Auth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '201':
-          description: User registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Invalid input
-        '409':
-          description: Email already in use
-
-  /auth/login:
-    post:
-      summary: Login and receive a JWT
-      operationId: loginUser
-      tags:
-        - Auth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '401':
-          description: Invalid credentials
-
-  # ─── User Profile ──────────────────────────────────────────────────────────
-
-  /users/me:
-    get:
-      summary: Get current user profile
-      operationId: getMe
-      tags:
-        - Users
-      responses:
-        '200':
-          description: Current user profile
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          description: Unauthorized
-
-    put:
-      summary: Update current user profile
-      operationId: updateMe
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: Profile updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
-
-  /users/me/password:
-    put:
-      summary: Change current user password
-      operationId: changePassword
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
-      responses:
-        '204':
-          description: Password changed
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized or wrong current password
-
-  # ─── Trips ────────────────────────────────────────────────────────────────
-
   /trips:
     get:
-      summary: List all trips created by the current user
+      summary: List all trips
       operationId: listTrips
       tags:
         - Trips
@@ -149,13 +32,18 @@ paths:
             default: 0
       responses:
         '200':
-          description: Paginated list of trips
+          description: List of trips
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TripListResponse'
-        '401':
-          description: Unauthorized
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trip'
+                  total:
+                    type: integer
 
     post:
       summary: Create a new trip
@@ -174,11 +62,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TripResponse'
+                $ref: '#/components/schemas/Trip'
         '400':
           description: Invalid input
-        '401':
-          description: Unauthorized
 
   /trips/{tripId}:
     get:
@@ -198,11 +84,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TripResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden – trip belongs to another user
+                $ref: '#/components/schemas/Trip'
         '404':
           description: Trip not found
 
@@ -229,13 +111,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TripResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Trip not found
+                $ref: '#/components/schemas/Trip'
 
     delete:
       summary: Delete trip
@@ -251,14 +127,6 @@ paths:
       responses:
         '204':
           description: Trip deleted
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Trip not found
-
-  # ─── Locations ────────────────────────────────────────────────────────────
 
   /trips/{tripId}/locations:
     get:
@@ -272,27 +140,15 @@ paths:
           required: true
           schema:
             type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
       responses:
         '200':
-          description: Paginated list of locations
+          description: List of locations
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LocationListResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
 
     post:
       summary: Add location to trip
@@ -317,49 +173,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LocationResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+                $ref: '#/components/schemas/Location'
 
   /trips/{tripId}/locations/{locationId}:
-    put:
-      summary: Update location
-      operationId: updateLocation
-      tags:
-        - Locations
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: locationId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLocationRequest'
-      responses:
-        '200':
-          description: Location updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LocationResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Location not found
-
     delete:
       summary: Remove location from trip
       operationId: deleteLocation
@@ -379,14 +195,6 @@ paths:
       responses:
         '204':
           description: Location removed
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Location not found
-
-  # ─── Activities ───────────────────────────────────────────────────────────
 
   /trips/{tripId}/activities:
     get:
@@ -400,27 +208,15 @@ paths:
           required: true
           schema:
             type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
       responses:
         '200':
-          description: Paginated list of activities
+          description: List of activities
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ActivityListResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
 
     post:
       summary: Add activity to trip
@@ -445,11 +241,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ActivityResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+                $ref: '#/components/schemas/Activity'
 
   /trips/{tripId}/activities/{activityId}:
     put:
@@ -480,13 +272,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ActivityResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Activity not found
+                $ref: '#/components/schemas/Activity'
 
     delete:
       summary: Delete activity
@@ -507,211 +293,17 @@ paths:
       responses:
         '204':
           description: Activity deleted
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Activity not found
-
-# ─── Components ───────────────────────────────────────────────────────────────
 
 components:
-
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >
-        JWT token obtained from /auth/login or /auth/register.
-        Include as: Authorization: Bearer <token>
-
   schemas:
-
-    # ── Shared building blocks ────────────────────────────────────────────────
-
-    ResourceMeta:
-      description: >
-        Read-only fields present on every persisted resource.
-        Reused via allOf composition in all Response schemas.
+    Trip:
       type: object
-      required:
-        - id
-        - createdBy
-        - createdAt
-        - updatedAt
       properties:
         id:
           type: string
           format: uuid
-          readOnly: true
-        createdBy:
-          $ref: '#/components/schemas/UserSummary'
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          readOnly: true
-
-    UserSummary:
-      description: Minimal user representation embedded in resource responses.
-      type: object
-      readOnly: true
-      required:
-        - id
-        - name
-        - email
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-
-    PaginationMeta:
-      description: >
-        Pagination envelope reused by all list responses.
-        Compose via allOf: add a 'data' property with the specific item array.
-      type: object
-      required:
-        - total
-        - limit
-        - offset
-      properties:
-        total:
-          type: integer
-          description: Total number of items matching the query
-        limit:
-          type: integer
-          description: Max items returned in this page
-        offset:
-          type: integer
-          description: Number of items skipped
-
-    # ── Auth ──────────────────────────────────────────────────────────────────
-
-    CreateUserRequest:
-      type: object
-      required:
-        - email
-        - password
-        - name
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 8
-          description: Minimum 8 characters
-        name:
-          type: string
-          minLength: 1
-
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-
-    AuthResponse:
-      type: object
-      required:
-        - token
-        - expiresIn
-        - user
-      properties:
-        token:
-          type: string
-          description: JWT access token
-        expiresIn:
-          type: integer
-          description: Token validity in seconds (e.g. 3600)
-        user:
-          $ref: '#/components/schemas/UserResponse'
-
-    # ── User ──────────────────────────────────────────────────────────────────
-
-    UserResponse:
-      description: Full user object returned by profile endpoints.
-      type: object
-      required:
-        - id
-        - email
-        - name
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        email:
-          type: string
-          format: email
-        name:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          readOnly: true
-
-    UpdateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-        email:
-          type: string
-          format: email
-
-    ChangePasswordRequest:
-      type: object
-      required:
-        - currentPassword
-        - newPassword
-      properties:
-        currentPassword:
-          type: string
-        newPassword:
-          type: string
-          minLength: 8
-
-    # ── Trip ──────────────────────────────────────────────────────────────────
-
-    CreateTripRequest:
-      type: object
-      required:
-        - title
-        - shortDescription
-        - startDate
-        - destination
-      properties:
         title:
           type: string
-          minLength: 1
-        shortDescription:
-          type: string
-          minLength: 1
-          maxLength: 80
         description:
           type: string
         startDate:
@@ -720,19 +312,40 @@ components:
         endDate:
           type: string
           format: date
-        destination:
+        status:
+          type: string
+          enum: [planned, ongoing, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateTripRequest:
+      type: object
+      required:
+        - title
+        - startDate
+        - endDate
+      properties:
+        title:
           type: string
           minLength: 1
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
 
     UpdateTripRequest:
       type: object
       properties:
         title:
           type: string
-        shortDescription:
-          type: string
-          minLength: 1
-          maxLength: 80
         description:
           type: string
         startDate:
@@ -745,49 +358,29 @@ components:
           type: string
           enum: [planned, ongoing, completed, cancelled]
 
-    TripResponse:
-      description: Full trip object returned by all trip endpoints.
-      allOf:
-        - $ref: '#/components/schemas/ResourceMeta'
-        - type: object
-          required:
-            - title
-            - shortDescription
-            - startDate
-            - destination
-          properties:
-            title:
-              type: string
-            shortDescription:
-              type: string
-            description:
-              type: string
-            startDate:
-              type: string
-              format: date
-            endDate:
-              type: string
-              format: date
-            destination:
-              type: string
-            status:
-              type: string
-              enum: [planned, ongoing, completed, cancelled]
-
-    TripListResponse:
-      description: Paginated list of trips.
-      allOf:
-        - $ref: '#/components/schemas/PaginationMeta'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/TripResponse'
-
-    # ── Location ─────────────────────────────────────────────────────────────
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string
+        sequence:
+          type: integer
+          description: Visit sequence number
 
     CreateLocationRequest:
       type: object
@@ -804,78 +397,44 @@ components:
           type: string
         latitude:
           type: number
-          format: float
         longitude:
           type: number
-          format: float
         notes:
           type: string
         sequence:
           type: integer
-          description: Visit sequence number
 
-    UpdateLocationRequest:
+    Activity:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         name:
           type: string
-        city:
+        description:
           type: string
-        country:
+        date:
           type: string
-        latitude:
+          format: date
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        locationId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum: [sightseeing, dining, transport, accommodation, other]
+        cost:
           type: number
           format: float
-        longitude:
-          type: number
-          format: float
-        notes:
+        currency:
           type: string
-        sequence:
-          type: integer
-          description: Visit sequence number
-
-    LocationResponse:
-      description: Full location object returned by all location endpoints.
-      allOf:
-        - $ref: '#/components/schemas/ResourceMeta'
-        - type: object
-          required:
-            - name
-            - city
-            - country
-          properties:
-            name:
-              type: string
-            city:
-              type: string
-            country:
-              type: string
-            latitude:
-              type: number
-              format: float
-            longitude:
-              type: number
-              format: float
-            notes:
-              type: string
-            sequence:
-              type: integer
-
-    LocationListResponse:
-      description: Paginated list of locations.
-      allOf:
-        - $ref: '#/components/schemas/PaginationMeta'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/LocationResponse'
-
-    # ── Activity ─────────────────────────────────────────────────────────────
+          default: USD
 
     CreateActivityRequest:
       type: object
@@ -905,10 +464,8 @@ components:
           enum: [sightseeing, dining, transport, accommodation, other]
         cost:
           type: number
-          format: float
         currency:
           type: string
-          default: USD
 
     UpdateActivityRequest:
       type: object
@@ -931,57 +488,7 @@ components:
           format: uuid
         category:
           type: string
-          enum: [sightseeing, dining, transport, accommodation, other]
         cost:
           type: number
-          format: float
         currency:
           type: string
-
-    ActivityResponse:
-      description: Full activity object returned by all activity endpoints.
-      allOf:
-        - $ref: '#/components/schemas/ResourceMeta'
-        - type: object
-          required:
-            - name
-            - date
-            - locationId
-          properties:
-            name:
-              type: string
-            description:
-              type: string
-            date:
-              type: string
-              format: date
-            startTime:
-              type: string
-              format: time
-            endTime:
-              type: string
-              format: time
-            locationId:
-              type: string
-              format: uuid
-            category:
-              type: string
-              enum: [sightseeing, dining, transport, accommodation, other]
-            cost:
-              type: number
-              format: float
-            currency:
-              type: string
-
-    ActivityListResponse:
-      description: Paginated list of activities.
-      allOf:
-        - $ref: '#/components/schemas/PaginationMeta'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/ActivityResponse'

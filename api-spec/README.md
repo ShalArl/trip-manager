@@ -79,12 +79,3 @@ All responses follow a consistent JSON structure:
 
 - **Current Version**: 1.0.0
 - Breaking changes will increment the major version number.
-
-
-# API Definition (OpenAPI)
-
-See [OpenAPI 3.0.0 Definition](openapi.yaml)
-
-## API Schema
-
-[API Schema](trip_manager_api_schema.html)
