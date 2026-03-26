@@ -33,7 +33,6 @@ go.work.sum
 
 node_modules/
 .turbo/
-pnpm-lock.yaml
 
 # Generated API code - ignore contents but track config files
 # Frontend

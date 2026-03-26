@@ -78,4 +78,7 @@ All responses follow a consistent JSON structure:
 ## Versioning
 
 - **Current Version**: 1.0.0
-- Breaking changes will increment the major version number.# API Definition (OpenAPI)
+- Breaking changes will increment the major version number.
+
+
+# API Definition (OpenAPI)

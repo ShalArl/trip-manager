@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install Node.js and pnpm for code generation
 RUN apk add --no-cache nodejs npm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9.0.0
 
 # Copy monorepo files
 COPY . .
@@ -14,7 +14,7 @@ COPY . .
 RUN CI=true pnpm install --frozen-lockfile
 
 # Install oapi-codegen (Go tool for code generation)
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
 # Generate Go code from OpenAPI spec
 RUN pnpm gen:go

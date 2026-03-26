@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9.0.0
 
 # Copy monorepo files
 COPY . .
@@ -25,7 +25,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install pnpm in runtime
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9.0.0
 
 # Copy package files
 COPY --from=builder /app/frontend/package.json .
