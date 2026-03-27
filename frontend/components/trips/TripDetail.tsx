@@ -1,10 +1,8 @@
+import { Trip } from "@/types/trip";
 import Link from "next/link";
 
-import { components } from "@/generated/types";
-type TripResponse = components["schemas"]["TripResponse"];
-
 type Props = {
-  trip: TripResponse;
+    trip: Trip;
 };
 
 export default function TripDetail({ trip }: Props) {
@@ -48,7 +46,7 @@ export default function TripDetail({ trip }: Props) {
                             Details
                         </p>
                         <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                            {trip.description}
+                            {trip.longDescription}
                         </p>
                     </div>
                 </div>
