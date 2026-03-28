@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User } from "@/types/user";
 import { Trip } from "@/types/trip"
 import { mockTrips } from "@/lib/mock-trips";
@@ -12,11 +12,18 @@ import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(() => {
+  /*const [user, setUser] = useState<User | null>(() => {
     if (typeof window === "undefined") return null;
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
-  });
+  });*/
+
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("user");
+    if (saved) setUser(JSON.parse(saved));
+  }, []);
 
   const [trips] = useState<Trip[]>(mockTrips);
 
