@@ -26,8 +26,7 @@ func respondError(w http.ResponseWriter, statusCode int, message string) {
 func respondJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	err := json.NewEncoder(w).Encode(data)
-	if err != nil {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding error response: %v", err)
 	}
 }
