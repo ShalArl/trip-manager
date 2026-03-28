@@ -7,14 +7,16 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,go,md}\"",
     "gen": "turbo run gen",
-    "gen:ts": "mkdir -p ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
-    "gen:go": "mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen -generate types -package generated ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
+    "gen:ts": "mkdirp ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
+    "gen:go": "mkdirp ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen -generate types -package generated ./api-spec/openapi.yaml > ./backend/internal/generated/models.go",
     "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/src/generated/{src,docs,.openapi-generator} ./frontend/src/generated/{*.json,*.md}"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
+    "mkdirp": "^3.0.1",
+    "openapi-typescript": "^6.7.5",
     "prettier": "latest",
-    "openapi-typescript": "^6.7.5"
+    "turbo": "^2.0.0"
   },
   "packageManager": "pnpm@9.0.0"
 }
+
