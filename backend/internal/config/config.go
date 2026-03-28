@@ -15,14 +15,39 @@ type Config struct {
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
+	// Build database URL from individual components
+	databaseURL := buildDatabaseURL()
+
 	cfg := &Config{
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/trip_manager?sslmode=disable"),
-		ServerPort:  getEnv("SERVER_PORT", "8080"),
+		DatabaseURL: databaseURL,
+		ServerPort:  getEnv("SERVER_PORT", "8000"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 	}
 
 	return cfg, nil
+}
+
+// buildDatabaseURL constructs the database URL from environment variables or defaults
+func buildDatabaseURL() string {
+	// Allow complete DATABASE_URL override
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		return dbURL
+	}
+
+	// Otherwise build from individual components
+	user := getEnv("POSTGRES_USER", "postgres")
+	password := getEnv("POSTGRES_PASSWORD", "postgres")
+	host := getEnv("POSTGRES_HOST", "localhost")
+	port := getEnv("POSTGRES_PORT", "5432")
+	database := getEnv("POSTGRES_DB", "trip_manager")
+	sslMode := getEnv("POSTGRES_SSLMODE", "disable")
+
+	// Build connection string
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		user, password, host, port, database, sslMode,
+	)
 }
 
 // getEnv reads an environment variable with a fallback default

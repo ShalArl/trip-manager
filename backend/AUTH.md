@@ -9,7 +9,7 @@ Configure the following environment variables to run the application:
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager?sslmode=disable
 
 # Server configuration
-SERVER_PORT=8080
+SERVER_PORT=8000
 ENVIRONMENT=development
 
 # JWT token secret (change this in production!)

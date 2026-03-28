@@ -180,7 +180,7 @@ info: version help
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager (required)"
-	@echo "  SERVER_PORT=8080 (default)"
+	@echo "  SERVER_PORT=8000 (default)"
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"
 	@echo ""

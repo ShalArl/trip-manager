@@ -106,7 +106,7 @@ The Makefile uses these environment variables:
 ```bash
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/trip_manager"
 JWT_SECRET="your-secret-key-change-in-production"
-SERVER_PORT="8080"
+SERVER_PORT="8000"
 ENVIRONMENT="development"
 ```
 

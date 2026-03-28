@@ -99,7 +99,7 @@ pnpm dev
 
 Starts all workspaces in parallel:
 - Frontend: Next.js dev server (localhost:3000)
-- Backend: Go server (localhost:8080)
+- Backend: Go server (localhost:8000)
 
 ---
 
@@ -256,7 +256,7 @@ which oapi-codegen  # Verify installation
 ### Port conflicts
 
 - Frontend default: `3000` (set `PORT=3001 pnpm dev` to override)
-- Backend default: `8080` (check `backend/cmd/api/main.go`)
+- Backend default: `8000` (check `backend/cmd/api/main.go`)
 
 ---
 

@@ -21,8 +21,8 @@ type App struct {
 
 // New initializes and returns a new App instance
 func New(cfg *config.Config) (*App, error) {
-	// Initialize database
-	db, err := database.Connect()
+	// Initialize database with config database URL
+	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}

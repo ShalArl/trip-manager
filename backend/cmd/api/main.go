@@ -13,8 +13,8 @@ import (
 	"github.com/ShalArl/trip-manager/internal/api"
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/auth"
-	chimiddleware "github.com/ShalArl/trip-manager/internal/middleware"
 	"github.com/ShalArl/trip-manager/internal/config"
+	chimiddleware "github.com/ShalArl/trip-manager/internal/middleware"
 )
 
 func startUp() (*app.App, error) {
@@ -125,7 +125,6 @@ func main() {
 			log.Printf("Error writing health check response: %v", err)
 		}
 	})
-
 	// Start server
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
 	application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)
