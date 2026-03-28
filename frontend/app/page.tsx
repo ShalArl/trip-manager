@@ -4,12 +4,19 @@ import { useState, useEffect } from "react";
 import { User } from "@/types/user";
 import { Trip } from "@/types/trip"
 import { mockTrips } from "@/lib/mock-trips";
+import {createUser} from "@/lib/api/user"
+
 
 import AuthPage from "@/components/auth/AuthPage";
 import Navbar from "@/components/home/Navbar";
 import Hero from "@/components/home/Hero";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
+
+import { components } from "@/generated/types";
+type CreateUserRequest = components["schemas"]["CreateUserRequest"];
+type LoginRequest = components["schemas"]["LoginRequest"];
+type AuthResponse = components["schemas"]["AuthResponse"];
 
 export default function Home() {
   /*const [user, setUser] = useState<User | null>(() => {
@@ -27,7 +34,14 @@ export default function Home() {
 
   const [trips] = useState<Trip[]>(mockTrips);
 
-  const handleAuth = (user: User) => {
+  const handleRegister = async (createUserRequest: CreateUserRequest) => {
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+    const response = await createUser(createUserRequest)
+    console.log(response) 
+  }
+
+  const handleLogin = (loginRequest: LoginRequest) => {
     localStorage.setItem("user", JSON.stringify(user));
     setUser(user);
   }
@@ -38,7 +52,7 @@ export default function Home() {
   };
 
   if (!user) {
-    return <AuthPage onAuthAction={handleAuth} />;
+    return <AuthPage onLoginAction={handleLogin} onRegisterAction={handleRegister} />;
   }
 
   return (

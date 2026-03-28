@@ -10,6 +10,7 @@ type Props = {
 
 export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: Props) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
@@ -22,7 +23,7 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
     }
 
     // Kein Passwort, keine Überprüfung — einfach einloggen
-    onLoginAction({ name: email.split("@")[0], email });
+    onLoginAction({ name: email.split("@")[0], email, password });
   }
 
   return (
