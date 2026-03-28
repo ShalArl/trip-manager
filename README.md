@@ -30,7 +30,7 @@ pnpm dev
 - Auto-generated types from OpenAPI spec
 
 ### Backend
-- **Go** (1.21+)
+- **Go** (1.24+)
 - Auto-generated server code from OpenAPI spec
 
 ### API Specification
@@ -64,7 +64,7 @@ pnpm gen
 ```
 
 This updates:
-- `frontend/src/generated/types.ts` (TypeScript)
+- `frontend/generated/types.ts` (TypeScript)
 - `backend/internal/generated/models.go` (Go)
 
 Turbo automatically invalidates cache on spec changes.

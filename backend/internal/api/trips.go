@@ -7,7 +7,6 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/generated"
-	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
 type APIErrorResponse struct {
@@ -20,23 +19,15 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		// Parse query parameters
 		limit, offset := handlePaginationParams(r)
 
-		userID, err := middleware.GetUserIDFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
 		app.Logger.Printf("ListTrips: limit=%d, offset=%d", limit, offset)
 
 		// Handler only parses parameters - Service does validation + coordination
-		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), userID, limit, offset)
+		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), "user-id-placeholder", limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
-			app.Logger.Printf("ListTrips error: %v", err)
 			return
 		}
 
-		app.Logger.Printf("ListTrips response: %+v", tripsResp)
 		respondJSON(w, http.StatusOK, tripsResp)
 	}
 }
@@ -55,30 +46,7 @@ func CreateTripHandler(app *app.App) http.HandlerFunc {
 		app.Logger.Printf("CreateTrip: title=%s, startDate=%v, endDate=%v", req.Title, req.StartDate, req.EndDate)
 
 		// Delegate to Service layer (includes validation + business logic)
-		/*trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, "user-id-placeholder")
-		if err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
-			return
-		}*/
-		userID, err := middleware.GetUserIDFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		userName, err := middleware.GetUserNameFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		userEmail, err := middleware.GetUserEmailFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, userID, userName, userEmail)
+		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, "user-id-placeholder")
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return

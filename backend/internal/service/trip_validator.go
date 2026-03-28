@@ -17,18 +17,6 @@ func validateCreateTripRequest(request generated.CreateTripRequest) error {
 		return fmt.Errorf("%w: start date is required", domain.ErrInvalidInput)
 	}
 
-	if request.ShortDescription == "" {
-		return fmt.Errorf("%w: short description is required", domain.ErrInvalidInput)
-	}
-
-	if len(request.ShortDescription) > 80 {
-		return fmt.Errorf("%w: short description is too long", domain.ErrInvalidInput)
-	}
-
-	if request.Destination == "" {
-		return fmt.Errorf("%w: destination is required", domain.ErrInvalidInput)
-	}
-
 	if request.EndDate.Time.IsZero() {
 		return fmt.Errorf("%w: end date is required", domain.ErrInvalidInput)
 	}
@@ -43,14 +31,6 @@ func validateUpdateTripRequest(request generated.UpdateTripRequest) error {
 
 	if request.Status != nil && !request.Status.Valid() {
 		return fmt.Errorf("%w: invalid status", domain.ErrInvalidInput)
-	}
-
-	if request.ShortDescription != nil && *request.ShortDescription == "" {
-		return fmt.Errorf("%w: short description cannot be empty", domain.ErrInvalidInput)
-	}
-
-	if request.ShortDescription != nil && len(*request.ShortDescription) > 80 {
-		return fmt.Errorf("%w: short description is too long", domain.ErrInvalidInput)
 	}
 
 	// If both dates are provided, validate the range

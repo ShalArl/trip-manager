@@ -82,3 +82,9 @@ All responses follow a consistent JSON structure:
 
 
 # API Definition (OpenAPI)
+
+See [OpenAPI 3.0.0 Definition](openapi.yaml)
+
+## API Schema
+
+[API Schema](trip_manager_api_schema.html)

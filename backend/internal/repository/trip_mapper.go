@@ -20,13 +20,11 @@ func (t *tripRecord) toTrip() *domain.Trip {
 				Email: t.UserEmail,
 			},
 		},
-		Title:            t.Title,
-		Description:      ptr.FromPtr(t.Description),
-		ShortDescription: t.ShortDescription,
-		Destination:      t.Destination,
-		StartDate:        t.StartDate,
-		EndDate:          t.EndDate,
-		Status:           domain.TripStatus(t.Status),
+		Title:       t.Title,
+		Description: ptr.FromPtr(t.Description),
+		StartDate:   t.StartDate,
+		EndDate:     t.EndDate,
+		Status:      domain.TripStatus(t.Status),
 	}
 }
 
@@ -47,18 +45,16 @@ func tripToRecord(trip *domain.Trip) (*tripRecord, error) {
 	}
 
 	return &tripRecord{
-		ID:               tripID,
-		UserID:           userID,
-		Title:            trip.Title,
-		ShortDescription: trip.ShortDescription,
-		Description:      ptr.ToPtr(trip.Description),
-		Destination:      trip.Destination,
-		StartDate:        trip.StartDate,
-		EndDate:          trip.EndDate,
-		Status:           string(trip.Status),
-		CreatedAt:        trip.CreatedAt,
-		UpdatedAt:        trip.UpdatedAt,
-		UserName:         trip.CreatedBy.Name,
-		UserEmail:        trip.CreatedBy.Email,
+		ID:          tripID,
+		UserID:      userID,
+		Title:       trip.Title,
+		Description: ptr.ToPtr(trip.Description),
+		StartDate:   trip.StartDate,
+		EndDate:     trip.EndDate,
+		Status:      string(trip.Status),
+		CreatedAt:   trip.CreatedAt,
+		UpdatedAt:   trip.UpdatedAt,
+		UserName:    trip.CreatedBy.Name,
+		UserEmail:   trip.CreatedBy.Email,
 	}, nil
 }

@@ -43,8 +43,8 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	userService := service.NewUserService(userRepo)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize auth manager (7 day token expiration)
-	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)
+	// Initialize auth manager (15 minute token expiration)
+	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 15*time.Minute)
 
 	// Initialize auth service
 	authService := service.NewAuthService(userRepo, authManager, userService)

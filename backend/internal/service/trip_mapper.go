@@ -21,13 +21,11 @@ func mapCreateTripRequestToTrip(request *generated.CreateTripRequest, userID str
 				Email: userEmail,
 			},
 		},
-		Title:            request.Title,
-		ShortDescription: request.ShortDescription,
-		Description:      ptr.FromPtr(request.Description),
-		StartDate:        request.StartDate.Time,
-		EndDate:          request.EndDate.Time,
-		Status:           domain.TripStatusPlanned,
-		Destination:      request.Destination,
+		Title:       request.Title,
+		Description: ptr.FromPtr(request.Description),
+		StartDate:   request.StartDate.Time,
+		EndDate:     request.EndDate.Time,
+		Status:      domain.TripStatusPlanned,
 	}
 }
 
@@ -40,10 +38,6 @@ func mapUpdateTripRequestToTrip(request *generated.UpdateTripRequest, existing *
 
 	if request.Description != nil {
 		updated.Description = *request.Description
-	}
-
-	if request.ShortDescription != nil {
-		updated.ShortDescription = *request.ShortDescription
 	}
 
 	if request.StartDate != nil {
@@ -69,16 +63,14 @@ func mapTripToTripResponse(trip *domain.Trip) *generated.TripResponse {
 	status := generated.TripResponseStatus(trip.Status)
 
 	return &generated.TripResponse{
-		Id:               ptr.ToPtr(id),
-		Title:            trip.Title,
-		ShortDescription: trip.ShortDescription,
-		Description:      ptr.ToPtr(trip.Description),
-		StartDate:        openapitypes.Date{Time: trip.StartDate},
-		EndDate:          &openapitypes.Date{Time: trip.EndDate},
-		Status:           &status,
-		CreatedAt:        &trip.CreatedAt,
-		UpdatedAt:        &trip.UpdatedAt,
-		Destination:      trip.Destination,
+		Id:          ptr.ToPtr(id),
+		Title:       trip.Title,
+		Description: ptr.ToPtr(trip.Description),
+		StartDate:   openapitypes.Date{Time: trip.StartDate},
+		EndDate:     openapitypes.Date{Time: trip.EndDate},
+		Status:      status,
+		CreatedAt:   &trip.CreatedAt,
+		UpdatedAt:   &trip.UpdatedAt,
 		CreatedBy: &generated.UserSummary{
 			Id:    uuid.MustParse(trip.CreatedBy.ID),
 			Name:  trip.CreatedBy.Name,

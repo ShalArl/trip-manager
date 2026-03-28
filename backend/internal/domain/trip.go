@@ -13,11 +13,9 @@ const (
 
 type Trip struct {
 	ResourceMeta
-	Title            string
-	ShortDescription string
-	Description      string
-	StartDate        time.Time
-	EndDate          time.Time
-	Destination      string
-	Status           TripStatus
+	Title       string
+	Description string
+	StartDate   time.Time
+	EndDate     time.Time
+	Status      TripStatus
 }

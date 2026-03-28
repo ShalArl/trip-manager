@@ -184,7 +184,7 @@ func (h *Handler) ListTrips(ctx context.Context, params generated.ListTripsParam
 // frontend/api/trips.ts
 import type { Trip, CreateTripRequest, ListTripsParams } from '@/generated/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function listTrips(params?: ListTripsParams) {
   const query = new URLSearchParams()
@@ -297,7 +297,7 @@ r := chi.NewRouter()
 h := handlers.NewHandler(db, logger)
 r.Post("/trips/{tripId}/comments", h.AddComment)
 
-http.ListenAndServe(":8080", r)
+http.ListenAndServe(":8000", r)
 ```
 
 ### 5. Use in Frontend
