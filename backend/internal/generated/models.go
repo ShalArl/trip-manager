@@ -227,12 +227,12 @@ type CreateLocationRequest struct {
 
 // CreateTripRequest defines model for CreateTripRequest.
 type CreateTripRequest struct {
-	Destination 	 string             `json:"destination"`
-	Description      *string            `json:"description,omitempty"`
-	EndDate          openapi_types.Date `json:"endDate"`
-	ShortDescription string             `json:"shortDescription"`
-	StartDate        openapi_types.Date `json:"startDate"`
-	Title            string             `json:"title"`
+	Description      *string             `json:"description,omitempty"`
+	Destination      string              `json:"destination"`
+	EndDate          *openapi_types.Date `json:"endDate,omitempty"`
+	ShortDescription string              `json:"shortDescription"`
+	StartDate        openapi_types.Date  `json:"startDate"`
+	Title            string              `json:"title"`
 }
 
 // CreateUserRequest defines model for CreateUserRequest.
@@ -322,14 +322,14 @@ type TripResponse struct {
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
 	// CreatedBy Minimal user representation embedded in resource responses.
-	Destination      string              `json:"destination"`
 	CreatedBy        *UserSummary        `json:"createdBy,omitempty"`
 	Description      *string             `json:"description,omitempty"`
-	EndDate          openapi_types.Date  `json:"endDate"`
+	Destination      string              `json:"destination"`
+	EndDate          *openapi_types.Date `json:"endDate,omitempty"`
 	Id               *openapi_types.UUID `json:"id,omitempty"`
-	ShortDescription *string             `json:"shortDescription,omitempty"`
+	ShortDescription string              `json:"shortDescription"`
 	StartDate        openapi_types.Date  `json:"startDate"`
-	Status           TripResponseStatus  `json:"status"`
+	Status           *TripResponseStatus `json:"status,omitempty"`
 	Title            string              `json:"title"`
 	UpdatedAt        *time.Time          `json:"updatedAt,omitempty"`
 }

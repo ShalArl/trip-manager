@@ -26,18 +26,46 @@ export async function createTrip(createTripRequest: CreateTripRequest) {
 }
 
 export async function getTrips(): Promise<TripResponse[]> {
+  const token = localStorage.getItem("token");
+  console.log("Token vorhanden:", !!token);
+  console.log("API_URL:", API_URL);
+  
   const response = await fetch(`${API_URL}/api/trips`, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      "Authorization": `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error("Fehler beim Laden der Reisen");
+    const errorData = await response.text();
+    console.error(`Fehler beim Laden der Reisen (${response.status}):`, errorData);
+    throw new Error(`Fehler beim Laden der Reisen: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
-  console.log("Reisen werden aus der Datenbank geholt:" + data)
+  console.log("Reisen werden aus der Datenbank geholt:", data)
   return data.data as TripResponse[];
+}
+
+export async function getTrip(tripId: string): Promise<TripResponse> {
+  const token = localStorage.getItem("token");
+  console.log("Token vorhanden:", !!token);
+  console.log("API_URL:", API_URL);
+  
+  const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`Fehler beim Laden der Reise (${response.status}):`, errorData);
+    throw new Error(`Fehler beim Laden der Reise: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data as TripResponse;
 }

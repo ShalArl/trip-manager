@@ -40,16 +40,18 @@ export default function Home() {
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
     const response: AuthResponse = await createUser(createUserRequest)
     console.log(response)
-    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
+    // Store token FIRST, then user - this ensures token is available when useEffect runs
     localStorage.setItem("token", response.token);
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
     setUser({ name: response.user.name, email: response.user.email });
   }
 
   const handleLogin = async (loginRequest: LoginRequest) => {
     const response = await login(loginRequest);
     console.log(response)
-    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
+    // Store token FIRST, then user - this ensures token is available when useEffect runs
     localStorage.setItem("token", response.token);
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
     console.log("Token: " + response.token);
     setUser({ name: response.user.name, email: response.user.email });
   }

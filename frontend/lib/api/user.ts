@@ -14,8 +14,9 @@ export async function createUser(createUserRequest: CreateUserRequest) {
     });
 
     if (!response.ok) {
-        // throw new Error("Fehler beim Erstellen des Users");
-        console.log("Fehler beim erstellen des users:", await response.json())
+        const errorData = await response.text();
+        console.error(`Fehler beim Erstellen des Users (${response.status}):`, errorData);
+        throw new Error(`Fehler beim Registrieren: ${response.status}`);
     }
 
     const data = await response.json();
@@ -30,12 +31,15 @@ export async function login(loginRequest: LoginRequest) {
         body: JSON.stringify(loginRequest),
     });
     
-    console.log(response)
+    console.log("Login Response Status:", response.status);
     
     if (!response.ok) {
-        throw new Error("Fehler beim Einloggen");
+        const errorData = await response.text();
+        console.error(`Fehler beim Einloggen (${response.status}):`, errorData);
+        throw new Error(`Fehler beim Einloggen: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log("Login erfolgreich:", data);
     return data as AuthResponse;
 }
