@@ -40,7 +40,6 @@ frontend/generated/*
 frontend/.next/
 
 # Backend
-backend/internal/generated/
 backend/api               # Old compiled binary location
 backend/bin/              # Compiled binaries from new build system
 backend/tmp/              # Temporary build files
