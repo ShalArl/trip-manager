@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react";
-import { Trip } from "@/types/trip";
+
+import { components } from "@/generated/types";
+type CreateTripRequest = components["schemas"]["CreateTripRequest"];
 
 type Props = {
-    onCreateTripAction: (trip: Trip) => void;
+  onCreateTripAction: (trip: CreateTripRequest) => void;
 };
 
 export default function TripForm({ onCreateTripAction }: Props) {

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { User } from "@/types/user";
+import { components } from "@/generated/types";
+
+type LoginRequest = components["schemas"]["LoginRequest"];
 
 type Props = {
-  onLoginAction: (user: User) => void;
+  onLoginAction: (loginRequest: LoginRequest) => void;
   onSwitchToRegisterAction: () => void;
 };
 
@@ -17,13 +19,13 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
     e.preventDefault();
     setError("");
 
-    if (!email.trim()) {
-      setError("Bitte eine E-Mail-Adresse eingeben.");
+    if (!email.trim() || !password.trim()) {
+      setError("Bitte alle Felder ausfüllen.");
       return;
     }
 
     // Kein Passwort, keine Überprüfung — einfach einloggen
-    onLoginAction({ name: email.split("@")[0], email, password });
+    onLoginAction({ email, password });
   }
 
   return (
@@ -45,6 +47,18 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="du@beispiel.de"
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            Passwort
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
             className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
           />
         </div>

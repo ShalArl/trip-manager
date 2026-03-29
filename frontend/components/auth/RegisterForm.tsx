@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { User } from "@/types/user";
+import { components } from "@/generated/types";
+
+type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 
 type Props = {
-  onRegisterAction: (user: User) => void;
+  onRegisterAction: (createUserRequest: CreateUserRequest) => void;
   onSwitchToLoginAction: () => void;
 };
 

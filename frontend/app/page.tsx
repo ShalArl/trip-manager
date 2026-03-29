@@ -5,6 +5,7 @@ import { User } from "@/types/user";
 import { Trip } from "@/types/trip"
 import { mockTrips } from "@/lib/mock-trips";
 import {createUser} from "@/lib/api/user"
+import {login} from "@/lib/api/user"
 
 
 import AuthPage from "@/components/auth/AuthPage";
@@ -35,15 +36,17 @@ export default function Home() {
   const [trips] = useState<Trip[]>(mockTrips);
 
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
-    const response = await createUser(createUserRequest)
+    const response: AuthResponse = await createUser(createUserRequest)
     console.log(response) 
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
+    setUser({ name: response.user.name, email: response.user.email });
   }
 
-  const handleLogin = (loginRequest: LoginRequest) => {
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
+  const handleLogin = async (loginRequest: LoginRequest) => {
+    const response = await login(loginRequest);
+    console.log(response) 
+    //localStorage.setItem("user", JSON.stringify(user));
+    //setUser({ name: response.user.name, email: response.user.email });
   }
 
   const handleLogout = () => {
