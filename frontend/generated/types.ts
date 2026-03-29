@@ -135,6 +135,7 @@ export interface components {
       newPassword: string;
     };
     CreateTripRequest: {
+      destination: string;
       title: string;
       shortDescription: string;
       description?: string;
