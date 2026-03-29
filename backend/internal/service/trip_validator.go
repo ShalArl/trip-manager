@@ -29,14 +29,11 @@ func validateCreateTripRequest(request generated.CreateTripRequest) error {
 		return fmt.Errorf("%w: destination is required", domain.ErrInvalidInput)
 	}
 
-	// TODO: Reactivate
-	// if request.EndDate.Time.IsZero() {
-	//	return fmt.Errorf("%w: end date is required", domain.ErrInvalidInput)
-	// }
+	if request.EndDate.Time.IsZero() {
+		return fmt.Errorf("%w: end date is required", domain.ErrInvalidInput)
+	}
 
-	// return validateTripDateRange(request.StartDate.Time, request.EndDate.Time)
-
-	return nil
+	return validateTripDateRange(request.StartDate.Time, request.EndDate.Time)
 }
 
 func validateUpdateTripRequest(request generated.UpdateTripRequest) error {
@@ -57,9 +54,9 @@ func validateUpdateTripRequest(request generated.UpdateTripRequest) error {
 	}
 
 	// If both dates are provided, validate the range
-	// if request.StartDate != nil && request.EndDate != nil {
-	// 	 return validateTripDateRange(request.StartDate.Time, request.EndDate.Time)
-	// }
+	if request.StartDate != nil && request.EndDate != nil {
+		return validateTripDateRange(request.StartDate.Time, request.EndDate.Time)
+	}
 
 	return nil
 }

@@ -59,8 +59,8 @@ func main() {
 
 	// Routes
 	r.Route("/api", func(r chi.Router) {
-		// Initialize auth manager for middleware
-		authManager := auth.NewAuthManager(application.Config.JWTSecret, 15*time.Minute)
+		// Initialize auth manager for middleware (7 day token expiration)
+		authManager := auth.NewAuthManager(application.Config.JWTSecret, 7*24*time.Hour)
 
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
 		r.Post("/auth/register", api.CreateUserHandler(application))
