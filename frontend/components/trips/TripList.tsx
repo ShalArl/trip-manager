@@ -1,8 +1,11 @@
 import { Trip } from "@/types/trip";
 import Link from "next/link";
 
+import { components } from "@/generated/types";
+type TripResponse = components["schemas"]["TripResponse"];
+
 type Props = {
-    trips: Trip[];
+    trips: TripResponse[];
 };
 
 export default function TripList({ trips }: Props) {

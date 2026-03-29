@@ -79,6 +79,7 @@ func (t *TripServiceImpl) ListTrips(ctx context.Context, userID string, limit in
 	if err != nil {
 		return nil, fmt.Errorf("failed to list trips: %w", err)
 	}
+	fmt.Printf("ListTrips trips count: %d, totalCount: %d\n", len(trips), totalCount)
 
 	// Convert to responses
 	tripResponses := make([]generated.TripResponse, len(trips))

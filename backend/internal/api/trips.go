@@ -32,9 +32,11 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), userID, limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
+			app.Logger.Printf("ListTrips error: %v", err)
 			return
 		}
 
+		app.Logger.Printf("ListTrips response: %+v", tripsResp)
 		respondJSON(w, http.StatusOK, tripsResp)
 	}
 }

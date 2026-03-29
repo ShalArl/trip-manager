@@ -131,6 +131,7 @@ func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit
 		LIMIT $2 OFFSET $3`
 
 	if err := t.db.SelectContext(ctx, &results, query, userID, limit, offset); err != nil {
+		fmt.Printf("ListTrips DB error: %v\n", err)
 		return nil, 0, domain.ErrInternal
 	}
 

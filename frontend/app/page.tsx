@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 import { User } from "@/types/user";
 import { Trip } from "@/types/trip";
+import { getTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 
 import { mockTrips } from "@/lib/mock-trips";
@@ -18,16 +19,23 @@ import TripList from "@/components/trips/TripList";
 type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 type LoginRequest = components["schemas"]["LoginRequest"];
 type AuthResponse = components["schemas"]["AuthResponse"];
+type TripResponse = components["schemas"]["TripResponse"];
+
 
 export default function Home() {
+  
   const [user, setUser] = useState<User | null>(null);
-
   useEffect(() => {
     const saved = localStorage.getItem("user");
     if (saved) setUser(JSON.parse(saved));
   }, []);
 
-  const [trips] = useState<Trip[]>(mockTrips);
+  const [trips, setTrips] = useState<TripResponse[]>([]);
+  useEffect(() => {
+    if (user) {
+      getTrips().then(setTrips).catch(console.error);
+    }
+  }, [user]);
 
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
     const response: AuthResponse = await createUser(createUserRequest)
