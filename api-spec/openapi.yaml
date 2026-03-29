@@ -711,7 +711,7 @@ components:
         shortDescription:
           type: string
           minLength: 1
-          maxLength: 255
+          maxLength: 80
         description:
           type: string
         startDate:
@@ -731,7 +731,8 @@ components:
           type: string
         shortDescription:
           type: string
-          maxLength: 255
+          minLength: 1
+          maxLength: 80
         description:
           type: string
         startDate:
@@ -767,6 +768,8 @@ components:
             endDate:
               type: string
               format: date
+            destination:
+              type: string
             status:
               type: string
               enum: [planned, ongoing, completed, cancelled]
