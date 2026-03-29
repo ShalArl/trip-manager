@@ -116,7 +116,7 @@ db-setup:
 db-reset:
 	@echo "⚠️  WARNING: This will DELETE ALL DATA from the database!"
 	@echo "Press Ctrl+C to cancel, or press Enter to continue..."
-	@read -r
+	@bash -c 'read -r'
 	@psql $(DATABASE_URL) -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" || true
 	@echo "✓ Database reset complete"
 

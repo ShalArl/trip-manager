@@ -701,12 +701,17 @@ components:
       type: object
       required:
         - title
+        - shortDescription
         - startDate
-        - endDate
+        - destination
       properties:
         title:
           type: string
           minLength: 1
+        shortDescription:
+          type: string
+          minLength: 1
+          maxLength: 255
         description:
           type: string
         startDate:
@@ -715,12 +720,18 @@ components:
         endDate:
           type: string
           format: date
+        destination:
+          type: string
+          minLength: 1
 
     UpdateTripRequest:
       type: object
       properties:
         title:
           type: string
+        shortDescription:
+          type: string
+          maxLength: 255
         description:
           type: string
         startDate:
@@ -740,11 +751,13 @@ components:
         - type: object
           required:
             - title
+            - shortDescription
             - startDate
-            - endDate
-            - status
+            - destination
           properties:
             title:
+              type: string
+            shortDescription:
               type: string
             description:
               type: string

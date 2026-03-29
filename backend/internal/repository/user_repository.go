@@ -21,24 +21,24 @@ type UserRepositoryImpl struct {
 
 // GetUser implements [UserRepository].
 func (u *UserRepositoryImpl) GetUser(ctx context.Context, id string) (*domain.User, error) {
-	var user domain.User
+	var rec userRecord
 	query := `SELECT id, email, name, bio, password_hash, created_at, updated_at FROM users WHERE id = $1`
-	
-	if err := u.db.GetContext(ctx, &user, query, id); err != nil {
+
+	if err := u.db.GetContext(ctx, &rec, query, id); err != nil {
 		return nil, err
 	}
-	return &user, nil
+	return rec.toUser(), nil
 }
 
 // GetUserByEmail implements [UserRepository].
 func (u *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	var user domain.User
+	var rec userRecord
 	query := `SELECT id, email, name, bio, password_hash, created_at, updated_at FROM users WHERE email = $1`
-	
-	if err := u.db.GetContext(ctx, &user, query, email); err != nil {
+	if err := u.db.GetContext(ctx, &rec, query, email); err != nil {
+		print("Login error: ", err.Error())
 		return nil, err
 	}
-	return &user, nil
+	return rec.toUser(), nil
 }
 
 // CreateUser implements [UserRepository].
@@ -46,10 +46,10 @@ func (u *UserRepositoryImpl) CreateUser(ctx context.Context, user *domain.User) 
 	query := `INSERT INTO users (id, email, name, bio, password_hash, created_at, updated_at) 
 	         VALUES ($1, $2, $3, $4, $5, $6, $7)
 	         RETURNING id, email, name, bio, password_hash, created_at, updated_at`
-	
+
 	err := u.db.QueryRowContext(ctx, query, user.ID, user.Email, user.Name, user.Bio, user.PasswordHash, user.CreatedAt, user.UpdatedAt).
 		Scan(&user.ID, &user.Email, &user.Name, &user.Bio, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +61,10 @@ func (u *UserRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) 
 	query := `UPDATE users SET email = $1, name = $2, bio = $3, password_hash = $4, updated_at = $5 
 	         WHERE id = $6
 	         RETURNING id, email, name, bio, password_hash, created_at, updated_at`
-	
+
 	err := u.db.QueryRowContext(ctx, query, user.Email, user.Name, user.Bio, user.PasswordHash, user.UpdatedAt, user.ID).
 		Scan(&user.ID, &user.Email, &user.Name, &user.Bio, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}

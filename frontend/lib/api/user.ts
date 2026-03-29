@@ -14,7 +14,8 @@ export async function createUser(createUserRequest: CreateUserRequest) {
     });
 
     if (!response.ok) {
-        throw new Error("Fehler beim Erstellen des Users");
+        // throw new Error("Fehler beim Erstellen des Users");
+        console.log("Fehler beim erstellen des users:", await response.json())
     }
 
     const data = await response.json();
