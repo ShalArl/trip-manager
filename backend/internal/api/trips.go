@@ -7,6 +7,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
 type APIErrorResponse struct {
@@ -46,11 +47,17 @@ func CreateTripHandler(app *app.App) http.HandlerFunc {
 		app.Logger.Printf("CreateTrip: title=%s, startDate=%v, endDate=%v", req.Title, req.StartDate, req.EndDate)
 
 		// Delegate to Service layer (includes validation + business logic)
-		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, "user-id-placeholder")
+		/*trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, "user-id-placeholder")
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
+		}*/
+		userID, err := middleware.GetUserIDFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
 		}
+		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, userID)
 
 		respondJSON(w, http.StatusCreated, trip)
 	}

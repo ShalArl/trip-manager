@@ -29,8 +29,9 @@ export async function login(loginRequest: LoginRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginRequest),
     });
+    
     console.log(response)
-    return response
+    
     if (!response.ok) {
         throw new Error("Fehler beim Einloggen");
     }

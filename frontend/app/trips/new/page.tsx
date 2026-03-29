@@ -12,7 +12,7 @@ export default function NewTripPage() {
   async function handleCreateTrip(createTripRequest: CreateTripRequest) {
     try {
       await createTrip(createTripRequest);
-      router.push("/");
+      //router.push("/");
     } catch (error) {
       console.error(error);
     }

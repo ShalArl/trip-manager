@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User } from "@/types/user";
-import { Trip } from "@/types/trip"
-import { mockTrips } from "@/lib/mock-trips";
-import {createUser} from "@/lib/api/user"
-import {login} from "@/lib/api/user"
 
+import { User } from "@/types/user";
+import { Trip } from "@/types/trip";
+import { components } from "@/generated/types";
+
+import { mockTrips } from "@/lib/mock-trips";
+import { createUser, login } from "@/lib/api/user";
 
 import AuthPage from "@/components/auth/AuthPage";
 import Navbar from "@/components/home/Navbar";
@@ -14,18 +15,11 @@ import Hero from "@/components/home/Hero";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
 
-import { components } from "@/generated/types";
 type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 type LoginRequest = components["schemas"]["LoginRequest"];
 type AuthResponse = components["schemas"]["AuthResponse"];
 
 export default function Home() {
-  /*const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
-    const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
-  });*/
-
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -37,16 +31,19 @@ export default function Home() {
 
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
     const response: AuthResponse = await createUser(createUserRequest)
-    console.log(response) 
+    console.log(response)
     localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
+    localStorage.setItem("token", response.token);
     setUser({ name: response.user.name, email: response.user.email });
   }
 
   const handleLogin = async (loginRequest: LoginRequest) => {
     const response = await login(loginRequest);
-    console.log(response) 
-    //localStorage.setItem("user", JSON.stringify(user));
-    //setUser({ name: response.user.name, email: response.user.email });
+    console.log(response)
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
+    localStorage.setItem("token", response.token);
+    console.log("Token: " + response.token);
+    setUser({ name: response.user.name, email: response.user.email });
   }
 
   const handleLogout = () => {
