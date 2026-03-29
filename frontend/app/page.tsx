@@ -7,7 +7,7 @@ import { Trip } from "@/types/trip";
 import { getTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 
-import { mockTrips } from "@/lib/mock-trips";
+//import { mockTrips } from "@/lib/mock-trips";
 import { createUser, login } from "@/lib/api/user";
 
 import AuthPage from "@/components/auth/AuthPage";
