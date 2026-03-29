@@ -12,7 +12,11 @@ import (
 // UserIDContextKey is the key for storing user ID in context
 type contextKey string
 
-const UserIDContextKey contextKey = "userID"
+const (
+	UserIDContextKey    contextKey = "userID"
+	UserEmailContextKey contextKey = "userEmail"
+	UserNameContextKey  contextKey = "userName"
+)
 
 // AuthMiddleware validates JWT tokens and extracts user ID
 func AuthMiddleware(authManager *auth.AuthManager) func(http.Handler) http.Handler {
@@ -41,8 +45,10 @@ func AuthMiddleware(authManager *auth.AuthManager) func(http.Handler) http.Handl
 				return
 			}
 
-			// Add user ID to context
+			// Add user ID, email and name to context
 			ctx := context.WithValue(r.Context(), UserIDContextKey, claims.UserID)
+			ctx = context.WithValue(ctx, UserEmailContextKey, claims.Email)
+			ctx = context.WithValue(ctx, UserNameContextKey, claims.Name)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -57,3 +63,20 @@ func GetUserIDFromContext(r *http.Request) (string, error) {
 	return userID, nil
 }
 
+// GetUserEmailFromContext extracts the user email from request context
+func GetUserEmailFromContext(r *http.Request) (string, error) {
+	email, ok := r.Context().Value(UserEmailContextKey).(string)
+	if !ok || email == "" {
+		return "", fmt.Errorf("user email not found in context")
+	}
+	return email, nil
+}
+
+// GetUserNameFromContext extracts the user name from request context
+func GetUserNameFromContext(r *http.Request) (string, error) {
+	name, ok := r.Context().Value(UserNameContextKey).(string)
+	if !ok || name == "" {
+		return "", fmt.Errorf("user name not found in context")
+	}
+	return name, nil
+}

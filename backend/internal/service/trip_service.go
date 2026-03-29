@@ -13,7 +13,7 @@ type TripService interface {
 	GetTrip(ctx context.Context, id string) (*generated.TripResponse, error)
 
 	// CreateTrip creates a new trip with the provided details.
-	CreateTrip(ctx context.Context, request *generated.CreateTripRequest, userID string) (*generated.TripResponse, error)
+	CreateTrip(ctx context.Context, request *generated.CreateTripRequest, userID, userName, userEmail string) (*generated.TripResponse, error)
 
 	// UpdateTrip updates an existing trip's details.
 	UpdateTrip(ctx context.Context, request *generated.UpdateTripRequest, id string) (*generated.TripResponse, error)
@@ -34,14 +34,14 @@ type TripServiceImpl struct {
 
 // CreateTrip implements [TripService].
 // Service layer: validates input + converts types + coordinates repository
-func (t *TripServiceImpl) CreateTrip(ctx context.Context, request *generated.CreateTripRequest, userID string) (*generated.TripResponse, error) {
+func (t *TripServiceImpl) CreateTrip(ctx context.Context, request *generated.CreateTripRequest, userID, userName, userEmail string) (*generated.TripResponse, error) {
 	// 1. Validate input (business logic validation)
 	if err := validateCreateTripRequest(*request); err != nil {
 		return nil, err
 	}
 
 	// 2. Convert from generated type to domain
-	trip := mapCreateTripRequestToTrip(request, userID, "", "")
+	trip := mapCreateTripRequestToTrip(request, userID, userName, userEmail)
 
 	// 3. Call repository to persist
 	createdTrip, err := t.tripRepository.CreateTrip(ctx, trip)
@@ -132,4 +132,3 @@ func NewTripService(tripRepository repository.TripRepository, locationRepository
 		activityRepository: activityRepository,
 	}
 }
-

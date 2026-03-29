@@ -20,10 +20,16 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		// Parse query parameters
 		limit, offset := handlePaginationParams(r)
 
+		userID, err := middleware.GetUserIDFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		app.Logger.Printf("ListTrips: limit=%d, offset=%d", limit, offset)
 
 		// Handler only parses parameters - Service does validation + coordination
-		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), "user-id-placeholder", limit, offset)
+		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), userID, limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -57,7 +63,24 @@ func CreateTripHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, userID)
+
+		userName, err := middleware.GetUserNameFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		userEmail, err := middleware.GetUserEmailFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, userID, userName, userEmail)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 
 		respondJSON(w, http.StatusCreated, trip)
 	}
