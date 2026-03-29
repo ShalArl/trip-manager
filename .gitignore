@@ -36,7 +36,6 @@ node_modules/
 
 # Generated API code - ignore contents but track config files
 # Frontend
-frontend/generated/*
 frontend/.next/
 
 # Backend
