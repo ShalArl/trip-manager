@@ -1,0 +1,21 @@
+{
+  "name": "trip-manager",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,go,md}\"",
+    "gen": "turbo run gen",
+    "gen:ts": "mkdirp ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
+    "gen:go": "mkdirp ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen --config=oapi-codegen.yaml ./api-spec/openapi.yaml",
+    "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/src/generated/{src,docs,.openapi-generator} ./frontend/src/generated/{*.json,*.md}"
+  },
+  "devDependencies": {
+    "mkdirp": "^3.0.1",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "latest",
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

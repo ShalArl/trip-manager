@@ -28,5 +28,18 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+node_modules/
+.turbo/
+
+# Generated API code - ignore contents but track config files
+# Frontend
+frontend/.next/
+
+# Backend
+backend/api               # Old compiled binary location
+backend/bin/              # Compiled binaries from new build system
+backend/tmp/              # Temporary build files
+backend/.turbo/           # Turbo cache
