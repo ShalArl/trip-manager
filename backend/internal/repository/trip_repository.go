@@ -56,12 +56,12 @@ func (t *TripRepositoryImpl) CreateTrip(ctx context.Context, trip *domain.Trip) 
 	}
 
 	query := `
-		INSERT INTO trips (user_id, title, short_description, destination, description, start_date, end_date, status) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO trips (user_id, title, short_description, description, start_date, end_date, status) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at`
 
 	err = t.db.QueryRowContext(
-		ctx, query, rec.UserID, rec.Title, rec.ShortDescription, rec.Destination, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
+		ctx, query, rec.UserID, rec.Title, rec.ShortDescription, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
 	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
 
 	if err != nil {

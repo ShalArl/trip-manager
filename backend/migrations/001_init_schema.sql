@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
-    destination VARCHAR(255) NOT NULL,
     short_description VARCHAR(255),
     description TEXT,
     start_date DATE NOT NULL,
