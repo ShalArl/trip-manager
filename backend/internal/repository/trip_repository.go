@@ -77,7 +77,7 @@ func (t *TripRepositoryImpl) CreateTrip(ctx context.Context, trip *domain.Trip) 
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return trip, nil
+	return rec.toTrip(), nil
 }
 
 func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) (*domain.Trip, error) {
@@ -94,7 +94,7 @@ func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) 
 
 	err = t.db.QueryRowContext(ctx, query,
 		rec.Title, rec.ShortDescription, rec.Description, rec.StartDate, rec.EndDate, rec.Status, rec.ID, rec.UserID,
-	).Scan(&trip.UpdatedAt)
+	).Scan(&rec.UpdatedAt)
 
 	if err != nil {
 		var pgErr *pq.Error
@@ -109,7 +109,7 @@ func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) 
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return trip, nil
+	return rec.toTrip(), nil
 }
 
 func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit int, offset int) ([]*domain.Trip, int, error) {

@@ -10,21 +10,20 @@ import (
 	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
-type APIErrorResponse struct {
+type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
 // ListTripsHandler handles GET /api/trips with pagination
 func ListTripsHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Parse query parameters
-		limit, offset := handlePaginationParams(r)
-
-		userID, err := middleware.GetUserIDFromContext(r)
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		// Parse query parameters
+		limit, offset := handlePaginationParams(r)
 
 		app.Logger.Printf("ListTrips: limit=%d, offset=%d", limit, offset)
 
@@ -44,41 +43,23 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 // CreateTripHandler handles POST /api/trips
 func CreateTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req generated.CreateTripRequest
+		userID, userEmail, userName, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
 
+		var req generated.CreateTripRequest
 		// Handler only decodes JSON - validation belongs in Service layer
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 			return
 		}
 
 		app.Logger.Printf("CreateTrip: title=%s, startDate=%v, endDate=%v", req.Title, req.StartDate, req.EndDate)
 
-		// Delegate to Service layer (includes validation + business logic)
-		/*trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, "user-id-placeholder")
-		if err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
-			return
-		}*/
-		userID, err := middleware.GetUserIDFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		userName, err := middleware.GetUserNameFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		userEmail, err := middleware.GetUserEmailFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
 		trip, err := app.Services.Trip.CreateTrip(r.Context(), &req, userID, userName, userEmail)
+		print("trip created: ", trip)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -112,6 +93,11 @@ func GetTripHandler(app *app.App) http.HandlerFunc {
 // UpdateTripHandler handles PUT /api/trips/{tripId}
 func UpdateTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
 		tripId := r.PathValue("tripId")
 		if tripId == "" {
 			respondError(w, http.StatusBadRequest, "Trip ID is required")
@@ -127,7 +113,7 @@ func UpdateTripHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("UpdateTrip: id=%s", tripId)
 
-		trip, err := app.Services.Trip.UpdateTrip(r.Context(), &req, tripId)
+		trip, err := app.Services.Trip.UpdateTrip(r.Context(), &req, tripId, userID)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return

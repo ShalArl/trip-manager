@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { getTrip } from "@/lib/api/trips";
 import TripDetail from "@/components/trips/TripDetail";
-import { components } from "@/generated/types";
+import {TripResponse} from "@/types/trip";
 
-type TripResponse = components["schemas"]["TripResponse"];
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const [trip, setTrip] = useState<TripResponse | null>(null);
