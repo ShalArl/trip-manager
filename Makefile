@@ -1,20 +1,28 @@
-.PHONY: help build test run run-dev migrate migrate-create clean migrate-down
+.PHONY: help build test run run-dev migrate migrate-create clean migrate-down build-windows run-windows run-dev-win
 
 # Variables
 BINARY_NAME=api
 BACKEND_DIR=backend
 CMD_DIR=$(BACKEND_DIR)/cmd/api
 BIN_DIR=$(BACKEND_DIR)/bin
+BINARY_NAME_WIN=$(BINARY_NAME).exe
 
 # Default target
 help:
 	@echo "Trip Manager - Makefile Commands"
 	@echo "=================================="
 	@echo ""
-	@echo "Development Commands:"
+	@echo "Development Commands (Linux/macOS):"
 	@echo "  make run-dev       Run the server with auto-reload (requires air)"
 	@echo "  make run           Build and run the server"
 	@echo "  make build         Build the backend binary"
+	@echo ""
+	@echo "Development Commands (Windows):"
+	@echo "  make run-dev-win   Run the server for Windows with auto-reload (requires air)"
+	@echo "  make run-windows   Build and run the server for Windows"
+	@echo "  make build-windows Build the backend binary for Windows"
+	@echo ""
+	@echo "Other Commands:"
 	@echo "  make test          Run all tests"
 	@echo "  make test-verbose  Run tests with verbose output"
 	@echo ""
@@ -39,6 +47,7 @@ build:
 	@cd $(BACKEND_DIR) && go build -o bin/$(BINARY_NAME) ./cmd/api
 	@echo "✓ Build complete: $(BIN_DIR)/$(BINARY_NAME)"
 
+
 # Run the compiled binary
 run: build
 	@echo "Starting server..."
@@ -49,6 +58,24 @@ run-dev:
 	@echo "Starting server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
 	@cd $(BACKEND_DIR) && air
+
+# Build the backend binary for Windows
+build-windows:
+	@echo "Building backend binary for Windows..."
+	@mkdir -p $(BIN_DIR)
+	@cd $(BACKEND_DIR) && GOOS=windows GOARCH=amd64 go build -o bin/$(BINARY_NAME_WIN) ./cmd/api
+	@echo "✓ Windows build complete: $(BIN_DIR)/$(BINARY_NAME_WIN)"
+
+# Run the compiled Windows binary (requires WSL2 or Windows environment)
+run-windows: build-windows
+	@echo "Starting Windows server..."
+	@./$(BIN_DIR)/$(BINARY_NAME_WIN)
+
+# Run Windows build with auto-reload (requires 'air' - github.com/air-verse/air)
+run-dev-win:
+	@echo "Starting Windows server with auto-reload..."
+	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
+	@cd $(BACKEND_DIR) && GOOS=windows GOARCH=amd64 air
 
 # Run all tests
 test:
@@ -89,7 +116,7 @@ db-setup:
 db-reset:
 	@echo "⚠️  WARNING: This will DELETE ALL DATA from the database!"
 	@echo "Press Ctrl+C to cancel, or press Enter to continue..."
-	@read -r
+	@bash -c 'read -r'
 	@psql $(DATABASE_URL) -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" || true
 	@echo "✓ Database reset complete"
 

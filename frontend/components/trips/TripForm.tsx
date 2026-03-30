@@ -1,16 +1,19 @@
 "use client"
 
 import { useState } from "react";
-import { Trip } from "@/types/trip";
+
+import { components } from "@/generated/types";
+type CreateTripRequest = components["schemas"]["CreateTripRequest"];
 
 type Props = {
-    onCreateTripAction: (trip: Trip) => void;
+    onCreateTripAction: (trip: CreateTripRequest) => void;
 };
 
 export default function TripForm({ onCreateTripAction }: Props) {
     const [title, setTitle] = useState("");
     const [destination, setDestination] = useState("");
     const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [shortDescription, setShortDescription] = useState("");
     const [longDescription, setLongDescription] = useState("");
     const [error, setError] = useState("");
@@ -25,7 +28,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
             return;
         }
 
-        onCreateTripAction({ title, destination, startDate, shortDescription, longDescription });
+        onCreateTripAction({ title, destination, startDate, endDate, shortDescription, description: longDescription });
     }
 
     return (
@@ -73,6 +76,18 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Enddatum
+                    </label>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
                         className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
                     />
                 </div>
