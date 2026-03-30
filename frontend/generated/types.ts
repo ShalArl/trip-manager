@@ -3,1105 +3,757 @@
  * Do not make direct changes to the file.
  */
 
+
 export interface paths {
-    "/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register a new user */
-        post: operations["registerUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login and receive a JWT */
-        post: operations["loginUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current user profile */
-        get: operations["getMe"];
-        /** Update current user profile */
-        put: operations["updateMe"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/me/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Change current user password */
-        put: operations["changePassword"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List all trips created by the current user */
-        get: operations["listTrips"];
-        put?: never;
-        /** Create a new trip */
-        post: operations["createTrip"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips/{tripId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get trip details */
-        get: operations["getTrip"];
-        /** Update trip */
-        put: operations["updateTrip"];
-        post?: never;
-        /** Delete trip */
-        delete: operations["deleteTrip"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips/{tripId}/locations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List trip locations */
-        get: operations["listLocations"];
-        put?: never;
-        /** Add location to trip */
-        post: operations["addLocation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips/{tripId}/locations/{locationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update location */
-        put: operations["updateLocation"];
-        post?: never;
-        /** Remove location from trip */
-        delete: operations["deleteLocation"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips/{tripId}/activities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List trip activities */
-        get: operations["listActivities"];
-        put?: never;
-        /** Add activity to trip */
-        post: operations["addActivity"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trips/{tripId}/activities/{activityId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update activity */
-        put: operations["updateActivity"];
-        post?: never;
-        /** Delete activity */
-        delete: operations["deleteActivity"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+  "/auth/register": {
+    /** Register a new user */
+    post: operations["registerUser"];
+  };
+  "/auth/login": {
+    /** Login and receive a JWT */
+    post: operations["loginUser"];
+  };
+  "/users/me": {
+    /** Get current user profile */
+    get: operations["getMe"];
+    /** Update current user profile */
+    put: operations["updateMe"];
+  };
+  "/users/me/password": {
+    /** Change current user password */
+    put: operations["changePassword"];
+  };
+  "/trips": {
+    /** List all trips created by the current user */
+    get: operations["listTrips"];
+    /** Create a new trip */
+    post: operations["createTrip"];
+  };
+  "/trips/{tripId}": {
+    /** Get trip details */
+    get: operations["getTrip"];
+    /** Update trip */
+    put: operations["updateTrip"];
+    /** Delete trip */
+    delete: operations["deleteTrip"];
+  };
+  "/trips/{tripId}/locations": {
+    /** List trip locations */
+    get: operations["listLocations"];
+    /** Add location to trip */
+    post: operations["addLocation"];
+  };
+  "/trips/{tripId}/locations/{locationId}": {
+    /** Update location */
+    put: operations["updateLocation"];
+    /** Remove location from trip */
+    delete: operations["deleteLocation"];
+  };
+  "/trips/{tripId}/activities": {
+    /** List trip activities */
+    get: operations["listActivities"];
+    /** Add activity to trip */
+    post: operations["addActivity"];
+  };
+  "/trips/{tripId}/activities/{activityId}": {
+    /** Update activity */
+    put: operations["updateActivity"];
+    /** Delete activity */
+    delete: operations["deleteActivity"];
+  };
 }
+
 export type webhooks = Record<string, never>;
+
 export interface components {
-    schemas: {
-        /** @description Read-only fields present on every persisted resource. Reused via allOf composition in all Response schemas. */
-        ResourceMeta: {
-            /** Format: uuid */
-            readonly id: string;
-            createdBy: components["schemas"]["UserSummary"];
-            /** Format: date-time */
-            readonly createdAt: string;
-            /** Format: date-time */
-            readonly updatedAt: string;
-        };
-        /** @description Minimal user representation embedded in resource responses. */
-        UserSummary: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            /** Format: email */
-            email: string;
-        };
-        /** @description Pagination envelope reused by all list responses. Compose via allOf: add a 'data' property with the specific item array. */
-        PaginationMeta: {
-            /** @description Total number of items matching the query */
-            total: number;
-            /** @description Max items returned in this page */
-            limit: number;
-            /** @description Number of items skipped */
-            offset: number;
-        };
-        CreateUserRequest: {
-            /** Format: email */
-            email: string;
-            /** @description Minimum 8 characters */
-            password: string;
-            name: string;
-        };
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        AuthResponse: {
-            /** @description JWT access token */
-            token: string;
-            /** @description Token validity in seconds (e.g. 3600) */
-            expiresIn: number;
-            user: components["schemas"]["UserResponse"];
-        };
-        /** @description Full user object returned by profile endpoints. */
-        UserResponse: {
-            /** Format: uuid */
-            readonly id: string;
-            /** Format: email */
-            email: string;
-            name: string;
-            /** Format: date-time */
-            readonly createdAt: string;
-            /** Format: date-time */
-            readonly updatedAt: string;
-        };
-        UpdateUserRequest: {
-            name?: string;
-            /** Format: email */
-            email?: string;
-        };
-        ChangePasswordRequest: {
-            currentPassword: string;
-            newPassword: string;
-        };
-        CreateTripRequest: {
-            title: string;
-            shortDescription: string;
-            description?: string;
-            /** Format: date */
-            startDate: string;
-            /** Format: date */
-            endDate?: string;
-            destination: string;
-        };
-        UpdateTripRequest: {
-            title?: string;
-            shortDescription?: string;
-            description?: string;
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            /** @enum {string} */
-            status?: "planned" | "ongoing" | "completed" | "cancelled";
-        };
-        /** @description Full trip object returned by all trip endpoints. */
-        TripResponse: components["schemas"]["ResourceMeta"] & {
-            title: string;
-            shortDescription: string;
-            description?: string;
-            /** Format: date */
-            startDate: string;
-            /** Format: date */
-            endDate?: string;
-            destination: string;
-            /** @enum {string} */
-            status?: "planned" | "ongoing" | "completed" | "cancelled";
-        };
-        /** @description Paginated list of trips. */
-        TripListResponse: components["schemas"]["PaginationMeta"] & {
-            data: components["schemas"]["TripResponse"][];
-        };
-        CreateLocationRequest: {
-            name: string;
-            city: string;
-            country: string;
-            /** Format: float */
-            latitude?: number;
-            /** Format: float */
-            longitude?: number;
-            notes?: string;
-            /** @description Visit sequence number */
-            sequence?: number;
-        };
-        UpdateLocationRequest: {
-            name?: string;
-            city?: string;
-            country?: string;
-            /** Format: float */
-            latitude?: number;
-            /** Format: float */
-            longitude?: number;
-            notes?: string;
-            /** @description Visit sequence number */
-            sequence?: number;
-        };
-        /** @description Full location object returned by all location endpoints. */
-        LocationResponse: components["schemas"]["ResourceMeta"] & {
-            name: string;
-            city: string;
-            country: string;
-            /** Format: float */
-            latitude?: number;
-            /** Format: float */
-            longitude?: number;
-            notes?: string;
-            sequence?: number;
-        };
-        /** @description Paginated list of locations. */
-        LocationListResponse: components["schemas"]["PaginationMeta"] & {
-            data: components["schemas"]["LocationResponse"][];
-        };
-        CreateActivityRequest: {
-            name: string;
-            description?: string;
-            /** Format: date */
-            date: string;
-            /** Format: time */
-            startTime?: string;
-            /** Format: time */
-            endTime?: string;
-            /** Format: uuid */
-            locationId: string;
-            /** @enum {string} */
-            category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
-            /** Format: float */
-            cost?: number;
-            /** @default USD */
-            currency: string;
-        };
-        UpdateActivityRequest: {
-            name?: string;
-            description?: string;
-            /** Format: date */
-            date?: string;
-            /** Format: time */
-            startTime?: string;
-            /** Format: time */
-            endTime?: string;
-            /** Format: uuid */
-            locationId?: string;
-            /** @enum {string} */
-            category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
-            /** Format: float */
-            cost?: number;
-            currency?: string;
-        };
-        /** @description Full activity object returned by all activity endpoints. */
-        ActivityResponse: components["schemas"]["ResourceMeta"] & {
-            name: string;
-            description?: string;
-            /** Format: date */
-            date: string;
-            /** Format: time */
-            startTime?: string;
-            /** Format: time */
-            endTime?: string;
-            /** Format: uuid */
-            locationId: string;
-            /** @enum {string} */
-            category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
-            /** Format: float */
-            cost?: number;
-            currency?: string;
-        };
-        /** @description Paginated list of activities. */
-        ActivityListResponse: components["schemas"]["PaginationMeta"] & {
-            data: components["schemas"]["ActivityResponse"][];
-        };
+  schemas: {
+    /** @description Read-only fields present on every persisted resource. Reused via allOf composition in all Response schemas. */
+    ResourceMeta: {
+      /** Format: uuid */
+      id: string;
+      createdBy: components["schemas"]["UserSummary"];
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /** @description Minimal user representation embedded in resource responses. */
+    readonly UserSummary: {
+      /** Format: uuid */
+      readonly id: string;
+      readonly name: string;
+      /** Format: email */
+      readonly email: string;
+    };
+    /** @description Pagination envelope reused by all list responses. Compose via allOf: add a 'data' property with the specific item array. */
+    PaginationMeta: {
+      /** @description Total number of items matching the query */
+      total: number;
+      /** @description Max items returned in this page */
+      limit: number;
+      /** @description Number of items skipped */
+      offset: number;
+    };
+    CreateUserRequest: {
+      /** Format: email */
+      email: string;
+      /** @description Minimum 8 characters */
+      password: string;
+      name: string;
+    };
+    LoginRequest: {
+      /** Format: email */
+      email: string;
+      password: string;
+    };
+    AuthResponse: {
+      /** @description JWT access token */
+      token: string;
+      /** @description Token validity in seconds (e.g. 3600) */
+      expiresIn: number;
+      user: components["schemas"]["UserResponse"];
+    };
+    /** @description Full user object returned by profile endpoints. */
+    UserResponse: {
+      /** Format: uuid */
+      id: string;
+      /** Format: email */
+      email: string;
+      name: string;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    UpdateUserRequest: {
+      name?: string;
+      /** Format: email */
+      email?: string;
+    };
+    ChangePasswordRequest: {
+      currentPassword: string;
+      newPassword: string;
+    };
+    CreateTripRequest: {
+      title: string;
+      shortDescription: string;
+      description?: string;
+      /** Format: date */
+      startDate: string;
+      /** Format: date */
+      endDate?: string;
+      destination: string;
+    };
+    UpdateTripRequest: {
+      title?: string;
+      shortDescription?: string;
+      description?: string;
+      /** Format: date */
+      startDate?: string;
+      /** Format: date */
+      endDate?: string;
+      /** @enum {string} */
+      status?: "planned" | "ongoing" | "completed" | "cancelled";
+    };
+    /** @description Full trip object returned by all trip endpoints. */
+    TripResponse: components["schemas"]["ResourceMeta"] & ({
+      title: string;
+      shortDescription: string;
+      description?: string;
+      /** Format: date */
+      startDate: string;
+      /** Format: date */
+      endDate?: string;
+      destination: string;
+      /** @enum {string} */
+      status?: "planned" | "ongoing" | "completed" | "cancelled";
+    });
+    /** @description Paginated list of trips. */
+    TripListResponse: components["schemas"]["PaginationMeta"] & {
+      data: components["schemas"]["TripResponse"][];
+    };
+    CreateLocationRequest: {
+      name: string;
+      city: string;
+      country: string;
+      /** Format: float */
+      latitude?: number;
+      /** Format: float */
+      longitude?: number;
+      notes?: string;
+      /** @description Visit sequence number */
+      sequence?: number;
+    };
+    UpdateLocationRequest: {
+      name?: string;
+      city?: string;
+      country?: string;
+      /** Format: float */
+      latitude?: number;
+      /** Format: float */
+      longitude?: number;
+      notes?: string;
+      /** @description Visit sequence number */
+      sequence?: number;
+    };
+    /** @description Full location object returned by all location endpoints. */
+    LocationResponse: components["schemas"]["ResourceMeta"] & {
+      name: string;
+      city: string;
+      country: string;
+      /** Format: float */
+      latitude?: number;
+      /** Format: float */
+      longitude?: number;
+      notes?: string;
+      sequence?: number;
+    };
+    /** @description Paginated list of locations. */
+    LocationListResponse: components["schemas"]["PaginationMeta"] & {
+      data: components["schemas"]["LocationResponse"][];
+    };
+    CreateActivityRequest: {
+      name: string;
+      description?: string;
+      /** Format: date */
+      date: string;
+      /** Format: time */
+      startTime?: string;
+      /** Format: time */
+      endTime?: string;
+      /** Format: uuid */
+      locationId: string;
+      /** @enum {string} */
+      category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
+      /** Format: float */
+      cost?: number;
+      /** @default USD */
+      currency?: string;
+    };
+    UpdateActivityRequest: {
+      name?: string;
+      description?: string;
+      /** Format: date */
+      date?: string;
+      /** Format: time */
+      startTime?: string;
+      /** Format: time */
+      endTime?: string;
+      /** Format: uuid */
+      locationId?: string;
+      /** @enum {string} */
+      category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
+      /** Format: float */
+      cost?: number;
+      currency?: string;
+    };
+    /** @description Full activity object returned by all activity endpoints. */
+    ActivityResponse: components["schemas"]["ResourceMeta"] & ({
+      name: string;
+      description?: string;
+      /** Format: date */
+      date: string;
+      /** Format: time */
+      startTime?: string;
+      /** Format: time */
+      endTime?: string;
+      /** Format: uuid */
+      locationId: string;
+      /** @enum {string} */
+      category?: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
+      /** Format: float */
+      cost?: number;
+      currency?: string;
+    });
+    /** @description Paginated list of activities. */
+    ActivityListResponse: components["schemas"]["PaginationMeta"] & {
+      data: components["schemas"]["ActivityResponse"][];
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
+
 export type $defs = Record<string, never>;
+
+export type external = Record<string, never>;
+
 export interface operations {
-    registerUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateUserRequest"];
-            };
-        };
-        responses: {
-            /** @description User registered successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResponse"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Email already in use */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+
+  /** Register a new user */
+  registerUser: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateUserRequest"];
+      };
     };
-    loginUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description User registered successfully */
+      201: {
+        content: {
+          "application/json": components["schemas"]["AuthResponse"];
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Login successful */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResponse"];
-                };
-            };
-            /** @description Invalid credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Invalid input */
+      400: {
+        content: never;
+      };
+      /** @description Email already in use */
+      409: {
+        content: never;
+      };
     };
-    getMe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current user profile */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Login and receive a JWT */
+  loginUser: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginRequest"];
+      };
     };
-    updateMe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Login successful */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AuthResponse"];
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserRequest"];
-            };
-        };
-        responses: {
-            /** @description Profile updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Invalid credentials */
+      401: {
+        content: never;
+      };
     };
-    changePassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+  };
+  /** Get current user profile */
+  getMe: {
+    responses: {
+      /** @description Current user profile */
+      200: {
+        content: {
+          "application/json": components["schemas"]["UserResponse"];
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordRequest"];
-            };
-        };
-        responses: {
-            /** @description Password changed */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized or wrong current password */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
     };
-    listTrips: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated list of trips */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TripListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Update current user profile */
+  updateMe: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateUserRequest"];
+      };
     };
-    createTrip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Profile updated */
+      200: {
+        content: {
+          "application/json": components["schemas"]["UserResponse"];
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTripRequest"];
-            };
-        };
-        responses: {
-            /** @description Trip created successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TripResponse"];
-                };
-            };
-            /** @description Invalid input */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Invalid input */
+      400: {
+        content: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
     };
-    getTrip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Trip details */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TripResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden – trip belongs to another user */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Trip not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Change current user password */
+  changePassword: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangePasswordRequest"];
+      };
     };
-    updateTrip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTripRequest"];
-            };
-        };
-        responses: {
-            /** @description Trip updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TripResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Trip not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    responses: {
+      /** @description Password changed */
+      204: {
+        content: never;
+      };
+      /** @description Invalid input */
+      400: {
+        content: never;
+      };
+      /** @description Unauthorized or wrong current password */
+      401: {
+        content: never;
+      };
     };
-    deleteTrip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Trip deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Trip not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** List all trips created by the current user */
+  listTrips: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
     };
-    listLocations: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Paginated list of trips */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TripListResponse"];
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated list of locations */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
     };
-    addLocation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLocationRequest"];
-            };
-        };
-        responses: {
-            /** @description Location added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Create a new trip */
+  createTrip: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateTripRequest"];
+      };
     };
-    updateLocation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-                locationId: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Trip created successfully */
+      201: {
+        content: {
+          "application/json": components["schemas"]["TripResponse"];
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateLocationRequest"];
-            };
-        };
-        responses: {
-            /** @description Location updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Location not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Invalid input */
+      400: {
+        content: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
     };
-    deleteLocation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-                locationId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Location removed */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Location not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Get trip details */
+  getTrip: {
+    parameters: {
+      path: {
+        tripId: string;
+      };
     };
-    listActivities: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Trip details */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TripResponse"];
         };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated list of activities */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivityListResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden – trip belongs to another user */
+      403: {
+        content: never;
+      };
+      /** @description Trip not found */
+      404: {
+        content: never;
+      };
     };
-    addActivity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateActivityRequest"];
-            };
-        };
-        responses: {
-            /** @description Activity added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivityResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  /** Update trip */
+  updateTrip: {
+    parameters: {
+      path: {
+        tripId: string;
+      };
     };
-    updateActivity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-                activityId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateActivityRequest"];
-            };
-        };
-        responses: {
-            /** @description Activity updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivityResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Activity not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateTripRequest"];
+      };
     };
-    deleteActivity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tripId: string;
-                activityId: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Trip updated */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TripResponse"];
         };
-        requestBody?: never;
-        responses: {
-            /** @description Activity deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Activity not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Trip not found */
+      404: {
+        content: never;
+      };
     };
+  };
+  /** Delete trip */
+  deleteTrip: {
+    parameters: {
+      path: {
+        tripId: string;
+      };
+    };
+    responses: {
+      /** @description Trip deleted */
+      204: {
+        content: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Trip not found */
+      404: {
+        content: never;
+      };
+    };
+  };
+  /** List trip locations */
+  listLocations: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      path: {
+        tripId: string;
+      };
+    };
+    responses: {
+      /** @description Paginated list of locations */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LocationListResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+    };
+  };
+  /** Add location to trip */
+  addLocation: {
+    parameters: {
+      path: {
+        tripId: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateLocationRequest"];
+      };
+    };
+    responses: {
+      /** @description Location added */
+      201: {
+        content: {
+          "application/json": components["schemas"]["LocationResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+    };
+  };
+  /** Update location */
+  updateLocation: {
+    parameters: {
+      path: {
+        tripId: string;
+        locationId: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateLocationRequest"];
+      };
+    };
+    responses: {
+      /** @description Location updated */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LocationResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Location not found */
+      404: {
+        content: never;
+      };
+    };
+  };
+  /** Remove location from trip */
+  deleteLocation: {
+    parameters: {
+      path: {
+        tripId: string;
+        locationId: string;
+      };
+    };
+    responses: {
+      /** @description Location removed */
+      204: {
+        content: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Location not found */
+      404: {
+        content: never;
+      };
+    };
+  };
+  /** List trip activities */
+  listActivities: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      path: {
+        tripId: string;
+      };
+    };
+    responses: {
+      /** @description Paginated list of activities */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ActivityListResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+    };
+  };
+  /** Add activity to trip */
+  addActivity: {
+    parameters: {
+      path: {
+        tripId: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateActivityRequest"];
+      };
+    };
+    responses: {
+      /** @description Activity added */
+      201: {
+        content: {
+          "application/json": components["schemas"]["ActivityResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+    };
+  };
+  /** Update activity */
+  updateActivity: {
+    parameters: {
+      path: {
+        tripId: string;
+        activityId: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateActivityRequest"];
+      };
+    };
+    responses: {
+      /** @description Activity updated */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ActivityResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Activity not found */
+      404: {
+        content: never;
+      };
+    };
+  };
+  /** Delete activity */
+  deleteActivity: {
+    parameters: {
+      path: {
+        tripId: string;
+        activityId: string;
+      };
+    };
+    responses: {
+      /** @description Activity deleted */
+      204: {
+        content: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        content: never;
+      };
+      /** @description Forbidden */
+      403: {
+        content: never;
+      };
+      /** @description Activity not found */
+      404: {
+        content: never;
+      };
+    };
+  };
 }
