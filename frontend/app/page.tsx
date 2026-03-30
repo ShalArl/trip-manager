@@ -42,11 +42,7 @@ export default function Home() {
     console.log(response)
     // Store token FIRST, then user - this ensures token is available when useEffect runs
     localStorage.setItem("token", response.token);
-    localStorage.setItem("user", JSON.stringify({ 
-      id: response.user.id,
-      name: response.user.name, 
-      email: response.user.email 
-    }));
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
     setUser({ name: response.user.name, email: response.user.email });
   }
 
@@ -55,11 +51,7 @@ export default function Home() {
     console.log(response)
     // Store token FIRST, then user - this ensures token is available when useEffect runs
     localStorage.setItem("token", response.token);
-    localStorage.setItem("user", JSON.stringify({ 
-      id: response.user.id,
-      name: response.user.name, 
-      email: response.user.email 
-    }));
+    localStorage.setItem("user", JSON.stringify({ name: response.user.name, email: response.user.email }));
     console.log("Token: " + response.token);
     setUser({ name: response.user.name, email: response.user.email });
   }

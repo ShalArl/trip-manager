@@ -44,7 +44,7 @@ export default function TripList({ trips }: Props) {
                                     {trip.title}
                                 </p>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    {trip.startDate} · {trip.endDate}
+                                    {trip.destination} · {trip.startDate}
                                 </p>
                             </div>
                         </div>

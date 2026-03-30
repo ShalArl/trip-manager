@@ -25,6 +25,10 @@ func validateCreateTripRequest(request generated.CreateTripRequest) error {
 		return fmt.Errorf("%w: short description is too long", domain.ErrInvalidInput)
 	}
 
+	if request.Destination == "" {
+		return fmt.Errorf("%w: destination is required", domain.ErrInvalidInput)
+	}
+
 	if request.EndDate.Time.IsZero() {
 		return fmt.Errorf("%w: end date is required", domain.ErrInvalidInput)
 	}

@@ -3,46 +3,36 @@
 import { useEffect, useState } from "react";
 import { getTrip } from "@/lib/api/trips";
 import TripDetail from "@/components/trips/TripDetail";
-import {TripResponse} from "@/types/trip";
+import { components } from "@/generated/types";
 
+type TripResponse = components["schemas"]["TripResponse"];
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const [trip, setTrip] = useState<TripResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isEditable, setIsEditable] = useState(false);
+    const [tripId, setTripId] = useState<string | null>(null);
 
+    // Extract trip ID from params
     useEffect(() => {
-        // Load user ID from localStorage once on mount
-        const userJson = localStorage.getItem("user");
-        let currentUserId: string | null = null;
-        
-        if (userJson) {
-            try {
-                const user = JSON.parse(userJson);
-                currentUserId = user.id;
-            } catch (err) {
-                console.error("Failed to parse user from localStorage", err);
-            }
-        }
+        params.then(({ id }) => setTripId(id));
+    }, [params]);
 
-        // Extract trip ID from params and fetch trip
-        params.then(async ({ id }) => {
+    // Fetch trip when ID is available
+    useEffect(() => {
+        if (!tripId) return;
+
+        async function fetchTrip() {
             try {
-                const data = await getTrip(id);
+                const data = await getTrip(tripId as string);
                 setTrip(data);
-                
-                // Calculate isEditable after trip is loaded
-                const canEdit = data.createdBy?.id === currentUserId;
-                setIsEditable(canEdit);
-                
-                console.log("Trip Daten:", data);
-                console.log("IsEditable:", canEdit, "CurrentUserId:", currentUserId, "TripOwner:", data.createdBy?.id);
             } catch (err) {
                 console.error("Failed to fetch trip:", err);
                 setError("Fehler beim Laden der Reise");
             }
-        });
-    }, [params]);
+        }
+
+        fetchTrip();
+    }, [tripId]);
 
     if (error) {
         return <div>{error}</div>;
@@ -52,6 +42,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         return <div>Lädt...</div>;
     }
 
+    console.log("Trip Daten:", trip);
 
-    return <TripDetail trip={trip} isEditable={isEditable} />;
+    return <TripDetail trip={trip} />;
 }

@@ -56,12 +56,12 @@ func (t *TripRepositoryImpl) CreateTrip(ctx context.Context, trip *domain.Trip) 
 	}
 
 	query := `
-		INSERT INTO trips (user_id, title, short_description, description, start_date, end_date, status) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO trips (user_id, title, short_description, destination, description, start_date, end_date, status) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at`
 
 	err = t.db.QueryRowContext(
-		ctx, query, rec.UserID, rec.Title, rec.ShortDescription, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
+		ctx, query, rec.UserID, rec.Title, rec.ShortDescription, rec.Destination, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
 	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
 
 	if err != nil {
@@ -77,7 +77,7 @@ func (t *TripRepositoryImpl) CreateTrip(ctx context.Context, trip *domain.Trip) 
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return rec.toTrip(), nil
+	return trip, nil
 }
 
 func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) (*domain.Trip, error) {
@@ -94,7 +94,7 @@ func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) 
 
 	err = t.db.QueryRowContext(ctx, query,
 		rec.Title, rec.ShortDescription, rec.Description, rec.StartDate, rec.EndDate, rec.Status, rec.ID, rec.UserID,
-	).Scan(&rec.UpdatedAt)
+	).Scan(&trip.UpdatedAt)
 
 	if err != nil {
 		var pgErr *pq.Error
@@ -109,7 +109,7 @@ func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) 
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return rec.toTrip(), nil
+	return trip, nil
 }
 
 func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit int, offset int) ([]*domain.Trip, int, error) {

@@ -12,6 +12,7 @@ type tripRecord struct {
 	UserID           uuid.UUID `db:"user_id"`
 	Title            string    `db:"title"`
 	ShortDescription string    `db:"short_description"`
+	Destination      string    `db:"destination"`
 	Description      *string   `db:"description"`
 	StartDate        time.Time `db:"start_date"`
 	EndDate          time.Time `db:"end_date"`

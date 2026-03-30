@@ -27,6 +27,7 @@ func mapCreateTripRequestToTrip(request *generated.CreateTripRequest, userID str
 		StartDate:        request.StartDate.Time,
 		EndDate:          request.EndDate.Time,
 		Status:           domain.TripStatusPlanned,
+		Destination:      request.Destination,
 	}
 }
 
@@ -73,10 +74,11 @@ func mapTripToTripResponse(trip *domain.Trip) *generated.TripResponse {
 		ShortDescription: trip.ShortDescription,
 		Description:      ptr.ToPtr(trip.Description),
 		StartDate:        openapitypes.Date{Time: trip.StartDate},
-		EndDate:          openapitypes.Date{Time: trip.EndDate},
-		Status:           status,
+		EndDate:          &openapitypes.Date{Time: trip.EndDate},
+		Status:           &status,
 		CreatedAt:        &trip.CreatedAt,
 		UpdatedAt:        &trip.UpdatedAt,
+		Destination:      trip.Destination,
 		CreatedBy: &generated.UserSummary{
 			Id:    uuid.MustParse(trip.CreatedBy.ID),
 			Name:  trip.CreatedBy.Name,

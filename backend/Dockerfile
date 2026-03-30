@@ -13,9 +13,6 @@ COPY . .
 # Install oapi-codegen (Go tool for code generation)
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
-# Install pnpm dependencies (needed for code generation)
-RUN pnpm install
-
 # Generate Go code from OpenAPI spec
 RUN pnpm gen:go
 

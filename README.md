@@ -45,7 +45,7 @@ pnpm dev
 trip-manager
 ├─ api-spec/           # OpenAPI specification (source of truth)
 ├─ frontend/           # Next.js app (auto-generated types in src/generated/)
-├─ backend/            # Go API server (auto-generated code in internal/generated/)
+├─ backend/            # Go API server (auto-generated code in internal/api/)
 ├─ docs/               # Documentation
 ├─ package.json        # pnpm workspace config
 ├─ pnpm-workspace.yaml # Monorepo definition

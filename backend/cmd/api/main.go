@@ -10,10 +10,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"github.com/ShalArl/trip-manager/internal/api"
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
-	"github.com/ShalArl/trip-manager/internal/handler"
 	chimiddleware "github.com/ShalArl/trip-manager/internal/middleware"
 )
 
@@ -63,57 +63,57 @@ func main() {
 		authManager := auth.NewAuthManager(application.Config.JWTSecret, 7*24*time.Hour)
 
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
-		r.Post("/auth/register", handler.CreateUserHandler(application))
-		r.Post("/auth/login", handler.LoginHandler(application))
+		r.Post("/auth/register", api.CreateUserHandler(application))
+		r.Post("/auth/login", api.LoginHandler(application))
 
 		// Protected routes - require JWT authentication
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.AuthMiddleware(authManager))
 
 			// ─── User Routes ────────────────────────────────────────────────────────
-			r.Get("/users/me", handler.GetMeHandler(application))
-			r.Put("/users/me", handler.UpdateMeHandler(application))
-			r.Put("/users/me/password", handler.ChangePasswordHandler(application))
-			r.Get("/users/{userId}", handler.GetUserHandler(application))
-			r.Put("/users/{userId}", handler.UpdateUserHandler(application))
-			r.Delete("/users/{userId}", handler.DeleteUserHandler(application))
+			r.Get("/users/me", api.GetMeHandler(application))
+			r.Put("/users/me", api.UpdateMeHandler(application))
+			r.Put("/users/me/password", api.ChangePasswordHandler(application))
+			r.Get("/users/{userId}", api.GetUserHandler(application))
+			r.Put("/users/{userId}", api.UpdateUserHandler(application))
+			r.Delete("/users/{userId}", api.DeleteUserHandler(application))
 
 			// ─── Trip Routes ────────────────────────────────────────────────────────
-			r.Get("/trips", handler.ListTripsHandler(application))
-			r.Post("/trips", handler.CreateTripHandler(application))
-			r.Get("/trips/{tripId}", handler.GetTripHandler(application))
-			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
-			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
+			r.Get("/trips", api.ListTripsHandler(application))
+			r.Post("/trips", api.CreateTripHandler(application))
+			r.Get("/trips/{tripId}", api.GetTripHandler(application))
+			r.Put("/trips/{tripId}", api.UpdateTripHandler(application))
+			r.Delete("/trips/{tripId}", api.DeleteTripHandler(application))
 
 			// ─── Location Routes ────────────────────────────────────────────────────
 			r.Route("/trips/{tripId}/locations", func(r chi.Router) {
-				r.Get("/", handler.ListLocationsHandler(application))
-				r.Post("/", handler.CreateLocationHandler(application))
+				r.Get("/", api.ListLocationsHandler(application))
+				r.Post("/", api.CreateLocationHandler(application))
 				r.Route("/{locationId}", func(r chi.Router) {
-					r.Get("/", handler.GetLocationHandler(application))
-					r.Put("/", handler.UpdateLocationHandler(application))
-					r.Delete("/", handler.DeleteLocationHandler(application))
+					r.Get("/", api.GetLocationHandler(application))
+					r.Put("/", api.UpdateLocationHandler(application))
+					r.Delete("/", api.DeleteLocationHandler(application))
 				})
 			})
 
 			// ─── Direct Location Routes (for individual location access) ────────────
-			r.Get("/locations/{locationId}", handler.GetLocationHandler(application))
+			r.Get("/locations/{locationId}", api.GetLocationHandler(application))
 
 			// ─── Activity Routes ────────────────────────────────────────────────────
 			r.Route("/trips/{tripId}/activities", func(r chi.Router) {
-				r.Get("/", handler.ListActivitiesForTripHandler(application))
-				r.Post("/", handler.CreateActivityHandler(application))
+				r.Get("/", api.ListActivitiesForTripHandler(application))
+				r.Post("/", api.CreateActivityHandler(application))
 				r.Route("/{activityId}", func(r chi.Router) {
-					r.Put("/", handler.UpdateActivityHandler(application))
-					r.Delete("/", handler.DeleteActivityHandler(application))
+					r.Put("/", api.UpdateActivityHandler(application))
+					r.Delete("/", api.DeleteActivityHandler(application))
 				})
 			})
 
 			// ─── Activity by Location Route ──────────────────────────────────────────
-			r.Get("/locations/{locationId}/activities", handler.ListActivitiesForLocationHandler(application))
+			r.Get("/locations/{locationId}/activities", api.ListActivitiesForLocationHandler(application))
 
 			// ─── Direct Activity Routes (for individual activity access) ──────────────
-			r.Get("/activities/{activityId}", handler.GetActivityHandler(application))
+			r.Get("/activities/{activityId}", api.GetActivityHandler(application))
 		})
 	})
 
