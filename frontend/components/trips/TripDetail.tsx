@@ -28,7 +28,7 @@ export default function TripDetail({ trip }: Props) {
                             {trip.title}
                         </h1>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {trip.destination} · {trip.startDate}
+                            {trip.startDate} · {trip.endDate}
                         </p>
                     </div>
                 </div>

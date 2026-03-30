@@ -260,8 +260,7 @@ export interface components {
             /** Format: date */
             startDate: string;
             /** Format: date */
-            endDate?: string;
-            destination: string;
+            endDate: string;
         };
         UpdateTripRequest: {
             title?: string;
@@ -283,7 +282,6 @@ export interface components {
             startDate: string;
             /** Format: date */
             endDate?: string;
-            destination: string;
             /** @enum {string} */
             status?: "planned" | "ongoing" | "completed" | "cancelled";
         };
