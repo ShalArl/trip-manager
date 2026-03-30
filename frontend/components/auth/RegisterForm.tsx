@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import { User } from "@/types/user";
+import { components } from "@/generated/types";
+
+type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 
 type Props = {
-  onRegisterAction: (user: User) => void;
+  onRegisterAction: (createUserRequest: CreateUserRequest) => void;
   onSwitchToLoginAction: () => void;
 };
 
 export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("");
 
   function handleSubmit(e: React.SyntheticEvent) {
@@ -22,8 +26,21 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
       return;
     }
 
+    if (password.length < 8) {
+      setError("Passwort muss mindestens 8 Zeichen lang sein.");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError("Passwort muss mindestens einen Großbuchstaben enthalten.");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError("Passwort muss mindestens eine Zahl enthalten.");
+      return;
+    }
+
     // Kein Passwort, keine Überprüfung — direkt registrieren
-    onRegisterAction({ name, email });
+    onRegisterAction({ name, email, password });
   }
 
   return (
@@ -58,6 +75,19 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="du@beispiel.de"
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+            Passwort
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
             className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
           />
         </div>

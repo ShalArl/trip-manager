@@ -80,12 +80,6 @@ Current resources:
 - Enum types with validation methods
 - Parameter types (ListTripsParams, etc.)
 
-**Why models-only?**
-- Clean separation: Generated code = data types only
-- No HTTP scaffolding or client code
-- You control routing via Chi router in `backend/cmd/api/main.go`
-- Flexible: Handlers can be implemented independently
-
 ---
 
 ## Generated Code Structure

@@ -1,8 +1,11 @@
 import { Trip } from "@/types/trip";
 import Link from "next/link";
 
+import { components } from "@/generated/types";
+type TripResponse = components["schemas"]["TripResponse"];
+
 type Props = {
-    trips: Trip[];
+    trips: TripResponse[];
 };
 
 export default function TripList({ trips }: Props) {
@@ -28,8 +31,8 @@ export default function TripList({ trips }: Props) {
             <div className="flex flex-col gap-4">
                 {trips.map((trip) => (
                     <Link
-                        key={trip.title}
-                        href={`/trips/${encodeURIComponent(trip.title)}`}
+                        key={trip.id}
+                        href={`/trips/${encodeURIComponent(trip.id)}`}
                         className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-md transition-all"
                     >
                         <div className="flex items-center gap-4">

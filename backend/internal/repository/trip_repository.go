@@ -56,12 +56,12 @@ func (t *TripRepositoryImpl) CreateTrip(ctx context.Context, trip *domain.Trip) 
 	}
 
 	query := `
-		INSERT INTO trips (user_id, title, description, start_date, end_date, status) 
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO trips (user_id, title, short_description, destination, description, start_date, end_date, status) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at`
 
 	err = t.db.QueryRowContext(
-		ctx, query, rec.UserID, rec.Title, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
+		ctx, query, rec.UserID, rec.Title, rec.ShortDescription, rec.Destination, rec.Description, rec.StartDate, rec.EndDate, rec.Status,
 	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
 
 	if err != nil {
@@ -88,12 +88,12 @@ func (t *TripRepositoryImpl) UpdateTrip(ctx context.Context, trip *domain.Trip) 
 
 	query := `
 		UPDATE trips 
-		SET title = $1, description = $2, start_date = $3, end_date = $4, status = $5 
-		WHERE id = $6 AND user_id = $7
+		SET title = $1, short_description = $2, description = $3, start_date = $4, end_date = $5, status = $6 
+		WHERE id = $7 AND user_id = $8
 		RETURNING updated_at`
 
 	err = t.db.QueryRowContext(ctx, query,
-		rec.Title, rec.Description, rec.StartDate, rec.EndDate, rec.Status, rec.ID, rec.UserID,
+		rec.Title, rec.ShortDescription, rec.Description, rec.StartDate, rec.EndDate, rec.Status, rec.ID, rec.UserID,
 	).Scan(&trip.UpdatedAt)
 
 	if err != nil {
@@ -131,6 +131,7 @@ func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit
 		LIMIT $2 OFFSET $3`
 
 	if err := t.db.SelectContext(ctx, &results, query, userID, limit, offset); err != nil {
+		fmt.Printf("ListTrips DB error: %v\n", err)
 		return nil, 0, domain.ErrInternal
 	}
 

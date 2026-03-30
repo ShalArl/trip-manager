@@ -35,7 +35,9 @@ const { svg } = await mermaid.render('erd-svg', `erDiagram
   TRIP {
     uuid id PK
     string title
+    string shortDescription
     string description
+    string destination
     date startDate
     date endDate
     enum status
