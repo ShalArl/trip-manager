@@ -158,7 +158,7 @@ jobs:
           ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
 
       - name: Add server to known hosts
-        run: ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+        run: ssh-keyscan -p ${{ secrets.HETZNER_PORT }} -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Copy deploy files to server
         run: |
