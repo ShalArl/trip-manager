@@ -1,23 +1,58 @@
 # Exclude other services
 frontend/
-.github
 
-bin
-dist
-.git
+# Build artifacts and cache
+node_modules/
+.pnpm/
+dist/
+build/
+.turbo/
+.git/
+bin/
+
+# Git
 .gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github/
+
+# Documentation and config
+docs/
 README.md
-.env
+SETUP.md
+DEPLOYMENT.md
+MAKEFILE.md
+Makefile
+LICENSE
+*.md
+
+# Environment files
+.env.example
 .env.local
 .env.*.local
-go.sum.bak
-*.log
-.turbo
-tmp
-migrations
+
+# Deployment scripts
+deploy/
+
+# Docker
 docker-compose.yaml
 Dockerfile
-.DS_Store
-coverage
+.dockerignore
+
+# Misc
+tmp/
+*.log
+migrations/
+go.sum.bak
 *.mod.bak
+coverage/
 
