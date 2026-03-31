@@ -157,18 +157,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
 
+      - name: Add server to known hosts
+        run: ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
       - name: Copy deploy files to server
         run: |
-          scp -i ~/.ssh/deploy_key \
-            -P ${{ secrets.HETZNER_PORT }} \
+          scp -P ${{ secrets.HETZNER_PORT }} \
             -r deploy/hetzner/deploy.sh \
             deploy/hetzner/generate-env.sh \
             docker-compose.yaml \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/app/cloud/
-          
-          # Copy Caddyfile to /etc/caddy/
-          scp -i ~/.ssh/deploy_key \
-            -P ${{ secrets.HETZNER_PORT }} \
+
+          scp -P ${{ secrets.HETZNER_PORT }} \
             deploy/hetzner/Caddyfile \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/etc/caddy/Caddyfile
 
@@ -182,34 +182,18 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DOMAIN: ${{ secrets.DOMAIN }}
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.HETZNER_PORT }} \
+          ssh -p ${{ secrets.HETZNER_PORT }} \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
             "cd /app/cloud && GHCR_USERNAME='$GHCR_USERNAME' GHCR_PAT='$GHCR_PAT' DB_USER='$DB_USER' DB_PASSWORD='$DB_PASSWORD' DB_NAME='$DB_NAME' JWT_SECRET='$JWT_SECRET' DOMAIN='$DOMAIN' bash generate-env.sh"
 
-      - name: Make script executable
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.HETZNER_PORT }} \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "chmod +x /app/cloud/deploy.sh"
-
       - name: Execute deploy script on server
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.HETZNER_PORT }} \
+          ssh -p ${{ secrets.HETZNER_PORT }} \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "cd /app/cloud && ./deploy.sh"
+            "chmod +x /app/cloud/deploy.sh && cd /app/cloud && ./deploy.sh"
 
       - name: Verify deployment
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.HETZNER_PORT }} \
+          ssh -p ${{ secrets.HETZNER_PORT }} \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
             "docker-compose -f /app/cloud/docker-compose.yaml ps"
-
-      - name: Cleanup SSH key
-        if: always()
-        run: |
-          rm -f ~/.ssh/deploy_key
-
