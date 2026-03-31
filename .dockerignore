@@ -1,0 +1,43 @@
+# Build artifacts and dependencies that will be recreated
+node_modules/
+.pnpm/
+dist/
+build/
+.next/
+.turbo/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+
+# Documentation
+docs/
+README.md
+SETUP.md
+DEPLOYMENT.md
+MAKEFILE.md
+Makefile
+LICENSE
+
+# Development
+.env.local
+.env.*.local
+
+# Deployment
+deploy/
+
+

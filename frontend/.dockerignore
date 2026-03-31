@@ -1,3 +1,6 @@
+# Exclude other services
+backend/
+
 node_modules
 npm-debug.log
 .git

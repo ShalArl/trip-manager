@@ -10,14 +10,16 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Install pnpm
 RUN npm install -g pnpm@9.0.0
 
-# Copy monorepo files
-COPY . .
+# Copy only necessary monorepo files
+COPY package.json pnpm-lock.yaml ./
+COPY api-spec ./api-spec
+COPY frontend ./frontend
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Generate TypeScript code from OpenAPI spec
-RUN pnpm gen:ts
+RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
 
 # Build Next.js app
 WORKDIR /app/frontend

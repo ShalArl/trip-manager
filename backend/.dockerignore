@@ -1,3 +1,7 @@
+# Exclude other services
+frontend/
+.github
+
 bin
 dist
 .git
