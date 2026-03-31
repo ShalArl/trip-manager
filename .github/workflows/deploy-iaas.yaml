@@ -147,7 +147,7 @@ jobs:
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
       (needs.detect-changes.outputs.backend == 'true' || 
-       needs.detect-changes.outputs.frontend == 'true')
+       needs.detect-changes.outputs.frontend == 'true') &&
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
