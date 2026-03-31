@@ -161,7 +161,7 @@ jobs:
           fi
             
           mkdir -p ~/.ssh
-          echo "${{ secrets.HETZNER_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
