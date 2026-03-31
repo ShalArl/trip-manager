@@ -97,27 +97,46 @@ jobs:
       - name: Copy deploy files to server
         run: |
           scp -i ~/.ssh/deploy_key \
-            -r deploy/deploy.sh \
+            -r deploy/hetzner/deploy.sh \
+            deploy/hetzner/.env \
             docker-compose.yaml \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/home/deploy/trip-manager/
+            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/app/cloud/
+          
+          # Copy Caddyfile to /etc/caddy/
+          scp -i ~/.ssh/deploy_key \
+            deploy/hetzner/Caddyfile \
+            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/etc/caddy/Caddyfile
+
+      - name: Substitute environment variables in .env
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
+            "cd /app/cloud && sed -i \
+              -e \"s/\${GHCR_USERNAME}/${{ secrets.GHCR_USERNAME }}/g\" \
+              -e \"s/\${DB_USER}/${{ secrets.DB_USER }}/g\" \
+              -e \"s/\${DB_PASSWORD}/${{ secrets.DB_PASSWORD }}/g\" \
+              -e \"s/\${DB_NAME}/${{ secrets.DB_NAME }}/g\" \
+              -e \"s/\${JWT_SECRET}/${{ secrets.JWT_SECRET }}/g\" \
+              -e \"s/\${DOMAIN}/${{ secrets.DOMAIN }}/g\" \
+              .env"
 
       - name: Make script executable
         run: |
           ssh -i ~/.ssh/deploy_key \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "chmod +x /home/deploy/trip-manager/deploy/deploy.sh"
+            "chmod +x /app/cloud/deploy.sh"
 
       - name: Execute deploy script on server
         run: |
           ssh -i ~/.ssh/deploy_key \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "cd /home/deploy/trip-manager && ./deploy/deploy.sh"
+            "cd /app/cloud && ./deploy.sh"
 
       - name: Verify deployment
         run: |
           ssh -i ~/.ssh/deploy_key \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "docker-compose -f /home/deploy/trip-manager/docker-compose.yaml ps"
+            "docker-compose -f /app/cloud/docker-compose.yaml ps"
 
       - name: Cleanup SSH key
         if: always()

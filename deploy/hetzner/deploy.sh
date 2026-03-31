@@ -49,13 +49,17 @@ fi
 log "✅ Backend is healthy"
 
 # Check Frontend (optional - needs to be configured)
-if ! curl -f http://localhost:3000 > /dev/null 2>&1; then
+if ! curl -f http://frontend:3000 > /dev/null 2>&1; then
     log "⚠️  Frontend not responding (might still be building)"
 else
     log "✅ Frontend is healthy"
 fi
 
-# 5. Cleanup old images
+# 5. Reload Caddy configuration
+log "🔄 Reloading Caddy configuration..."
+docker-compose exec -T caddy caddy reload -c /etc/caddy/Caddyfile 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Caddy reload warning (might be first start)"
+
+# 6. Cleanup old images
 log "🧹 Cleaning up old images..."
 docker image prune -f 2>&1 | tee -a "$LOG_FILE"
 
