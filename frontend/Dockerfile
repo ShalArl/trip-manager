@@ -25,21 +25,19 @@ RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.y
 WORKDIR /app/frontend
 RUN pnpm build
 
-# Deploy production dependencies using workspace root lockfile
-WORKDIR /app
-RUN pnpm --filter frontend deploy --prod /deploy
-
 # Runtime stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy production dependencies (resolved from workspace root lockfile via pnpm deploy)
-COPY --from=builder /deploy .
+# Install only production dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 # Copy built application and public assets
 COPY --from=builder /app/frontend/.next ./.next
 COPY --from=builder /app/frontend/public ./public
+COPY --from=builder /app/frontend/next.config.ts ./
 
 EXPOSE 3000
 
