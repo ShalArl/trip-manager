@@ -37,9 +37,11 @@ node_modules/
 # Generated API code - ignore contents but track config files
 # Frontend
 frontend/.next/
+frontend/generated/
 
 # Backend
 backend/api               # Old compiled binary location
 backend/bin/              # Compiled binaries from new build system
 backend/tmp/              # Temporary build files
 backend/.turbo/           # Turbo cache
+backend/internal/generated/
