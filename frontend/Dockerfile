@@ -3,6 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Build arguments
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Install pnpm
 RUN npm install -g pnpm@9.0.0
 
@@ -10,7 +14,7 @@ RUN npm install -g pnpm@9.0.0
 COPY . .
 
 # Install dependencies
-RUN CI=true pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Generate TypeScript code from OpenAPI spec
 RUN pnpm gen:ts
