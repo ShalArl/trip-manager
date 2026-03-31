@@ -73,8 +73,8 @@ func mapTripToTripResponse(trip *domain.Trip) *generated.TripResponse {
 		ShortDescription: trip.ShortDescription,
 		Description:      ptr.ToPtr(trip.Description),
 		StartDate:        openapitypes.Date{Time: trip.StartDate},
-		EndDate:          &openapitypes.Date{Time: trip.EndDate},
-		Status:           &status,
+		EndDate:          openapitypes.Date{Time: trip.EndDate},
+		Status:           status,
 		CreatedAt:        &trip.CreatedAt,
 		UpdatedAt:        &trip.UpdatedAt,
 		CreatedBy: &generated.UserSummary{
