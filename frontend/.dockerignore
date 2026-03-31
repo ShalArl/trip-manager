@@ -1,3 +1,6 @@
+# Exclude other services
+backend/
+
 node_modules
 npm-debug.log
 .git
@@ -11,7 +14,6 @@ out
 build
 dist
 .turbo
-pnpm-lock.yaml
 .DS_Store
 coverage
 .eslintcache
