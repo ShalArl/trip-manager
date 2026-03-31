@@ -22,8 +22,7 @@ RUN pnpm install --frozen-lockfile
 RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
 
 # Build Next.js app
-WORKDIR /app/frontend
-RUN pnpm build
+RUN pnpm --filter frontend build
 
 # Runtime stage
 FROM node:20-alpine
