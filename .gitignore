@@ -24,8 +24,10 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# env files
 .env
+.env.*
+!.env.example
 
 # Editor/IDE
 .idea/
@@ -44,4 +46,5 @@ backend/api               # Old compiled binary location
 backend/bin/              # Compiled binaries from new build system
 backend/tmp/              # Temporary build files
 backend/.turbo/           # Turbo cache
-backend/internal/generated/
+
+**/generated/
