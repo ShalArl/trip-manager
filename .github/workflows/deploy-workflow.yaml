@@ -1,0 +1,98 @@
+name: Deploy to Hetzner
+
+on:
+  workflow_run:
+    workflows: ["Build & Push Docker Images"]
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+
+env:
+  HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+  HETZNER_USER: ${{ secrets.HETZNER_USER }}
+  DEPLOY_KEY: ${{ secrets.HETZNER_DEPLOY_KEY }}
+
+jobs:
+  # Detect changes in deploy directory
+  detect-deploy-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.changes.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            deploy:
+              - 'deployment/hetzner/**'
+              - 'docker-compose.yaml'
+              - '.github/workflows/deploy-workflow.yaml'
+
+  # Deploy to Hetzner
+  # TODO: remove dev branch condition
+  deploy-hetzner:
+    needs: [detect-deploy-changes]
+    # Run if previous workflow succeeded AND (deploy changes OR main branch OR dev branch)
+
+    if: >
+      github.event.workflow_run.conclusion == 'success' && 
+      (needs.detect-deploy-changes.outputs.deploy == 'true' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ env.DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ env.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy deploy files to server
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            -r deploy/deploy.sh \
+            docker-compose.yaml \
+            ${{ env.HETZNER_USER }}@${{ env.HETZNER_HOST }}:/home/deploy/trip-manager/
+
+      - name: Make script executable
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            ${{ env.HETZNER_USER }}@${{ env.HETZNER_HOST }} \
+            "chmod +x /home/deploy/trip-manager/deploy/deploy.sh"
+
+      - name: Execute deploy script on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            ${{ env.HETZNER_USER }}@${{ env.HETZNER_HOST }} \
+            "cd /home/deploy/trip-manager && ./deploy/deploy.sh"
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            ${{ env.HETZNER_USER }}@${{ env.HETZNER_HOST }} \
+            "docker-compose -f /home/deploy/trip-manager/docker-compose.yaml ps"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
+
+  # Notify on failure
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [deploy-hetzner]
+    if: failure()
+    steps:
+      - name: Log deployment failure
+        run: |
+          echo "❌ Deployment failed on ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
