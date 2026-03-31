@@ -11,7 +11,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm install -g pnpm@9.0.0
 
 # Copy only necessary monorepo files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api-spec ./api-spec
 COPY frontend ./frontend
 
@@ -33,7 +33,7 @@ WORKDIR /app
 RUN npm install -g pnpm@9.0.0
 
 # Install only production dependencies
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy built application and public assets
