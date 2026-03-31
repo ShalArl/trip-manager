@@ -2,6 +2,7 @@ name: Build & Push Docker Images
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - dev
@@ -72,7 +73,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
+          context: .
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -112,12 +114,13 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: ./frontend
+          context: .
+          file: ./frontend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL != '' && secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

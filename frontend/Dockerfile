@@ -11,7 +11,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm install -g pnpm@9.0.0
 
 # Copy only necessary monorepo files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api-spec ./api-spec
 COPY frontend ./frontend
 
@@ -22,24 +22,24 @@ RUN pnpm install --frozen-lockfile
 RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
 
 # Build Next.js app
-WORKDIR /app/frontend
-RUN pnpm build
-
-# Deploy production dependencies using workspace root lockfile
-WORKDIR /app
-RUN pnpm --filter frontend deploy --prod /deploy
+RUN pnpm --filter frontend build
 
 # Runtime stage
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy production dependencies (resolved from workspace root lockfile via pnpm deploy)
-COPY --from=builder /deploy .
+# Install pnpm
+RUN npm install -g pnpm@9.0.0
+
+# Install only production dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 # Copy built application and public assets
 COPY --from=builder /app/frontend/.next ./.next
 COPY --from=builder /app/frontend/public ./public
+COPY --from=builder /app/frontend/next.config.ts ./
 
 EXPOSE 3000
 

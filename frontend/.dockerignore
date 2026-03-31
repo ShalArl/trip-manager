@@ -1,20 +1,57 @@
 # Exclude other services
 backend/
 
-node_modules
-npm-debug.log
-.git
+# Build artifacts and cache
+node_modules/
+.pnpm/
+dist/
+build/
+.next/
+.turbo/
+.git/
+out/
+
+# Git
 .gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github/
+
+# Documentation and config
+docs/
 README.md
-.env
+SETUP.md
+DEPLOYMENT.md
+MAKEFILE.md
+Makefile
+LICENSE
+*.md
+
+# Environment files
+.env.example
 .env.local
 .env.*.local
-.next
-out
-build
-dist
-.turbo
-.DS_Store
-coverage
+
+# Deployment scripts
+deploy/
+
+# Docker
+docker-compose.yaml
+Dockerfile
+.dockerignore
+
+# Misc
+tmp/
+*.log
+coverage/
 .eslintcache
 
