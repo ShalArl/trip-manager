@@ -25,6 +25,13 @@ log "📋 Deployment started"
 # 1. Pull latest images
 log "📦 Pulling latest Docker images..."
 cd "$PROJECT_DIR"
+
+# Login to GitHub Container Registry (if credentials provided)
+if [ -n "$GHCR_USERNAME" ] && [ -n "$GHCR_PAT" ]; then
+    log "🔐 Logging in to GitHub Container Registry..."
+    echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin 2>&1 | tee -a "$LOG_FILE"
+fi
+
 docker-compose pull 2>&1 | tee -a "$LOG_FILE"
 
 # 2. Stop old containers
@@ -49,15 +56,15 @@ fi
 log "✅ Backend is healthy"
 
 # Check Frontend (optional - needs to be configured)
-if ! curl -f http://frontend:3000 > /dev/null 2>&1; then
+if ! curl -f http://localhost:3000 > /dev/null 2>&1; then
     log "⚠️  Frontend not responding (might still be building)"
 else
     log "✅ Frontend is healthy"
 fi
 
-# 5. Reload Caddy configuration
+# 5. Reload Caddy configuration (Host Caddy)
 log "🔄 Reloading Caddy configuration..."
-docker-compose exec -T caddy caddy reload -c /etc/caddy/Caddyfile 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Caddy reload warning (might be first start)"
+sudo systemctl reload caddy 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Caddy reload warning"
 
 # 6. Cleanup old images
 log "🧹 Cleaning up old images..."

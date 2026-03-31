@@ -1,36 +1,12 @@
 version: '3.8'
 
 services:
-  caddy:
-    image: caddy:latest
-    container_name: trip_manager_caddy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    environment:
-      DOMAIN: ${DOMAIN}
-    networks:
-      - trip_manager
-    depends_on:
-      - backend
-      - frontend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2019/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-
   frontend:
     image: ghcr.io/${GHCR_USERNAME}/trip-manager/frontend:latest
     container_name: trip_manager_frontend
     restart: always
+    ports:
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: https://${DOMAIN}/api
     networks:
@@ -46,6 +22,8 @@ services:
     image: ghcr.io/${GHCR_USERNAME}/trip-manager/backend:latest
     container_name: trip_manager_backend
     restart: always
+    ports:
+      - "8000:8000"
     environment:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
@@ -83,14 +61,8 @@ services:
 volumes:
   db_data:
     driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local
 
 networks:
   trip_manager:
     driver: bridge
 
-volumes:
-  db_data:

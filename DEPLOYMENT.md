@@ -28,6 +28,7 @@ HETZNER_DEPLOY_KEY = <inhalt-des-privaten-keys>
 
 # Diese werden in die .env auf dem Server substituiert:
 GHCR_USERNAME = <your-github-username>
+GHCR_PAT = ghp_xxxxxxxxxxxx (read:packages scope!)
 DB_USER = trip_user
 DB_PASSWORD = <sichere-passwort>
 DB_NAME = trip_manager
