@@ -155,7 +155,6 @@ jobs:
       - name: Setup SSH Key
         run: |
           set -euo pipefail
-            
           if [ -z "${{ secrets.HETZNER_HOST }}" ]; then
             echo "HETZNER_HOST secret is empty/missing. Skipping deploy."
             exit 0
