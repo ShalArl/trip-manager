@@ -1,0 +1,47 @@
+# Caddyfile - Reverse Proxy Configuration
+
+# Production Environment
+{$DOMAIN}.duckdns.org {
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+        }
+    }
+
+    # API Reverse Proxy
+    handle /api/* {
+        reverse_proxy backend:8000 {
+            # Headers
+            header_up X-Forwarded-For {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.scheme}
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    handle {
+        reverse_proxy frontend:3000 {
+            # Headers für WebSockets (wenn nötig)
+            header_up Connection "upgrade"
+            header_up Upgrade "websocket"
+        }
+    }
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    encode {
+        gzip
+        zstd
+    }
+}
+
+localhost:2019 {
+    admin localhost:2019
+}
+

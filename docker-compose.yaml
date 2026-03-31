@@ -1,14 +1,16 @@
+version: '3.8'
+
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    image: ghcr.io/${GHCR_USERNAME}/trip-manager/frontend:latest
+    container_name: trip_manager_frontend
+    restart: always
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-    depends_on:
-      - backend
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}/api
+    networks:
+      - trip_manager
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -17,15 +19,20 @@ services:
       start_period: 15s
 
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ghcr.io/${GHCR_USERNAME}/trip-manager/backend:latest
+    container_name: trip_manager_backend
+    restart: always
     ports:
       - "8000:8000"
     environment:
-      - GO_ENV=production
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      GO_ENV: production
+    networks:
+      - trip_manager
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/health"]
       interval: 30s
@@ -35,19 +42,27 @@ services:
 
   database:
     image: postgres:16-alpine
-    ports:
-      - "5432:5432"
+    container_name: trip_manager_database
+    restart: always
     environment:
-      POSTGRES_USER: trip_user
-      POSTGRES_PASSWORD: trip_password
-      POSTGRES_DB: trip_manager
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - trip_manager
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U trip_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
   db_data:
+    driver: local
+
+networks:
+  trip_manager:
+    driver: bridge
+
