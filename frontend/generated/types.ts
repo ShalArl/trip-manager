@@ -281,9 +281,9 @@ export interface components {
             /** Format: date */
             startDate: string;
             /** Format: date */
-            endDate?: string;
+            endDate: string;
             /** @enum {string} */
-            status?: "planned" | "ongoing" | "completed" | "cancelled";
+            status: "planned" | "ongoing" | "completed" | "cancelled";
         };
         /** @description Paginated list of trips. */
         TripListResponse: components["schemas"]["PaginationMeta"] & {

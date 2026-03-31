@@ -323,11 +323,11 @@ type TripResponse struct {
 	// CreatedBy Minimal user representation embedded in resource responses.
 	CreatedBy        *UserSummary        `json:"createdBy,omitempty"`
 	Description      *string             `json:"description,omitempty"`
-	EndDate          *openapi_types.Date `json:"endDate,omitempty"`
+	EndDate          openapi_types.Date  `json:"endDate"`
 	Id               *openapi_types.UUID `json:"id,omitempty"`
 	ShortDescription string              `json:"shortDescription"`
 	StartDate        openapi_types.Date  `json:"startDate"`
-	Status           *TripResponseStatus `json:"status,omitempty"`
+	Status           TripResponseStatus  `json:"status"`
 	Title            string              `json:"title"`
 	UpdatedAt        *time.Time          `json:"updatedAt,omitempty"`
 }
