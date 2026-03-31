@@ -17,7 +17,7 @@ RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 RUN pnpm install
 
 # Generate Go code from OpenAPI spec
-RUN pnpm gen:go
+RUN pnpm gen
 
 # Build Go application
 WORKDIR /app/backend
