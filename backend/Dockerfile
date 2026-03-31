@@ -14,7 +14,7 @@ COPY backend ./backend
 COPY oapi-codegen.yaml ./
 
 # Install oapi-codegen (Go tool for code generation)
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.6.0
 
 
 RUN pnpm install
