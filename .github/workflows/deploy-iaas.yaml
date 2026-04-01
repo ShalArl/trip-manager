@@ -40,6 +40,7 @@ jobs:
               - 'api-spec/**'
               - '.github/workflows/deploy-iaas.yaml'
 
+  # Build and push backend image if changes detected
   build-backend:
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true'
@@ -83,7 +84,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
-
+  # Build and push frontend image if changes detected
   build-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
@@ -129,7 +130,6 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL != '' && secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
-
   # Summary job
   summary:
     runs-on: ubuntu-latest
@@ -167,14 +167,18 @@ jobs:
         run: ssh-keyscan -p ${{ secrets.HETZNER_PORT }} -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Copy deploy files to server
+        env:
+          DOMAIN: ${{ secrets.DOMAIN }}
         run: |
           scp -P ${{ secrets.HETZNER_PORT }} \
             -r deploy/hetzner/deploy.sh \
             docker-compose.yaml \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/home/${{ secrets.HETZNER_USER }}/app/cloud/
-
+          
+          envsubst < deploy/hetzner/Caddyfile > deploy/hetzner/Caddyfile.tmp
+          
           scp -P ${{ secrets.HETZNER_PORT }} \
-            deploy/hetzner/Caddyfile \
+            deploy/hetzner/Caddyfile.tmp \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/etc/caddy/Caddyfile
 
       - name: Generate .env file

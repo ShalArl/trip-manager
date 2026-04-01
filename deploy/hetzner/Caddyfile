@@ -1,7 +1,7 @@
 # Caddyfile - Reverse Proxy Configuration
 
 # Production Environment
-{$DOMAIN}.duckdns.org {
+$DOMAIN.duckdns.org {
     # Logging
     log {
         output file /var/log/caddy/access.log {
