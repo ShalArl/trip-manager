@@ -146,7 +146,7 @@ jobs:
             echo "Frontend build: ${{ needs.build-frontend.result }}"
           fi
 
-  # Deploy to Hetzner (only after push to main/dev with successful builds)
+  # Deploy to Server (only after push to main/dev with successful builds)
   deploy:
     needs: [detect-changes, summary]
     if: >
@@ -161,31 +161,39 @@ jobs:
       - name: Setup SSH Key
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.HETZNER_DEPLOY_KEY }}
+          ssh-private-key: ${{ secrets.SERVER_DEPLOY_KEY }}
 
       - name: Add server to known hosts
-        run: ssh-keyscan -p ${{ secrets.HETZNER_PORT }} -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+        run: ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Copy deploy files to server
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
         run: |
-          scp -P ${{ secrets.HETZNER_PORT }} \
-            -r deploy/hetzner/deploy.sh \
+          scp -P ${{ secrets.SERVER_PORT }} \
+            -r deploy/hetzner/deployment/deploy.sh \
             docker-compose.yaml \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/home/${{ secrets.HETZNER_USER }}/app/cloud/
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
           
-          envsubst < deploy/hetzner/Caddyfile > deploy/hetzner/Caddyfile.tmp
+          # Replace placeholders in Caddyfile and copy to server
+          envsubst < deploy/hetzner/deployment/Caddyfile > deploy/hetzner/Caddyfile.final
           
-          scp -P ${{ secrets.HETZNER_PORT }} \
-            deploy/hetzner/Caddyfile.tmp \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/home/${{ secrets.HETZNER_USER }}/app/cloud/Caddyfile
+          scp -P ${{ secrets.SERVER_PORT }} \
+            deploy/hetzner/deployment/deploy.sh \
+            docker-compose.yaml \
+            deploy/hetzner/Caddyfile.final \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
+          
+          # Rename Caddyfile on server
+          ssh -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
 
-      - name: Generate .env file
+      - name: Generate .env.example file
         run: |
-          ssh -p ${{ secrets.HETZNER_PORT }} \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            tee /home/${{ secrets.HETZNER_USER }}/app/cloud/.env << 'EOF'
+          ssh -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
           GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
           GHCR_PAT=${{ secrets.GHCR_PAT }}
           DB_USER=${{ secrets.DB_USER }}
@@ -197,12 +205,12 @@ jobs:
 
       - name: Execute deploy script on server
         run: |
-          ssh -p ${{ secrets.HETZNER_PORT }} \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "chmod +x /home/${{ secrets.HETZNER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.HETZNER_USER }}/app/cloud && ./deploy.sh"
+          ssh -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.SERVER_USER }}/app/cloud && ./deploy.sh"
 
       - name: Verify deployment
         run: |
-          ssh -p ${{ secrets.HETZNER_PORT }} \
-            ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "docker-compose -f /home/${{ secrets.HETZNER_USER }}/app/cloud/docker-compose.yaml ps"
+          ssh -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"

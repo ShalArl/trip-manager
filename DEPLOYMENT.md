@@ -89,8 +89,8 @@ Stattdessen:
 ```bash
 # NICHT MEHR NÖTIG:
 cd /app/cloud
-cp .env.example .env
-nano .env  # nicht mehr nötig
+cp .env.example.example .env.example
+nano .env.example  # nicht mehr nötig
 ```
 
 ---
