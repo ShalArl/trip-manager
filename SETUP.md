@@ -33,7 +33,7 @@ See `Makefile` for all 20+ commands!
 
 ## ✅ Automatic Database Migrations
 
-**No manual migrations needed!** The server automatically runs all `.sql` files from `backend/migrations/` on startup:
+**No manual migrations needed!** The server automatically runs all `.sql` files from `backend/internal/database/migrations/` on startup:
 
 ```bash
 make run
@@ -48,7 +48,7 @@ make run
 
 ```bash
 # Create new migration file
-touch backend/migrations/002_my_migration.sql
+touch backend/internal/database/migrations/002_my_migration.sql
 
 # Add your SQL
 # Write migration SQL (uses CREATE IF NOT EXISTS for safety)
