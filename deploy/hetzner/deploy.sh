@@ -8,11 +8,9 @@ set -e  # Exit on error
 echo "🚀 Starting deployment..."
 
 # Konfiguration
-PROJECT_DIR="/home/deploy/cloud"
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
+PROJECT_DIR="$HOME/app/cloud"
 LOG_FILE="$PROJECT_DIR/logs/deploy-$(date +%Y%m%d_%H%M%S).log"
 
-# Erstelle Log Verzeichnis falls nicht existent
 mkdir -p "$(dirname "$LOG_FILE")"
 
 # Logging Function
