@@ -73,7 +73,8 @@ services:
 
 volumes:
   db_data:
-    driver: local
+  caddy_data:
+  caddy_config:
 
 networks:
   trip_manager:
