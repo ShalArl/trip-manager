@@ -176,7 +176,7 @@ jobs:
           ssh -p ${{ secrets.HETZNER_PORT }} \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
             tee /home/${{ secrets.HETZNER_USER }}/app/cloud/.env << 'EOF'
-          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
+          GHCR_USERNAME=$(echo '${{ secrets.GHCR_USERNAME }}' | tr '[:upper:]' '[:lower:]')
           GHCR_PAT=${{ secrets.GHCR_PAT }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
