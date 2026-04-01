@@ -184,7 +184,7 @@ jobs:
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           DOMAIN=${{ secrets.DOMAIN }}
           EOF
-      
+
       - name: Execute deploy script on server
         run: |
           ssh -p ${{ secrets.HETZNER_PORT }} \
