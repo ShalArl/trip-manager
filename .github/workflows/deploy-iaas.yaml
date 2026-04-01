@@ -34,11 +34,11 @@ jobs:
             backend:
               - 'backend/**'
               - 'api-spec/**'
-              - '.github/workflows/deploy.yaml'
+              - '.github/workflows/deploy-iaas.yaml'
             frontend:
               - 'frontend/**'
               - 'api-spec/**'
-              - '.github/workflows/deploy.yaml'
+              - '.github/workflows/deploy-iaas.yaml'
 
   build-backend:
     needs: detect-changes
@@ -49,6 +49,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6
+
+      - name: Debug - Print output
+        run: echo "Backend changes detected, proceeding with build"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -90,6 +93,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6
+
+      - name: Debug - Print output
+        run: echo "Frontend changes detected, proceeding with build"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

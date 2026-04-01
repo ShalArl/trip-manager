@@ -23,7 +23,9 @@ log "📋 Deployment started"
 # Load environment variables from .env file
 if [ -f "$PROJECT_DIR/.env" ]; then
     log "📂 Loading environment variables from .env..."
-    export $(cat "$PROJECT_DIR/.env" | grep -v '^#' | xargs)
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
 else
     log "⚠️  .env file not found at $PROJECT_DIR/.env"
 fi
@@ -38,7 +40,7 @@ if [ -n "$GHCR_USERNAME" ] && [ -n "$GHCR_PAT" ]; then
     echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin 2>&1 | tee -a "$LOG_FILE"
 fi
 
-docker-compose pull 2>&1 | tee -a "$LOG_FILE"
+docker-compose --env-file .env pull 2>&1 | tee -a "$LOG_FILE"
 
 # 2. Stop old containers
 log "🛑 Stopping old containers..."
@@ -46,7 +48,7 @@ docker-compose down 2>&1 | tee -a "$LOG_FILE"
 
 # 3. Start new containers
 log "🟢 Starting new containers..."
-docker-compose up -d 2>&1 | tee -a "$LOG_FILE"
+docker-compose --env-file .env up -d 2>&1 | tee -a "$LOG_FILE"
 
 # 4. Health check
 log "🏥 Running health checks..."
