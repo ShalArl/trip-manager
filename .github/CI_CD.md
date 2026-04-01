@@ -41,7 +41,7 @@ It performs the following steps:
     - [docker/build-push-action@v7](https://github.com/docker/build-push-action)
 
 ### SSH Deployment
-- Automatic SSH access to Hetzner server
+- Automatic SSH access to server
 - Deployment and startup of `docker-compose` with `Caddy` as reverse proxy via `scp` and `ssh` 
 - Secure handling of SSH key via GitHub Secrets
 - Uses: [webfactory/ssh-agent@v0.9.0](https://github.com/webfactory/ssh-agent)
@@ -59,10 +59,10 @@ DB_USER                # Database user for backend
 DOMAIN                 # Domain for Caddy reverse proxy (e.g., example.com)
 GHCR_PAT               # Personal Access Token with read:packages permission for ghcr.io
 GHCR_USERNAME          # GitHub username for ghcr.io authentication (lowercase!!!)
-HETZNER_DEPLOY_KEY     # SSH private key for Hetzner server access
-HETZNER_HOST           # Hetzner server IP or hostname
-HETZNER_PORT           # SSH port
-HETZNER_USER           # SSH username for Hetzner server
+SERVER_DEPLOY_KEY      # SSH private key for server access
+SERVER_HOST            # Server IP or hostname
+SERVER_PORT            # SSH port
+SERVER_USER            # SSH username for server
 JWT_SECRET             # JWT secret key for backend
 ```
 
@@ -115,7 +115,7 @@ docker run -e DATABASE_URL="postgresql://..." ghcr.io/your-org/trip-manager/back
 5. **Build Frontend** (if changes in `frontend/`)
 6. **Push to ghcr.io** (automatic)
 7. **Summary**: Status report
-8. **Deployment**: Automatic deployment to Hetzner server (on push to `main` or `dev`)
+8. **Deployment**: Automatic deployment to server (on push to `main` or `dev`)
 
 
 ## Troubleshooting
