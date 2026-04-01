@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - trip_manager
+
   frontend:
     image: ghcr.io/${GHCR_USERNAME}/trip-manager/frontend:latest
     container_name: trip_manager_frontend
@@ -60,7 +73,8 @@ services:
 
 volumes:
   db_data:
-    driver: local
+  caddy_data:
+  caddy_config:
 
 networks:
   trip_manager:
