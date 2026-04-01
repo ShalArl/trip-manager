@@ -20,7 +20,7 @@ JWT_SECRET=your-secret-key-change-in-production
 
 The API uses JWT (JSON Web Tokens) for authentication:
 
-- **Token Duration**: 15 minutes
+- **Token Duration**: 7 days
 - **Authentication Header**: `Authorization: Bearer <token>`
 - **Signing Method**: HS256 (HMAC with SHA-256)
 

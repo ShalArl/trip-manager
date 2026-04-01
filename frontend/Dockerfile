@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -7,40 +7,42 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Install pnpm
+# Install pnpm & dependencies
 RUN npm install -g pnpm@9.0.0
 
-# Copy only necessary monorepo files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api-spec ./api-spec
-COPY frontend ./frontend
+COPY frontend/package.json ./frontend/
 
-# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Generate TypeScript code from OpenAPI spec
-RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
+# Source Code kopieren
+COPY frontend ./frontend
 
-# Build Next.js app
+# Types generieren & Build
+RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
 RUN pnpm --filter frontend build
 
-# Runtime stage
-FROM node:20-alpine
+# ---
 
+# Runtime stage
+FROM node:24-alpine
 WORKDIR /app
 
-# Install pnpm
 RUN npm install -g pnpm@9.0.0
 
-# Install only production dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+COPY frontend/package.json ./frontend/
 
-# Copy built application and public assets
-COPY --from=builder /app/frontend/.next ./.next
-COPY --from=builder /app/frontend/public ./public
-COPY --from=builder /app/frontend/next.config.ts ./
+# Nur Production-Abhängigkeiten installieren
+RUN pnpm install --prod --frozen-lockfile --filter frontend
+
+# Build-Artefakte kopieren (in den korrekten Unterordner!)
+COPY --from=builder /app/frontend/.next ./frontend/.next
+COPY --from=builder /app/frontend/public ./frontend/public
+COPY --from=builder /app/frontend/next.config.ts ./frontend/
 
 EXPOSE 3000
 
-CMD ["node_modules/.bin/next", "start"]
+WORKDIR /app/frontend
+CMD ["pnpm", "start"]

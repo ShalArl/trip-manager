@@ -54,7 +54,7 @@ Dockerfile
 # Misc
 tmp/
 *.log
-migrations/
+internal/database/migrations/
 go.sum.bak
 *.mod.bak
 coverage/

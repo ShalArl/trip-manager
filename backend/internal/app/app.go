@@ -29,7 +29,7 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	// Run migrations automatically
-	if err := database.RunMigrations(db); err != nil {
+	if err := database.RunEmbeddedMigrations(db); err != nil {
 		if errors.Is(err, db.Close()) {
 			return nil, fmt.Errorf("failed to run migrations - FATAL could not close DB connection: %w", err)
 		}
