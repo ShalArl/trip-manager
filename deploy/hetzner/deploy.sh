@@ -20,6 +20,14 @@ log() {
 
 log "📋 Deployment started"
 
+# Load environment variables from .env file
+if [ -f "$PROJECT_DIR/.env" ]; then
+    log "📂 Loading environment variables from .env..."
+    export $(cat "$PROJECT_DIR/.env" | grep -v '^#' | xargs)
+else
+    log "⚠️  .env file not found at $PROJECT_DIR/.env"
+fi
+
 # 1. Pull latest images
 log "📦 Pulling latest Docker images..."
 cd "$PROJECT_DIR"
