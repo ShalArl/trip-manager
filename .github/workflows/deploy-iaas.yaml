@@ -164,6 +164,7 @@ jobs:
         run: |
           scp -P ${{ secrets.HETZNER_PORT }} \
             -r deploy/hetzner/deploy.sh \
+            deploy/hetzner/generate-env.sh \
             docker-compose.yaml \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/home/${{ secrets.HETZNER_USER }}/app/cloud/
 
