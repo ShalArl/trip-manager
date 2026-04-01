@@ -12,20 +12,12 @@ $DOMAIN {
 
     # API Reverse Proxy
     handle /api/* {
-        reverse_proxy backend:8000 {
-            # Headers
-            header_up X-Forwarded-For {http.request.remote.host}
-            header_up X-Forwarded-Proto {http.request.scheme}
-            header_up X-Forwarded-Host {http.request.host}
-        }
+        reverse_proxy backend:8000
     }
 
+    # Frontend Reverse Proxy
     handle {
-        reverse_proxy frontend:3000 {
-            # Headers für WebSockets (wenn nötig)
-            header_up Connection "upgrade"
-            header_up Upgrade "websocket"
-        }
+        reverse_proxy frontend:3000
     }
 
     header {
@@ -39,9 +31,5 @@ $DOMAIN {
         gzip
         zstd
     }
-}
-
-localhost:2019 {
-    admin localhost:2019
 }
 

@@ -35,10 +35,12 @@ jobs:
               - 'backend/**'
               - 'api-spec/**'
               - '.github/workflows/deploy-iaas.yaml'
+              - 'deploy/hetzner/deployment/**'
             frontend:
               - 'frontend/**'
               - 'api-spec/**'
               - '.github/workflows/deploy-iaas.yaml'
+              - 'deploy/hetzner/deployment/**'
 
   # Build and push backend image if changes detected
   build-backend:
