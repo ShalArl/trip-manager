@@ -172,20 +172,20 @@ jobs:
             deploy/hetzner/Caddyfile \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:/etc/caddy/Caddyfile
 
-      - name: Generate .env file from secrets
-        env:
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          DOMAIN: ${{ secrets.DOMAIN }}
+      - name: Generate .env file
         run: |
           ssh -p ${{ secrets.HETZNER_PORT }} \
             ${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }} \
-            "cd /home/${{ secrets.HETZNER_USER }}/app/cloud && GHCR_USERNAME='$GHCR_USERNAME' GHCR_PAT='$GHCR_PAT' DB_USER='$DB_USER' DB_PASSWORD='$DB_PASSWORD' DB_NAME='$DB_NAME' JWT_SECRET='$JWT_SECRET' DOMAIN='$DOMAIN' bash generate-env.sh"
-
+            tee /home/${{ secrets.HETZNER_USER }}/app/cloud/.env << 'EOF'
+          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT=${{ secrets.GHCR_PAT }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          DOMAIN=${{ secrets.DOMAIN }}
+          EOF
+      
       - name: Execute deploy script on server
         run: |
           ssh -p ${{ secrets.HETZNER_PORT }} \
