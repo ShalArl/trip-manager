@@ -298,3 +298,8 @@ jobs:
 4. **Regenerate Code**: `pnpm gen`
 
 Questions? Check the individual README files in `frontend/`, `backend/`, and `api-spec/`.
+
+---
+
+👈 **[Back to README](../README.md)**
+

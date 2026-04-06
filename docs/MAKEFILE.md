@@ -127,3 +127,7 @@ For `make docker-up` to work with the default DATABASE_URL, no configuration nee
 - [Makefile](./Makefile) - Complete source code with all 20+ commands
 - [backend/AUTH.md](./backend/AUTH.md) - Authentication documentation
 
+---
+
+👈 **[Back to README](../README.md)**
+
