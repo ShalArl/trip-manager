@@ -465,6 +465,9 @@ Added automatically by `go mod tidy` after generation.
 
 ---
 
+👈 **[Back to README](../README.md)**
+
+
 ## References
 
 - [openapi-typescript Documentation](https://openapi-ts.dev/)
