@@ -1,18 +1,26 @@
 #!/bin/bash
 
-# Manual Deployment Script for Hetzner Server
+# Manual Deployment Script for Trip Manager on Remote Server
 # Performs the same steps as the GitHub Actions pipeline
 #
-# Usage:
-#   ./manual-deploy.sh <server_ip> <username> <port>
+# This script supports multiple ways to specify the server:
 #
-# Example:
-#   ./manual-deploy.sh 192.168.1.100 deploy 22
+# 1. SSH Config Alias (recommended):
+#    ./manual-deploy.sh myserver
+#
+# 2. SSH Config Alias with Port Override:
+#    ./manual-deploy.sh myserver 48222
+#
+# 3. Direct IP + Username + Port:
+#    ./manual-deploy.sh deploy@167.235.66.0 48222
+#
+# 4. IP + Port only (uses 'deploy' as default username):
+#    ./manual-deploy.sh 167.235.66.0 48222
 #
 # Requirements:
 #   - SSH key configured for passwordless login
 #   - .env file in the same directory with all required variables
-#   - SSH_AUTH_SOCK should be set for ssh-agent forwarding
+#   - SSH access to the remote server
 
 set -e
 
@@ -38,21 +46,59 @@ success() {
 }
 
 # Check arguments
-if [ $# -ne 3 ]; then
-    echo "Usage: $0 <server_ip> <username> <port>"
-    echo "Example: $0 192.168.1.100 deploy 22"
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "Usage: $0 <ssh_host> [port]"
+    echo ""
+    echo "Examples:"
+    echo ""
+    echo "  # Using SSH config alias (recommended):"
+    echo "  $0 myserver"
+    echo "  $0 myserver 48222         # Override port if needed"
+    echo ""
+    echo "  # Using IP + Port:"
+    echo "  $0 deploy@192.168.1.100 22"
+    echo "  $0 deploy@167.235.66.0 48222"
+    echo ""
+    echo "  # Using just IP (assumes 'deploy' user, SSH config will handle port):"
+    echo "  $0 167.235.66.0"
+    echo ""
+    echo "Requirements:"
+    echo "  - .env file in this directory with required variables"
+    echo "  - SSH key configured (via ssh-agent or SSH config)"
+    echo ""
     exit 1
 fi
 
-SERVER_IP="$1"
-USERNAME="$2"
-SSH_PORT="$3"
+SSH_HOST="$1"
+SSH_PORT="${2:-}"  # Optional second argument for port
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DEPLOYMENT_DIR="$SCRIPT_DIR/deployment"
 ENV_FILE="$SCRIPT_DIR/.env"
+
+# Parse SSH_HOST to extract username, server, and optional port
+# Handles multiple formats:
+# - "user@host" or "host" (SSH config)
+# - "user@ip" or "ip"
+# - With or without port in SSH_PORT
+
+if [[ "$SSH_HOST" =~ @ ]]; then
+    # Format: user@host or user@ip
+    USERNAME="${SSH_HOST%@*}"
+    SERVER="${SSH_HOST#*@}"
+else
+    # Format: host or ip (no user specified)
+    SERVER="$SSH_HOST"
+    # Try to get username from SSH config
+    USERNAME=$(ssh -G "$SERVER" 2>/dev/null | grep "^user " | awk '{print $2}' || echo "")
+    if [ -z "$USERNAME" ]; then
+        USERNAME="deploy"  # Fallback to 'deploy'
+    fi
+fi
+
 REMOTE_PATH="/home/$USERNAME/app/cloud"
-REMOTE_HOST="$USERNAME@$SERVER_IP"
+REMOTE_HOST="$SSH_HOST"
 
 # Check if .env file exists
 if [ ! -f "$ENV_FILE" ]; then
@@ -72,15 +118,41 @@ for var in "${required_vars[@]}"; do
     fi
 done
 
-log "🔐 Connecting to server $SERVER_IP ($USERNAME) on port $SSH_PORT..."
+log "🔐 Connecting to server..."
+log "   Host: $REMOTE_HOST"
+log "   User: $USERNAME"
+if [ -n "$SSH_PORT" ]; then
+    log "   Port: $SSH_PORT (override)"
+else
+    log "   Port: from SSH config or default"
+fi
+log "   Remote path: $REMOTE_PATH"
+
+# Helper function for SSH commands with optional port
+ssh_cmd() {
+    if [ -n "$SSH_PORT" ]; then
+        ssh -p "$SSH_PORT" "$REMOTE_HOST" "$@"
+    else
+        ssh "$REMOTE_HOST" "$@"
+    fi
+}
+
+# Helper function for SCP commands with optional port
+scp_cmd() {
+    if [ -n "$SSH_PORT" ]; then
+        scp -P "$SSH_PORT" "$@"
+    else
+        scp "$@"
+    fi
+}
 
 # 1. Copy deploy files to server
 log "📤 Copying deploy files to server..."
 log "📁 Creating remote directory: $REMOTE_PATH"
-ssh -p "$SSH_PORT" "$REMOTE_HOST" "mkdir -p $REMOTE_PATH" || error "Failed to create remote directory $REMOTE_PATH"
+ssh_cmd "mkdir -p $REMOTE_PATH" || error "Failed to create remote directory $REMOTE_PATH"
 
-scp -P "$SSH_PORT" "$DEPLOYMENT_DIR/deploy.sh" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy deploy.sh"
-scp -P "$SSH_PORT" "$PROJECT_DIR/docker-compose.yaml" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy docker-compose.yaml"
+scp_cmd "$DEPLOYMENT_DIR/deploy.sh" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy deploy.sh"
+scp_cmd "$PROJECT_DIR/docker-compose.yaml" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy docker-compose.yaml"
 
 log "✅ Deploy files copied"
 
@@ -88,14 +160,14 @@ log "✅ Deploy files copied"
 log "📤 Generating and copying Caddyfile to server..."
 CADDYFILE_TMP=$(mktemp)
 envsubst < "$DEPLOYMENT_DIR/Caddyfile" > "$CADDYFILE_TMP" || error "Failed to generate Caddyfile"
-scp -P "$SSH_PORT" "$CADDYFILE_TMP" "$REMOTE_HOST:$REMOTE_PATH/Caddyfile" || error "Failed to copy Caddyfile"
+scp_cmd "$CADDYFILE_TMP" "$REMOTE_HOST:$REMOTE_PATH/Caddyfile" || error "Failed to copy Caddyfile"
 rm -f "$CADDYFILE_TMP"
 
 log "✅ Caddyfile copied"
 
 # 3. Generate .env file on server
 log "📝 Generating .env file on server..."
-ssh -p "$SSH_PORT" "$REMOTE_HOST" \
+ssh_cmd \
     tee $REMOTE_PATH/.env << EOF > /dev/null
 GHCR_USERNAME=$GHCR_USERNAME
 GHCR_PAT=$GHCR_PAT
@@ -110,14 +182,14 @@ log "✅ .env file generated"
 
 # 4. Execute deploy script on server
 log "🚀 Executing deploy script on server..."
-ssh -p "$SSH_PORT" "$REMOTE_HOST" \
+ssh_cmd \
     "chmod +x $REMOTE_PATH/deploy.sh && cd $REMOTE_PATH && ./deploy.sh" || error "Deployment failed"
 
 log "✅ Deploy script executed"
 
 # 5. Verify deployment
 log "🔍 Verifying deployment..."
-ssh -p "$SSH_PORT" "$REMOTE_HOST" \
+ssh_cmd \
     "docker-compose -f $REMOTE_PATH/docker-compose.yaml ps" || error "Verification failed"
 
 success "🎉 Deployment completed successfully!"
