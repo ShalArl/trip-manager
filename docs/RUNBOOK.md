@@ -4,8 +4,50 @@ Complete guide for setting up and deploying the Trip Manager application to a He
 
 ---
 
-## Table of Contents
+## Current Server Setup
 
+### Specifications
+
+The Trip Manager application is currently deployed on the following infrastructure:
+
+| Component | Details         |
+|-----------|-----------------|
+| **Hoster** | Hetzner Cloud   |
+| **Operating System** | Ubuntu (latest LTS) |
+| **vCPU** | 2 cores         |
+| **RAM** | 4 GB            |
+| **Disk Storage** | 40 GB SSD       |
+
+### Infrastructure Independence
+
+The deployment uses **Docker Compose** for containerization. This means:
+
+✅ **Distribution Independent** - Can run on any Linux distribution, can also run on Windows and MacOS (with small modifications depending on processor architecture) that supports Docker
+✅ **Reproducible** - Same containers run identically across different servers
+✅ **Portable** - Easy to migrate to different hosting providers (AWS, DigitalOcean, etc.)
+✅ **Scalable** - Can upgrade server specs without changing deployment process
+
+### Why Docker Compose?
+
+- All services (Frontend, Backend, Database, Reverse Proxy) are containerized
+- No dependency on system packages or Python/Node versions
+- Services communicate via Docker internal networking
+- Environment variables manage configuration across different deployments
+- Single `docker-compose.yaml` file describes entire stack
+
+### Current Deployment Method
+
+All deployments use **one of two methods**:
+
+1. **Automated**: GitHub Actions Pipeline (main branch pushes)
+2. **Manual**: `deploy/hetzner/manual-deploy.sh` script (via SSH)
+
+Both methods perform identical steps, ensuring consistent deployments regardless of method used.
+
+---
+
+
+1. [Example Deployment]
 1. [SSH Key Setup](#ssh-key-setup)
 2. [Server Setup](#server-setup)
 3. [GitHub Secrets Configuration](#github-secrets-configuration)
@@ -304,6 +346,7 @@ The Caddyfile configures:
 - ✅ Security headers
 - ✅ Gzip compression
 - ✅ Access logging
+- See: [Caddyfile](../deploy/hetzner/deployment/Caddyfile) for full configuration
 
 ### Networking
 
