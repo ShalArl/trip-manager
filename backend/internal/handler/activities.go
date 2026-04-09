@@ -23,11 +23,13 @@ func ListActivitiesForTripHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("ListActivitiesForTrip: tripId=%s, limit=%d, offset=%d", tripId, limit, offset)
 
-		activitiesResp, err := app.Services.Activity.ListActivitiesForTrip(r.Context(), limit, offset, tripId)
+		activities, totalCount, err := app.Services.Activity.ListActivitiesForTrip(r.Context(), limit, offset, tripId)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		activitiesResp := mapActivitiesToActivityListResponse(activities, totalCount, limit, offset)
 
 		respondJSON(w, http.StatusOK, activitiesResp)
 	}
@@ -47,11 +49,13 @@ func ListActivitiesForLocationHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("ListActivitiesForLocation: locationId=%s, limit=%d, offset=%d", locationId, limit, offset)
 
-		activitiesResp, err := app.Services.Activity.ListActivitiesForLocation(r.Context(), limit, offset, locationId)
+		activities, totalCount, err := app.Services.Activity.ListActivitiesForLocation(r.Context(), limit, offset, locationId)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		activitiesResp := mapActivitiesToActivityListResponse(activities, totalCount, limit, offset)
 
 		respondJSON(w, http.StatusOK, activitiesResp)
 	}
@@ -74,7 +78,9 @@ func GetActivityHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, activity)
+		activityResponse := mapActivityToActivityResponse(activity)
+
+		respondJSON(w, http.StatusOK, activityResponse)
 	}
 }
 
@@ -102,7 +108,9 @@ func CreateActivityHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusCreated, activity)
+		activityResponse := mapActivityToActivityResponse(activity)
+
+		respondJSON(w, http.StatusCreated, activityResponse)
 	}
 }
 
@@ -130,7 +138,9 @@ func UpdateActivityHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, activity)
+		activityResponse := mapActivityToActivityResponse(activity)
+
+		respondJSON(w, http.StatusOK, activityResponse)
 	}
 }
 

@@ -23,13 +23,15 @@ func ListLocationsHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("ListLocations: tripId=%s, limit=%d, offset=%d", tripId, limit, offset)
 
-		locationsResp, err := app.Services.Location.ListLocations(r.Context(), tripId, limit, offset)
+		locations, total, err := app.Services.Location.ListLocations(r.Context(), tripId, limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		respondJSON(w, http.StatusOK, locationsResp)
+		locationResp := mapLocationsToLocationListResponse(locations, limit, offset, total)
+
+		respondJSON(w, http.StatusOK, locationResp)
 	}
 }
 
@@ -50,7 +52,9 @@ func GetLocationHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, location)
+		locationResp := mapLocationToLocationResponse(location)
+
+		respondJSON(w, http.StatusOK, locationResp)
 	}
 }
 
@@ -78,7 +82,9 @@ func CreateLocationHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusCreated, location)
+		locationResp := mapLocationToLocationResponse(location)
+
+		respondJSON(w, http.StatusCreated, locationResp)
 	}
 }
 
@@ -106,7 +112,9 @@ func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, location)
+		locationResp := mapLocationToLocationResponse(location)
+
+		respondJSON(w, http.StatusOK, locationResp)
 	}
 }
 

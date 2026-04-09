@@ -28,15 +28,17 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		app.Logger.Printf("ListTrips: limit=%d, offset=%d", limit, offset)
 
 		// Handler only parses parameters - Service does validation + coordination
-		tripsResp, err := app.Services.Trip.ListTrips(r.Context(), userID, limit, offset)
+		trips, total, err := app.Services.Trip.ListTrips(r.Context(), userID, limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			app.Logger.Printf("ListTrips error: %v", err)
 			return
 		}
 
-		app.Logger.Printf("ListTrips response: %+v", tripsResp)
-		respondJSON(w, http.StatusOK, tripsResp)
+		tripsResponse := mapTripsToTripListResponse(trips, limit, offset, total)
+
+		app.Logger.Printf("ListTrips response: %+v", tripsResponse)
+		respondJSON(w, http.StatusOK, tripsResponse)
 	}
 }
 
@@ -65,7 +67,9 @@ func CreateTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusCreated, trip)
+		tripResponse := mapTripToTripResponse(trip)
+
+		respondJSON(w, http.StatusCreated, tripResponse)
 	}
 }
 
@@ -86,7 +90,9 @@ func GetTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, trip)
+		tripResponse := mapTripToTripResponse(trip)
+
+		respondJSON(w, http.StatusOK, tripResponse)
 	}
 }
 
@@ -119,7 +125,9 @@ func UpdateTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, trip)
+		tripResponse := mapTripToTripResponse(trip)
+
+		respondJSON(w, http.StatusOK, tripResponse)
 	}
 }
 

@@ -4,19 +4,27 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/repository"
+	"github.com/ShalArl/trip-manager/internal/storage"
 )
 
 type UserService interface {
 	// GetUser retrieves a user by their ID.
-	GetUser(ctx context.Context, id string) (*generated.UserResponse, error)
+	GetUser(ctx context.Context, id string) (*domain.User, error)
+
+	// GetUserByEmail retrieves a user by their email address.
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 
 	// CreateUser creates a new user with the provided details.
-	CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*generated.UserResponse, error)
+	CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*domain.User, error)
 
 	// UpdateUser updates an existing user's details.
-	UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*generated.UserResponse, error)
+	UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error)
+
+	// UpdateUserPassword only called internally! Updates an existing user's details without validation (used by AuthService to update password)
+	UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error)
 
 	// DeleteUser removes a user from the system by their ID.
 	DeleteUser(ctx context.Context, id string) error
@@ -24,10 +32,11 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	userRepository repository.UserRepository
+	s              *storage.Storage
 }
 
 // CreateUser implements [UserService].
-func (u *UserServiceImpl) CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*generated.UserResponse, error) {
+func (u *UserServiceImpl) CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*domain.User, error) {
 	// 1. Validate input (business logic validation)
 	if err := validateCreateUserRequest(*request); err != nil {
 		return nil, err
@@ -42,9 +51,7 @@ func (u *UserServiceImpl) CreateUser(ctx context.Context, request *generated.Cre
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// 4. Convert from domain back to response type
-	response := mapUserToUserResponse(createdUser)
-	return response, nil
+	return createdUser, nil
 }
 
 // DeleteUser implements [UserService].
@@ -53,7 +60,7 @@ func (u *UserServiceImpl) DeleteUser(ctx context.Context, id string) error {
 }
 
 // GetUser implements [UserService].
-func (u *UserServiceImpl) GetUser(ctx context.Context, id string) (*generated.UserResponse, error) {
+func (u *UserServiceImpl) GetUser(ctx context.Context, id string) (*domain.User, error) {
 	user, err := u.userRepository.GetUser(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -62,12 +69,23 @@ func (u *UserServiceImpl) GetUser(ctx context.Context, id string) (*generated.Us
 		return nil, fmt.Errorf("user not found")
 	}
 
-	response := mapUserToUserResponse(user)
-	return response, nil
+	return user, nil
+}
+
+func (u *UserServiceImpl) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	user, err := u.userRepository.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	return user, nil
+
 }
 
 // UpdateUser implements [UserService].
-func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*generated.UserResponse, error) {
+func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error) {
 	// 1. Validate input (business logic validation)
 	if err := validateUpdateUserRequest(*request); err != nil {
 		return nil, err
@@ -83,18 +101,26 @@ func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *ge
 	user := mapUpdateUserRequestToUser(request, existingUser)
 
 	// 4. Call repository to update and get updated record
-	updatedUser, err := u.userRepository.UpdateUser(ctx, user)
+	updatedUser, err := u.userRepository.UpdateUserProfile(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
-	// 5. Convert back to response type
-	response := mapUserToUserResponse(updatedUser)
-	return response, nil
+	return updatedUser, nil
 }
 
-func NewUserService(userRepository repository.UserRepository) UserService {
+// UpdateUserPassword called only internally by AuthService therefore no validation
+func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {
+	updatedUser, err := u.userRepository.UpdateUserPassword(ctx, user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+	return updatedUser, nil
+}
+
+func NewUserService(userRepository repository.UserRepository, s *storage.Storage) UserService {
 	return &UserServiceImpl{
 		userRepository: userRepository,
+		s:              s,
 	}
 }
