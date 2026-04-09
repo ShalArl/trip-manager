@@ -231,6 +231,9 @@ chmod +x manual-deploy.sh
 # Basic usage
 ./manual-deploy.sh <server-ip> <username> <port>
 
+# Or via config
+./manual-deploy.sh <config-entry-name>
+
 # Example
 ./manual-deploy.sh 192.168.1.100 deploy 22
 
