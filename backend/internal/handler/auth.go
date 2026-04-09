@@ -21,10 +21,18 @@ func LoginHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("Login: email=%s", req.Email)
 
-		authResp, err := app.Services.Auth.Login(r.Context(), &req)
+		token, exp, user, err := app.Services.Auth.Login(r.Context(), &req)
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, err.Error())
 			return
+		}
+
+		userResponse := mapUserToUserResponse(user, nil)
+
+		authResp := generated.AuthResponse{
+			ExpiresIn: exp,
+			Token:     token,
+			User:      *userResponse,
 		}
 
 		respondJSON(w, http.StatusOK, authResp)
@@ -48,8 +56,9 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
+		userResponse := mapUserToUserResponse(user, nil)
 
-		respondJSON(w, http.StatusOK, user)
+		respondJSON(w, http.StatusOK, userResponse)
 	}
 }
 
@@ -77,8 +86,9 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		userResponse := mapUserToUserResponse(user, nil)
 
-		respondJSON(w, http.StatusOK, user)
+		respondJSON(w, http.StatusOK, userResponse)
 	}
 }
 
@@ -127,8 +137,9 @@ func GetUserHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
+		userResponse := mapUserToUserResponse(user, nil)
 
-		respondJSON(w, http.StatusOK, user)
+		respondJSON(w, http.StatusOK, userResponse)
 	}
 }
 
@@ -144,10 +155,17 @@ func CreateUserHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("Register: email=%s, name=%s", req.Email, req.Name)
 
-		authResp, err := app.Services.Auth.Register(r.Context(), &req)
+		token, exp, user, err := app.Services.Auth.Register(r.Context(), &req)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
+		}
+
+		userResponse := mapUserToUserResponse(user, nil)
+		authResp := generated.AuthResponse{
+			ExpiresIn: exp,
+			Token:     token,
+			User:      *userResponse,
 		}
 
 		respondJSON(w, http.StatusCreated, authResp)
@@ -178,7 +196,9 @@ func UpdateUserHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, user)
+		userResponse := mapUserToUserResponse(user, nil)
+
+		respondJSON(w, http.StatusOK, userResponse)
 	}
 }
 

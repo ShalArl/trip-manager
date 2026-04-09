@@ -73,7 +73,7 @@ func (l *LocationRepositoryImpl) CreateLocation(ctx context.Context, location *d
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return location, nil
+	return rec.toLocation(), nil
 }
 
 // UpdateLocation implements [LocationRepository].
@@ -100,7 +100,7 @@ func (l *LocationRepositoryImpl) UpdateLocation(ctx context.Context, location *d
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return location, nil
+	return rec.toLocation(), nil
 }
 
 // ListLocations implements [LocationRepository].

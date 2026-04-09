@@ -102,7 +102,7 @@ func (a *ActivityRepositoryImpl) UpdateActivity(ctx context.Context, activity *d
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return activity, nil
+	return rec.toActivity(), nil
 }
 
 // ListActivitiesForLocation implements [ActivityRepository] calls [listActivitiesByField].
