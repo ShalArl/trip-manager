@@ -1,0 +1,9 @@
+[project]
+name = "loadtests"
+version = "0.1.0"
+description = "Flexible hierarchical load testing framework for Trip Manager API using Locust"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "locust>=2.43.4",
+]
