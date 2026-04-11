@@ -13,31 +13,34 @@ help:
 	@echo "=================================="
 	@echo ""
 	@echo "Development Commands (Linux/macOS):"
-	@echo "  make run-dev       Run the server with auto-reload (requires air)"
-	@echo "  make run           Build and run the server"
-	@echo "  make build         Build the backend binary"
+	@echo "  make run-dev        Run the server with auto-reload (requires air)"
+	@echo "  make run            Build and run the server"
+	@echo "  make build          Build the backend binary"
 	@echo ""
 	@echo "Development Commands (Windows):"
-	@echo "  make run-dev-win   Run the server for Windows with auto-reload (requires air)"
-	@echo "  make run-windows   Build and run the server for Windows"
-	@echo "  make build-windows Build the backend binary for Windows"
+	@echo "  make run-dev-win    Run the server for Windows with auto-reload (requires air)"
+	@echo "  make run-windows    Build and run the server for Windows"
+	@echo "  make build-windows  Build the backend binary for Windows"
 	@echo ""
 	@echo "Other Commands:"
-	@echo "  make test          Run all tests"
-	@echo "  make test-verbose  Run tests with verbose output"
+	@echo "  make test           Run all tests"
+	@echo "  make test-verbose   Run tests with verbose output"
 	@echo ""
 	@echo "Database Commands:"
-	@echo "  make migrate       Run pending migrations (auto-runs on server start)"
-	@echo "  make db-reset      Reset the database (CAUTION: deletes all data)"
-	@echo "  make db-setup      Setup database with migrations"
+	@echo "  make migrate        Run pending migrations (auto-runs on server start)"
+	@echo "  make db-reset       Reset the database (CAUTION: deletes all data)"
+	@echo "  make db-setup       Setup database with migrations"
 	@echo ""
 	@echo "Cleanup Commands:"
-	@echo "  make clean         Remove built binaries"
-	@echo "  make clean-all     Remove binaries and generated files"
+	@echo "  make clean          Remove built binaries"
+	@echo "  make clean-all      Remove binaries and generated files"
 	@echo ""
 	@echo "Docker Commands:"
-	@echo "  make docker-up     Start PostgreSQL with Docker"
-	@echo "  make docker-down   Stop PostgreSQL Docker container"
+	@echo "  make db-up          Start PostgreSQL with Docker"
+	@echo "  make db-down        Stop PostgreSQL Docker container"
+	@echo "  make storage-up     Start MinIO with Docker"
+	@echo "  make storage-setup  Start MinIO and create bucket"
+	@echo "  make storage-down   Stop MinIO Docker container"
 	@echo ""
 
 # Build the backend binary
@@ -121,7 +124,7 @@ db-reset:
 	@echo "✓ Database reset complete"
 
 # Start PostgreSQL with Docker
-docker-up:
+db-up:
 	@echo "Starting PostgreSQL with Docker..."
 	@docker run -d \
 		--name trip_manager_db \
@@ -139,11 +142,53 @@ docker-up:
 	@echo "✓ Database is ready!"
 
 # Stop PostgreSQL Docker container
-docker-down:
+db-down:
 	@echo "Stopping PostgreSQL container..."
 	@docker stop trip_manager_db 2>/dev/null || true
 	@docker rm trip_manager_db 2>/dev/null || true
 	@echo "✓ PostgreSQL stopped"
+
+# Start MinIO with Docker
+storage-up:
+	@echo "Starting MinIO with Docker..."
+	@docker run -d \
+		--name trip_manager_minio \
+		-e MINIO_ROOT_USER=minioadmin \
+		-e MINIO_ROOT_PASSWORD=minioadmin \
+		-p 9000:9000 \
+		-p 9001:9001 \
+		-v trip_manager_minio_data:/data \
+		quay.io/minio/minio:latest server /data --console-address ":9001"
+	@echo "✓ MinIO started"
+	@echo "  S3 API:       http://localhost:9000"
+	@echo "  Console:      http://localhost:9001"
+	@echo "  Credentials:  minioadmin:minioadmin"
+	@sleep 3
+	@echo "⏳ Waiting for MinIO to be ready..."
+	@until curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; do sleep 1; done
+	@echo "✓ MinIO is ready!"
+
+# Setup MinIO bucket (creates if not exists)
+storage-setup: storage-up
+	@echo ""
+	@echo "Setting up MinIO bucket..."
+	@command -v mc >/dev/null 2>&1 || { echo "Installing MinIO Client (mc)..."; curl -s https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod +x /tmp/mc && sudo mv /tmp/mc /usr/local/bin/mc 2>/dev/null || echo "Please install mc manually: https://min.io/download#minio-client"; }
+	@sleep 1
+	@mc alias set minio http://localhost:9000 minioadmin minioadmin 2>/dev/null || true
+	@mc mb minio/trip-manager 2>/dev/null || echo "✓ Bucket already exists"
+	@echo "✓ MinIO bucket setup complete"
+	@echo ""
+	@echo "Ready to use MinIO:"
+	@echo "  Access at:  http://localhost:9000"
+	@echo "  Console at: http://localhost:9001"
+	@echo "  Bucket:     trip-manager"
+
+# Stop MinIO Docker container
+storage-down:
+	@echo "Stopping MinIO container..."
+	@docker stop trip_manager_minio 2>/dev/null || true
+	@docker rm trip_manager_minio 2>/dev/null || true
+	@echo "✓ MinIO stopped"
 
 # View Docker logs
 docker-logs:
@@ -182,7 +227,7 @@ deps-check:
 	@echo "✓ Dependencies verified"
 
 # Setup development environment
-dev-setup: docker-up db-setup build
+dev-setup: db-up db-setup storage-setup build
 	@echo ""
 	@echo "✓ Development environment setup complete!"
 	@echo ""
@@ -193,7 +238,7 @@ dev-setup: docker-up db-setup build
 	@echo ""
 
 # Start everything (DB + Server)
-dev: docker-up
+dev: storage-down db-down storage-up db-up
 	@echo "Database started. Starting server..."
 	@$(MAKE) run
 
@@ -205,10 +250,25 @@ version:
 # All help and info
 info: version help
 	@echo ""
-	@echo "Environment Variables:"
+	@echo "Environment Variables (Backend):"
 	@echo "  DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager (required)"
 	@echo "  SERVER_PORT=8000 (default)"
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"
+	@echo ""
+	@echo "Storage Configuration:"
+	@echo "  STORAGE_TYPE=local (default) | s3"
+	@echo ""
+	@echo "  For Local Storage:"
+	@echo "    UPLOAD_DIR=./uploads (default)"
+	@echo ""
+	@echo "  For S3 Storage (MinIO/AWS):"
+	@echo "    S3_ENDPOINT=http://minio:9000 (MinIO) or empty (AWS)"
+	@echo "    S3_BUCKET=trip-manager (default)"
+	@echo "    S3_REGION=us-east-1 (default)"
+	@echo "    S3_ACCESS_KEY=minioadmin"
+	@echo "    S3_SECRET_KEY=minioadmin"
+	@echo "    S3_PUBLIC_URL=http://localhost:9000"
+	@echo "    S3_USE_SSL=false (default)"
 	@echo ""
 

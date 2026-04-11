@@ -84,29 +84,43 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           description: Unauthorized
-
     put:
-      summary: Update current user profile
-      operationId: updateMe
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: Profile updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
+       summary: Update current user profile
+       description: Update user profile with optional avatar upload. Supports both JSON and multipart form data.
+       operationId: updateMe
+       tags:
+         - Users
+       requestBody:
+         required: true
+         content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/UpdateUserRequest'
+           multipart/form-data:
+             schema:
+               type: object
+               properties:
+                 data:
+                   type: string
+                   description: JSON-encoded UpdateUserRequest data
+                   example: '{"name":"John Doe","email":"john@example.com","bio":"A traveler"}'
+                 avatar:
+                   type: string
+                   format: binary
+                   description: Optional avatar image file (JPEG, PNG, GIF, or WebP, max 5MB)
+               required:
+                 - data
+       responses:
+         '200':
+           description: Profile updated
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/UserResponse'
+         '400':
+           description: Invalid input or file too large
+         '401':
+           description: Unauthorized
 
   /users/me/password:
     put:

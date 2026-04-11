@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -125,6 +126,15 @@ func main() {
 			log.Printf("Error writing health check response: %v", err)
 		}
 	})
+
+	// TODO: This is just for testing until gcloud storage is implemented. In production, these should be served by a CDN or object storage service.
+	// Serve uploaded files
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(http.Dir(uploadDir))))
+
 	// Start server
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
 	application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)

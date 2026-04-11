@@ -13,9 +13,10 @@ import (
 )
 
 type ServiceConfig struct {
-	DB     *sqlx.DB
-	Logger *log.Logger
-	Config *config.Config
+	DB      *sqlx.DB
+	Logger  *log.Logger
+	Config  *config.Config
+	Storage storage.Storage
 }
 
 type ServiceContainer struct {
@@ -24,6 +25,7 @@ type ServiceContainer struct {
 	User     service.UserService
 	Activity service.ActivityService
 	Auth     service.AuthService
+	Media    *service.MediaService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
@@ -31,9 +33,6 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	var locationRepo repository.LocationRepository
 	var userRepo repository.UserRepository
 	var activityRepo repository.ActivityRepository
-
-	// Storage for GCS operations
-	var s *storage.Storage
 
 	// Initialize repositories with the database connection
 	tripRepo = repository.NewTripRepository(cfg.DB)
@@ -44,7 +43,12 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
 	locationService := service.NewLocationService(locationRepo)
-	userService := service.NewUserService(userRepo, s)
+
+	// Initialize media service first (needed by user service)
+	mediaService := service.NewMediaService(cfg.Storage)
+
+	// Initialize user service with media service
+	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
 	// Initialize auth manager (7 day token expiration)
@@ -59,5 +63,6 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 		User:     userService,
 		Activity: activityService,
 		Auth:     authService,
+		Media:    mediaService,
 	}
 }

@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/repository"
-	"github.com/ShalArl/trip-manager/internal/storage"
 )
 
 type UserService interface {
@@ -23,6 +23,9 @@ type UserService interface {
 	// UpdateUser updates an existing user's details.
 	UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error)
 
+	// UpdateUserWithAvatar updates user and optionally handles avatar upload
+	UpdateUserWithAvatar(ctx context.Context, id string, request *generated.UpdateUserRequest, avatarFile io.Reader, avatarFileName string) (*domain.User, error)
+
 	// UpdateUserPassword only called internally! Updates an existing user's details without validation (used by AuthService to update password)
 	UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error)
 
@@ -32,7 +35,15 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	userRepository repository.UserRepository
-	s              *storage.Storage
+	mediaService   *MediaService
+}
+
+// NewUserService creates a new UserService with optional MediaService
+func NewUserService(userRepo repository.UserRepository, mediaService *MediaService) UserService {
+	return &UserServiceImpl{
+		userRepository: userRepo,
+		mediaService:   mediaService,
+	}
 }
 
 // CreateUser implements [UserService].
@@ -109,6 +120,28 @@ func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *ge
 	return updatedUser, nil
 }
 
+// UpdateUserWithAvatar updates user profile and optionally handles avatar upload
+func (u *UserServiceImpl) UpdateUserWithAvatar(ctx context.Context, id string, request *generated.UpdateUserRequest, avatarFile io.Reader, avatarFileName string) (*domain.User, error) {
+	// If avatar file is provided and MediaService is available, upload it
+	if avatarFile != nil && u.mediaService != nil && avatarFileName != "" {
+		// Upload avatar via MediaService
+		fileUrl, err := u.mediaService.UploadImage(ctx, avatarFile, UploadImageOptions{
+			MediaType: MediaTypeAvatar,
+			UserID:    id,
+			FileName:  avatarFileName,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload avatar: %w", err)
+		}
+
+		// Set avatar URL in request
+		request.AvatarUrl = &fileUrl
+	}
+
+	// Now update the user with the potentially updated avatar URL
+	return u.UpdateUser(ctx, id, request)
+}
+
 // UpdateUserPassword called only internally by AuthService therefore no validation
 func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {
 	updatedUser, err := u.userRepository.UpdateUserPassword(ctx, user)
@@ -118,9 +151,3 @@ func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.U
 	return updatedUser, nil
 }
 
-func NewUserService(userRepository repository.UserRepository, s *storage.Storage) UserService {
-	return &UserServiceImpl{
-		userRepository: userRepository,
-		s:              s,
-	}
-}

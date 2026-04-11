@@ -8,10 +8,10 @@ import { getTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 
 //import { mockTrips } from "@/lib/mock-trips";
-import { createUser, login } from "@/lib/api/user";
+import { register, login } from "@/lib/api/auth";
 
 import AuthPage from "@/components/auth/AuthPage";
-import Navbar from "@/components/home/Navbar";
+import Navbar from "@/components/global/Navbar";
 import Hero from "@/components/home/Hero";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
@@ -38,7 +38,7 @@ export default function Home() {
   }, [user]);
 
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
-    const response: AuthResponse = await createUser(createUserRequest)
+    const response: AuthResponse = await register(createUserRequest)
     console.log(response)
     // Store token FIRST, then user - this ensures token is available when useEffect runs
     localStorage.setItem("token", response.token);
