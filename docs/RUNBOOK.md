@@ -17,15 +17,17 @@ The Trip Manager application is currently deployed on the following infrastructu
 | **vCPU** | 2 cores         |
 | **RAM** | 4 GB            |
 | **Disk Storage** | 40 GB SSD       |
+| **Access URL** | https://www.travel-nugget.duckdns.org |
+| **API Endpoint** | https://www.travel-nugget.duckdns.org/api |
 
 ### Infrastructure Independence
 
 The deployment uses **Docker Compose** for containerization. This means:
 
-✅ **Distribution Independent** - Can run on any Linux distribution, can also run on Windows and MacOS (with small modifications depending on processor architecture) that supports Docker
-✅ **Reproducible** - Same containers run identically across different servers
-✅ **Portable** - Easy to migrate to different hosting providers (AWS, DigitalOcean, etc.)
-✅ **Scalable** - Can upgrade server specs without changing deployment process
+- ✅ **Distribution Independent** - Can run on any Linux distribution, can also run on Windows and MacOS (with small modifications depending on processor architecture) that supports Docker
+- ✅ **Reproducible** - Same containers run identically across different servers
+- ✅ **Portable** - Easy to migrate to different hosting providers (AWS, DigitalOcean, etc.)
+- ✅ **Scalable** - Can upgrade server specs without changing deployment process
 
 ### Why Docker Compose?
 
@@ -46,18 +48,17 @@ Both methods perform identical steps, ensuring consistent deployments regardless
 
 ---
 
-
-1. [Example Deployment]
 1. [SSH Key Setup](#ssh-key-setup)
-2. [Server Setup](#server-setup)
-3. [GitHub Secrets Configuration](#github-secrets-configuration)
-4. [Automated Deployment (GitHub Actions)](#automated-deployment-github-actions)
-5. [Manual Deployment](#manual-deployment)
-6. [Architecture Overview](#architecture-overview)
-7. [Health Checks](#health-checks)
-8. [Logs](#logs)
-9. [Troubleshooting](#troubleshooting)
-10. [Rollback](#rollback)
+2. [DuckDNS Domain Setup](#duckdns-domain-setup)
+3. [Server Setup](#server-setup)
+4. [GitHub Secrets Configuration](#github-secrets-configuration)
+5. [Automated Deployment (GitHub Actions)](#automated-deployment-github-actions)
+6. [Manual Deployment](#manual-deployment)
+7. [Architecture Overview](#architecture-overview)
+8. [Health Checks](#health-checks)
+9. [Logs](#logs)
+10. [Troubleshooting](#troubleshooting)
+11. [Rollback](#rollback)
 
 ---
 
@@ -89,6 +90,109 @@ Add the following secret:
 
 ---
 
+## DuckDNS Domain Setup
+
+### What is DuckDNS?
+
+DuckDNS is a free dynamic DNS service that allows you to:
+- Get a free `.duckdns.org` subdomain
+- Automatically update your IP address if it changes
+- Access your server by domain name instead of IP address
+- Use Let's Encrypt SSL certificates with your domain
+
+### 1. Create DuckDNS Account
+
+1. Go to https://www.duck.dns.org/
+2. Sign in with any OAuth provider (GitHub, Google, etc.)
+3. Note your **DuckDNS Token** (you'll need it later)
+
+### 2. Create Your Domain
+
+1. On the DuckDNS dashboard, enter your desired subdomain name (e.g., `travel-nugget`)
+2. Click "Add Domain"
+3. The domain `travel-nugget.duckdns.org` is now registered to your account
+
+### 3. Update Your IP Address
+
+Option A: **Manual Update** (once)
+
+```bash
+# Replace YOUR_TOKEN with your DuckDNS token from step 1
+curl "https://www.duck.dns.org/update?domains=travel-nugget&token=YOUR_TOKEN&ip="
+```
+
+Option B: **Automatic Updates** (recommended) - Add to crontab
+
+```bash
+# Open crontab editor
+crontab -e
+
+# Add this line to update every 5 minutes:
+*/5 * * * * curl "https://www.duck.dns.org/update?domains=travel-nugget&token=YOUR_TOKEN&ip=" > /dev/null 2>&1
+
+# Save and exit (Ctrl+X, then Y, then Enter)
+```
+
+### 4. Verify Domain Resolution
+
+```bash
+# Test that your domain resolves to your server's IP
+nslookup travel-nugget.duckdns.org
+
+# Should output something like:
+# Server:         8.8.8.8
+# Address:        8.8.8.8#53
+# Non-authoritative answer:
+# Name:   travel-nugget.duckdns.org
+# Address: 123.45.67.89  (your server IP)
+```
+
+### 5. Update GitHub Secrets
+
+Once your domain is working, update GitHub repository secrets:
+
+```bash
+DOMAIN=travel-nugget.duckdns.org
+NEXT_PUBLIC_API_URL=https://travel-nugget.duckdns.org/api
+```
+
+### 6. Deploy with Your Domain
+
+The deployment will now:
+- Use your DuckDNS domain
+- Automatically provision Let's Encrypt SSL certificate
+- Serve HTTPS with automatic redirect from HTTP
+
+### What Happens If IP Changes?
+
+DuckDNS will continue to work because:
+1. Your server updates the IP address every 5 minutes via cron job
+2. DuckDNS DNS records update to point to new IP
+3. Your application continues to work with zero downtime
+4. SSL certificate remains valid (it's tied to the domain, not IP)
+
+### Troubleshooting DuckDNS
+
+**Domain not resolving?**
+```bash
+# Check current IP on server
+curl https://checkip.amazonaws.com
+
+# Manually trigger update
+curl "https://www.duck.dns.org/update?domains=travel-nugget&token=YOUR_TOKEN&ip="
+
+# Wait 5-10 minutes for DNS propagation
+nslookup travel-nugget.duckdns.org
+```
+
+**Want to change your domain?**
+1. Delete current domain from DuckDNS dashboard
+2. Create new domain
+3. Update GitHub secrets with new domain
+4. Redeploy
+
+---
+
 ## Server Setup
 
 ### Prerequisites on Hetzner Server
@@ -115,14 +219,15 @@ curl https://dl.filippo.io/caddy/stable?plugins=dns.providers.duckdns -o /tmp/ca
 sudo mv /tmp/caddy /usr/local/bin/caddy
 sudo chmod +x /usr/local/bin/caddy
 
-# 5. GitHub Container Registry Login
-docker login ghcr.io -u <your-github-username> -p <your-pat>
-
-# 6. Setup Duck DNS (for dynamic IP tracking)
+# 5. Setup Duck DNS (for dynamic IP tracking)
+# Complete guide: See [DuckDNS Domain Setup](#duckdns-domain-setup) section above
 # Get your token from https://www.duck.dns.org/
 crontab -e
 # Add the following line:
 */5 * * * * curl "https://www.duck.dns.org/update?domains=yoursubdomain&token=DUCK_TOKEN&ip=" > /dev/null 2>&1
+
+# 6. GitHub Container Registry Login
+docker login ghcr.io -u <your-github-username> -p <your-pat>
 ```
 
 ---
