@@ -6,8 +6,6 @@ import (
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/pkg/ptr"
-	"github.com/google/uuid"
-	openapitypes "github.com/oapi-codegen/runtime/types"
 )
 
 func mapCreateLocationRequestToLocation(req *generated.CreateLocationRequest, tripID string, userID string) *domain.Location {
@@ -62,26 +60,4 @@ func mapUpdateLocationRequestToLocation(req *generated.UpdateLocationRequest, ex
 	updated.UpdatedAt = time.Now()
 
 	return &updated
-}
-
-func mapLocationToLocationResponse(l *domain.Location) *generated.LocationResponse {
-	id, _ := uuid.Parse(l.ID)
-
-	return &generated.LocationResponse{
-		Id:        ptr.ToPtr(id),
-		Name:      l.Name,
-		City:      l.City,
-		Country:   l.Country,
-		Latitude:  ptr.ToPtr(float32(l.Coordinates.Lat)),
-		Longitude: ptr.ToPtr(float32(l.Coordinates.Lon)),
-		Notes:     ptr.ToPtr(l.Notes),
-		Sequence:  ptr.ToPtr(l.Sequence),
-		CreatedAt: &l.CreatedAt,
-		UpdatedAt: &l.UpdatedAt,
-		CreatedBy: &generated.UserSummary{
-			Id:    uuid.MustParse(l.CreatedBy.ID),
-			Name:  l.CreatedBy.Name,
-			Email: openapitypes.Email(l.CreatedBy.Email),
-		},
-	}
 }

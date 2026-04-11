@@ -6,8 +6,6 @@ import (
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/pkg/ptr"
-	"github.com/google/uuid"
-	openapitypes "github.com/oapi-codegen/runtime/types"
 )
 
 func mapCreateTripRequestToTrip(request *generated.CreateTripRequest, userID string, userName string, userEmail string) *domain.Trip {
@@ -27,7 +25,6 @@ func mapCreateTripRequestToTrip(request *generated.CreateTripRequest, userID str
 		StartDate:        request.StartDate.Time,
 		EndDate:          request.EndDate.Time,
 		Status:           domain.TripStatusPlanned,
-		Destination:      request.Destination,
 	}
 }
 
@@ -61,28 +58,4 @@ func mapUpdateTripRequestToTrip(request *generated.UpdateTripRequest, existing *
 	updated.UpdatedAt = time.Now()
 
 	return &updated
-}
-
-func mapTripToTripResponse(trip *domain.Trip) *generated.TripResponse {
-	id, _ := uuid.Parse(trip.ID)
-
-	status := generated.TripResponseStatus(trip.Status)
-
-	return &generated.TripResponse{
-		Id:               ptr.ToPtr(id),
-		Title:            trip.Title,
-		ShortDescription: trip.ShortDescription,
-		Description:      ptr.ToPtr(trip.Description),
-		StartDate:        openapitypes.Date{Time: trip.StartDate},
-		EndDate:          &openapitypes.Date{Time: trip.EndDate},
-		Status:           &status,
-		CreatedAt:        &trip.CreatedAt,
-		UpdatedAt:        &trip.UpdatedAt,
-		Destination:      trip.Destination,
-		CreatedBy: &generated.UserSummary{
-			Id:    uuid.MustParse(trip.CreatedBy.ID),
-			Name:  trip.CreatedBy.Name,
-			Email: openapitypes.Email(trip.CreatedBy.Email),
-		},
-	}
 }

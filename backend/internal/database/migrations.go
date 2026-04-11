@@ -1,6 +1,7 @@
 package database
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"log"
@@ -11,11 +12,24 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+//go:embed migrations/*.sql
+var embeddedMigrationFiles embed.FS
+
+// RunEmbeddedMigrations runs migrations from the embedded file system
+func RunEmbeddedMigrations(db *sqlx.DB) error {
+	subFS, err := fs.Sub(embeddedMigrationFiles, "migrations")
+	if err != nil {
+		return fmt.Errorf("failed to access embedded migrations: %w", err)
+	}
+
+	return runMigrationsFromFS(db, subFS)
+}
+
 // RunMigrations executes all migration files in the migrations directory
 func RunMigrations(db *sqlx.DB) error {
 	// Get the migrations directory - relative to the executable or module root
 	migrationsDir := "migrations"
-	
+
 	// Check if migrations directory exists
 	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
 		// Try from backend directory if running from there
@@ -71,8 +85,8 @@ func RunMigrations(db *sqlx.DB) error {
 	return nil
 }
 
-// RunMigrationsFromFS runs migrations from an embedded file system (useful for compiled binaries)
-func RunMigrationsFromFS(db *sqlx.DB, migrationsFS fs.FS) error {
+// runMigrationsFromFS runs migrations from an embedded file system (useful for compiled binaries)
+func runMigrationsFromFS(db *sqlx.DB, migrationsFS fs.FS) error {
 	// Get all .sql files from the embedded FS
 	files, err := fs.ReadDir(migrationsFS, ".")
 	if err != nil {
@@ -117,4 +131,3 @@ func RunMigrationsFromFS(db *sqlx.DB, migrationsFS fs.FS) error {
 	log.Println("All migrations completed successfully")
 	return nil
 }
-

@@ -15,7 +15,8 @@ type UserRepository interface {
 	GetUser(ctx context.Context, id string) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	CreateUser(ctx context.Context, user *domain.User) (*domain.User, error)
-	UpdateUser(ctx context.Context, user *domain.User) (*domain.User, error)
+	UpdateUserProfile(ctx context.Context, user *domain.User) (*domain.User, error)
+	UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error)
 	DeleteUser(ctx context.Context, id string) error
 }
 
@@ -62,36 +63,6 @@ func (u *UserRepositoryImpl) CreateUser(ctx context.Context, user *domain.User) 
 	         RETURNING id, email, name, bio, password_hash, created_at, updated_at`
 
 	err = u.db.QueryRowContext(ctx, query, rec.ID, rec.Email, rec.Name, rec.Bio, rec.PasswordHash, rec.CreatedAt, rec.UpdatedAt).
-		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.PasswordHash, &rec.CreatedAt, &user.UpdatedAt)
-
-	if err != nil {
-		var pgErr *pq.Error
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case "23503":
-				return nil, fmt.Errorf("%w: referenced user not found", domain.ErrInvalidInput)
-			case "23505":
-				return nil, domain.ErrConflict
-			}
-		}
-		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	}
-
-	return user, nil
-}
-
-// UpdateUser implements [UserRepository].
-func (u *UserRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
-	rec, err := userToRecord(user)
-	if err != nil {
-		return nil, err
-	}
-
-	query := `UPDATE users SET email = $1, name = $2, bio = $3, password_hash = $4, updated_at = $5 
-	         WHERE id = $6
-	         RETURNING id, email, name, bio, password_hash, created_at, updated_at`
-
-	err = u.db.QueryRowContext(ctx, query, rec.Email, rec.Name, rec.Bio, rec.PasswordHash, rec.UpdatedAt, rec.ID).
 		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.PasswordHash, &rec.CreatedAt, &rec.UpdatedAt)
 
 	if err != nil {
@@ -107,7 +78,62 @@ func (u *UserRepositoryImpl) UpdateUser(ctx context.Context, user *domain.User) 
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return user, nil
+	return rec.toUser(), nil
+}
+
+// UpdateUserProfile implements [UserRepository].
+func (u *UserRepositoryImpl) UpdateUserProfile(ctx context.Context, user *domain.User) (*domain.User, error) {
+	rec, err := userToRecord(user)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `UPDATE users SET email = $1, name = $2, bio = $3, updated_at = $4
+	         WHERE id = $5
+	         RETURNING id, email, name, bio, created_at, updated_at`
+
+	err = u.db.QueryRowContext(ctx, query, rec.Email, rec.Name, rec.Bio, rec.UpdatedAt, rec.ID).
+		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.CreatedAt, &rec.UpdatedAt)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return nil, fmt.Errorf("%w: referenced user not found", domain.ErrInvalidInput)
+			case "23505":
+				return nil, domain.ErrConflict
+			}
+		}
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	}
+
+	return rec.toUser(), nil
+}
+
+func (u *UserRepositoryImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {
+	rec, err := userToRecord(user)
+	if err != nil {
+		return nil, err
+	}
+	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3 RETURNING id, email, name, bio, created_at, updated_at`
+	err = u.db.QueryRowContext(ctx, query, rec.PasswordHash, rec.UpdatedAt, rec.ID).
+		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.CreatedAt, &rec.UpdatedAt)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23503":
+				return nil, fmt.Errorf("%w: referenced user not found", domain.ErrInvalidInput)
+			case "23505":
+				return nil, domain.ErrConflict
+			}
+		}
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	}
+
+	return rec.toUser(), nil
 }
 
 // DeleteUser implements [UserRepository].

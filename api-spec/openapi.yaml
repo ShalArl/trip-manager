@@ -574,6 +574,11 @@ components:
         email:
           type: string
           format: email
+        avatarUrl:
+          type: string
+          format: uri
+          readOnly: true
+
 
     PaginationMeta:
       description: >
@@ -672,6 +677,15 @@ components:
           type: string
           format: date-time
           readOnly: true
+        bio:
+          type: string
+          description: Optional user bio or profile description
+        avatarUrl:
+          type: string
+          format: uri
+          description: Optional URL to user's avatar image
+          readOnly: true
+
 
     UpdateUserRequest:
       type: object
@@ -682,6 +696,13 @@ components:
         email:
           type: string
           format: email
+        bio:
+          type: string
+          description: Optional user bio or profile description
+        avatarUrl:
+          type: string
+          format: uri
+          description: Optional URL to user's avatar image
 
     ChangePasswordRequest:
       type: object
@@ -703,7 +724,7 @@ components:
         - title
         - shortDescription
         - startDate
-        - destination
+        - endDate
       properties:
         title:
           type: string
@@ -720,9 +741,6 @@ components:
         endDate:
           type: string
           format: date
-        destination:
-          type: string
-          minLength: 1
 
     UpdateTripRequest:
       type: object
@@ -754,7 +772,8 @@ components:
             - title
             - shortDescription
             - startDate
-            - destination
+            - endDate
+            - status
           properties:
             title:
               type: string
@@ -768,8 +787,6 @@ components:
             endDate:
               type: string
               format: date
-            destination:
-              type: string
             status:
               type: string
               enum: [planned, ongoing, completed, cancelled]

@@ -18,6 +18,5 @@ type Trip struct {
 	Description      string
 	StartDate        time.Time
 	EndDate          time.Time
-	Destination      string
 	Status           TripStatus
 }

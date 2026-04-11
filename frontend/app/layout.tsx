@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
+import React from "react";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body
         className="min-h-full flex flex-col"
         style={{ fontFamily: "var(--font-roboto), sans-serif" }}
+        suppressHydrationWarning
       >
         {children}
       </body>

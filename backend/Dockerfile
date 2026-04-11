@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -7,14 +7,20 @@ WORKDIR /app
 RUN apk add --no-cache nodejs npm
 RUN npm install -g pnpm@9.0.0
 
-# Copy monorepo files
-COPY . .
+# Copy only necessary monorepo files
+COPY package.json pnpm-lock.yaml ./
+COPY api-spec ./api-spec
+COPY backend ./backend
+COPY oapi-codegen.yaml ./
 
 # Install oapi-codegen (Go tool for code generation)
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.6.0
+
+
+RUN pnpm install
 
 # Generate Go code from OpenAPI spec
-RUN pnpm gen:go
+RUN mkdir -p ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen --config=oapi-codegen.yaml ./api-spec/openapi.yaml
 
 # Build Go application
 WORKDIR /app/backend

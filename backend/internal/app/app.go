@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -28,7 +29,10 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	// Run migrations automatically
-	if err := database.RunMigrations(db); err != nil {
+	if err := database.RunEmbeddedMigrations(db); err != nil {
+		if errors.Is(err, db.Close()) {
+			return nil, fmt.Errorf("failed to run migrations - FATAL could not close DB connection: %w", err)
+		}
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -40,6 +44,12 @@ func New(cfg *config.Config) (*App, error) {
 		Logger: logger,
 		Config: cfg,
 	})
+	if svcs == nil {
+		if errors.Is(err, db.Close()) {
+			return nil, fmt.Errorf("failed to create service container - FATAL could not close DB connection: %w", err)
+		} // Ensure DB is closed if service container creation fails
+		return nil, fmt.Errorf("failed to create service container")
+	}
 
 	app := &App{
 		DB:       db,

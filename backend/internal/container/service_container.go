@@ -8,6 +8,7 @@ import (
 	"github.com/ShalArl/trip-manager/internal/config"
 	"github.com/ShalArl/trip-manager/internal/repository"
 	"github.com/ShalArl/trip-manager/internal/service"
+	"github.com/ShalArl/trip-manager/internal/storage"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -31,6 +32,9 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	var userRepo repository.UserRepository
 	var activityRepo repository.ActivityRepository
 
+	// Storage for GCS operations
+	var s *storage.Storage
+
 	// Initialize repositories with the database connection
 	tripRepo = repository.NewTripRepository(cfg.DB)
 	locationRepo = repository.NewLocationRepository(cfg.DB)
@@ -40,14 +44,14 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
 	locationService := service.NewLocationService(locationRepo)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, s)
 	activityService := service.NewActivityService(activityRepo)
 
 	// Initialize auth manager (7 day token expiration)
 	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)
 
 	// Initialize auth service
-	authService := service.NewAuthService(userRepo, authManager, userService)
+	authService := service.NewAuthService(authManager, userService)
 
 	return &ServiceContainer{
 		Trip:     tripService,

@@ -11,7 +11,6 @@ type Props = {
 
 export default function TripForm({ onCreateTripAction }: Props) {
     const [title, setTitle] = useState("");
-    const [destination, setDestination] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [shortDescription, setShortDescription] = useState("");
@@ -23,12 +22,12 @@ export default function TripForm({ onCreateTripAction }: Props) {
         e.preventDefault();
         setError("");
 
-        if (!title.trim() || !destination.trim() || !startDate.trim() || !shortDescription.trim() || !longDescription.trim()) {
+        if (!title.trim() || !startDate.trim() || !shortDescription.trim() || !longDescription.trim()) {
             setError("Bitte alle Felder ausfüllen.");
             return;
         }
 
-        onCreateTripAction({ title, destination, startDate, endDate, shortDescription, description: longDescription });
+        onCreateTripAction({ title, startDate, endDate, shortDescription, description: longDescription });
     }
 
     return (
@@ -51,19 +50,6 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Familienreise nach Norwegen"
-                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Reiseziel
-                    </label>
-                    <input
-                        type="text"
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
-                        placeholder="Norwegen"
                         className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
                     />
                 </div>
