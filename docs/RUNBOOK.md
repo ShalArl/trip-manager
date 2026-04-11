@@ -22,10 +22,10 @@ The Trip Manager application is currently deployed on the following infrastructu
 
 The deployment uses **Docker Compose** for containerization. This means:
 
-✅ **Distribution Independent** - Can run on any Linux distribution, can also run on Windows and MacOS (with small modifications depending on processor architecture) that supports Docker
-✅ **Reproducible** - Same containers run identically across different servers
-✅ **Portable** - Easy to migrate to different hosting providers (AWS, DigitalOcean, etc.)
-✅ **Scalable** - Can upgrade server specs without changing deployment process
+- ✅ **Distribution Independent** - Can run on any Linux distribution, can also run on Windows and MacOS (with small modifications depending on processor architecture) that supports Docker
+- ✅ **Reproducible** - Same containers run identically across different servers
+- ✅ **Portable** - Easy to migrate to different hosting providers (AWS, DigitalOcean, etc.)
+- ✅ **Scalable** - Can upgrade server specs without changing deployment process
 
 ### Why Docker Compose?
 
@@ -46,8 +46,6 @@ Both methods perform identical steps, ensuring consistent deployments regardless
 
 ---
 
-
-1. [Example Deployment]
 1. [SSH Key Setup](#ssh-key-setup)
 2. [Server Setup](#server-setup)
 3. [GitHub Secrets Configuration](#github-secrets-configuration)
