@@ -79,6 +79,26 @@ CREATE INDEX IF NOT EXISTS idx_activities_trip_id ON activities(trip_id);
 CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id);
 CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
 
+-- transports table (belongs to trip)
+CREATE TABLE IF NOT EXISTS transports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trip_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    from_location_id UUID NOT NULL,
+    to_location_id UUID NOT NULL,
+    date DATE NOT NULL,
+    type VARCHAR(50) CHECK (type IN ('flight', 'train', 'car', 'bus')),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (from_location_id) REFERENCES locations(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_location_id) REFERENCES locations(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_transports_trip_id ON transports(trip_id);
+CREATE INDEX IF NOT EXISTS idx_transports_user_id ON transports(user_id);
+
 -- ============================================================================
 -- Summary
 -- ============================================================================
