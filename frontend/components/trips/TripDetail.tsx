@@ -4,6 +4,7 @@ import { components } from "@/generated/types";
 import AddLocationModal from "./modals/AddLocationModal";
 import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
+import AddTransportModal from "./modals/AddTransportModal";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -15,8 +16,15 @@ type Props = {
 export default function TripDetail({ trip, isEditable = false }: Props) {
     const [isEditingTrip, setIsEditingTrip] = useState(false);
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+
     const [showAddLocationModal, setShowAddLocationModal] = useState(false);
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+
+    const [showAddTransportModal, setShowAddTransportModal] = useState(false);
+    const [showAddAccommodationModal, setShowAddAccommodationModal] = useState(false);
+
+    const [transports, setTransports] = useState<any[]>([]);
+    const [accommodations, setAccommodations] = useState([]);
 
     // TODO: Mock locations and activities - replace with API calls
     const [locations, setLocations] = useState([
@@ -76,6 +84,14 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
         };
         setActivities([...activities, activity]);
     };
+
+    const handleAddTransport = (newTransport: any) => {
+        const transport = {
+            id: `transport-${Date.now()}`,
+            ...newTransport,
+        };
+        setTransports([...transports, transport])
+    }
 
     const handleEditTrip = (updatedTrip: any) => {
         // TODO: Call API to update trip
@@ -174,11 +190,10 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                                 selectedLocationId === location.id ? null : location.id
                                             )
                                         }
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
-                                            selectedLocationId === location.id
-                                                ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
-                                                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
-                                        }`}
+                                        className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${selectedLocationId === location.id
+                                            ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
+                                            : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                            }`}
                                     >
                                         <p className="font-medium text-zinc-900 dark:text-white">
                                             {location.name}
@@ -187,6 +202,37 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                             {location.city}, {location.country}
                                         </p>
                                     </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    {/* Travel Plan */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                Travel Plan
+                            </h2>
+                            {isEditable && (
+                                <button
+                                    onClick={() => setShowAddTransportModal(true)}
+                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                                >
+                                    + Transport
+                                </button>
+                            )}
+                        </div>
+                        {/* Liste der Einträge */}
+                        {transports.length === 0 ? (
+                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">
+                                Kein Transport hinzugefügt
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {transports.map((t: any) => (
+                                    <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                        <p className="font-medium text-zinc-900 dark:text-white">{t.from} → {t.to}</p>
+                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.type} · {t.date}</p>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -260,6 +306,11 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                 trip={trip}
                 onClose={() => setIsEditingTrip(false)}
                 onSave={handleEditTrip}
+            />
+            <AddTransportModal
+                isOpen={showAddTransportModal}
+                onCloseAction={() => setShowAddTransportModal(false)}
+                onAddAction={handleAddTransport}
             />
         </div>
     );
