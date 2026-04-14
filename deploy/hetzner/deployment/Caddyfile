@@ -20,8 +20,7 @@ $DOMAIN {
     handle /minio/* {
         uri strip_prefix /minio
         reverse_proxy minio:9000 {
-            # Preserve original request headers for S3-compatible presigned URLs
-            header_up Host {host}
+            header_up Host minio:9000
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-For {remote}
         }
