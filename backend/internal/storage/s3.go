@@ -142,9 +142,8 @@ func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error)
 	return fileURL, nil
 }
 
-// PresignURL generates a presigned URL for direct file upload to S3/MinIO
+// GeneratePresignedURL generates a presigned URL for direct file upload to S3/MinIO
 // This allows clients to upload files directly without going through the backend
-// IMPORTANT: Returns URL with publicURL (for browser access), not internal endpoint
 func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
 	req := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
@@ -158,25 +157,10 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
-	// CRITICAL FIX: Replace the internal endpoint with public URL
-	// The presigned URL from AWS SDK uses the internal endpoint (e.g., http://minio:9000)
-	// But for browser access (especially with HTTPS), we need to use the public URL
-	// Example:
-	//   - Internal (from SDK): http://minio:9000/bucket/file?X-Amz-Algorithm=...
-	//   - Public (what we need): https://yourdomain.com/minio/bucket/file?X-Amz-Algorithm=...
-
 	presignedURL := result.URL
 
-	// If endpoint is set (MinIO) and differs from publicURL, replace it
 	if s.publicURL != "" {
-		// The presigned URL format is: {endpoint}/{bucket}/{key}?{query}
-		// We need to replace the endpoint with publicURL
-		// Extract just the query string from the presigned URL
 		urlStr := presignedURL
-
-		// Find the position of the bucket in the URL
-		// Format: http://minio:9000/bucket/key?query
-		// We want: https://domain.com/minio/bucket/key?query
 
 		// Simple approach: rebuild the URL with publicURL
 		fileURL := fmt.Sprintf("%s/%s?%s",
@@ -204,4 +188,3 @@ func extractQueryString(url string) string {
 	}
 	return ""
 }
-
