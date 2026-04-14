@@ -138,7 +138,7 @@ func (s *S3Storage) ReadFile(ctx context.Context, fileName string) (io.ReadClose
 
 // GetUrl returns the public URL for a file
 func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error) {
-	fileURL := fmt.Sprintf("%s/%s", s.publicURL, fileName)
+	fileURL := fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucket, fileName)
 	return fileURL, nil
 }
 
@@ -165,9 +165,10 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		// Example:
 		//   Internal: http://minio:9000/trip-manager/avatars/file.jpg?sig
 		//   Public:   https://domain.com/minio/trip-manager/avatars/file.jpg?sig
-		// Note: s.publicURL already includes the bucket name!
-		fileURL := fmt.Sprintf("%s/%s?%s",
-			s.publicURL, // https://travel-nugget.duckdns.org/minio/trip-manager (bucket name already included)
+		// Note: publicURL does NOT include bucket name, AWS SDK does
+		fileURL := fmt.Sprintf("%s/%s/%s?%s",
+			s.publicURL, // https://travel-nugget.duckdns.org/minio (NO bucket!)
+			s.bucket,    // trip-manager
 			fileName,    // avatars/a41cc4c9...
 			extractQueryString(urlStr)) // X-Amz-Algorithm=...
 
