@@ -11,45 +11,34 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// S3Storage implements Storage interface using AWS S3 or S3-compatible services (like MinIO)
 type S3Storage struct {
 	client    *s3.Client
+	presigner *s3.PresignClient
 	bucket    string
 	region    string
-	publicURL string // Base URL for public file access
+	publicURL string // Wichtig für GetUrl
 }
 
-// S3Config contains configuration for S3 storage
 type S3Config struct {
-	Bucket    string // S3 bucket name
-	Region    string // AWS region (e.g., "us-east-1")
-	Endpoint  string // S3 endpoint (optional, for MinIO or custom S3 services)
-	PublicURL string // Base URL for public file access (e.g., "https://s3.example.com" or "http://localhost:9000")
-	AccessKey string // AWS access key or MinIO access key
-	SecretKey string // AWS secret key or MinIO secret key
-	UseSSL    bool   // Use SSL for S3 connection
+	Bucket    string
+	Region    string
+	Endpoint  string // Intern: http://minio:9000
+	PublicURL string // Extern: https://travel-nugget.duckdns.org/minio
+	AccessKey string
+	SecretKey string
 }
 
-// NewS3Storage creates a new S3Storage instance
-// Works with AWS S3, MinIO, and other S3-compatible services
 func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 	if cfg.Bucket == "" {
 		return nil, fmt.Errorf("bucket name is required")
 	}
-
 	if cfg.Region == "" {
-		cfg.Region = "us-east-1" // Default region
+		cfg.Region = "us-east-1"
 	}
 
-	if cfg.PublicURL == "" {
-		cfg.PublicURL = fmt.Sprintf("https://s3.%s.amazonaws.com/%s", cfg.Region, cfg.Bucket)
-	}
-
-	// Build AWS config
 	var opts []func(*config.LoadOptions) error
 	if cfg.AccessKey != "" && cfg.SecretKey != "" {
 		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
@@ -63,98 +52,75 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	var client *s3.Client
+	// 1. Interner Client (für Server-Side Upload/Read)
+	internalClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(cfg.Endpoint)
+		o.UsePathStyle = true
+	})
 
-	// WICHTIG: Wir nutzen die PublicURL (https://travel-nugget.duckdns.org/minio)
-	// als BaseEndpoint für den Client, falls vorhanden.
-	// Das sorgt dafür, dass die Signatur für den externen Host erstellt wird.
-	if cfg.PublicURL != "" {
-		client = s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-			o.BaseEndpoint = aws.String(cfg.PublicURL)
-			o.UsePathStyle = true
-		})
-	} else if cfg.Endpoint != "" {
-		client = s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-			o.BaseEndpoint = aws.String(cfg.Endpoint)
-			o.UsePathStyle = true
-		})
-	} else {
-		client = s3.NewFromConfig(awsCfg)
-	}
+	// 2. Presign Client (für Browser-Upload-URLs)
+	// Nutzt die PublicURL, damit die Signatur für die Domain + /minio Pfad passt
+	presignClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(cfg.PublicURL)
+		o.UsePathStyle = true
+	})
 
 	return &S3Storage{
-		client:    client,
+		client:    internalClient,
+		presigner: s3.NewPresignClient(presignClient),
 		bucket:    cfg.Bucket,
 		region:    cfg.Region,
 		publicURL: cfg.PublicURL,
 	}, nil
 }
 
-// Upload saves a file to S3 and returns the public URL
 func (s *S3Storage) Upload(ctx context.Context, fileName string, file io.Reader) (string, error) {
+	log.Printf("Uploading file %s to internal endpoint", fileName)
 
-	log.Printf("Uploading file %s", fileName)
+	// manager.Uploader ist der Standard für S3 v2
 	uploader := transfermanager.New(s.client)
 
-	// Upload file with public-read ACL
-	// Note: For MinIO, ensure bucket policy is set to allow public read access
 	_, err := uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 		Body:   file,
-		ACL:    types.ObjectCannedACLPublicRead,
 	})
+
 	if err != nil {
-		log.Printf("Warning: Upload with ACL failed: %v. Retrying without ACL...", err)
-		// For MinIO: Try uploading without ACL - bucket policy should handle public access
-		_, err = uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(fileName),
-			Body:   file,
-		})
-		if err != nil {
-			return "", fmt.Errorf("failed to upload file to S3: %w", err)
-		}
+		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	// Return public URL
-	fileURL := fmt.Sprintf("%s/%s", s.publicURL, fileName)
-	log.Printf("File uploaded successfully: %s", fileURL)
-	return fileURL, nil
+	return s.GetUrl(ctx, fileName)
 }
 
-// ReadFile retrieves a file from S3
 func (s *S3Storage) ReadFile(ctx context.Context, fileName string) (io.ReadCloser, error) {
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file from S3: %w", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
-
 	return result.Body, nil
 }
 
-// GetUrl returns the public URL for a file
 func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error) {
-	fileURL := fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucket, fileName)
-	return fileURL, nil
+	// Resultat: https://travel-nugget.duckdns.org/minio/trip-manager/avatars/file.png
+	return fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucket, fileName), nil
 }
 
-// GeneratePresignedURL generates a presigned URL for direct file upload to S3/MinIO
-// This allows clients to upload files directly without going through the backend
 func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
 	req := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 	}
 
-	presigner := s3.NewPresignClient(s.client)
-	result, err := presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
+	// Hier passiert die Magie: Die Signatur wird jetzt für den Endpoint in PublicURL erstellt
+	result, err := s.presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
 	if err != nil {
 		return "", err
 	}
 
+	log.Printf("Presigned URL ready for browser: %s", result.URL)
 	return result.URL, nil
 }
