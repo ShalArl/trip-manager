@@ -1,6 +1,7 @@
 import {getAuthHeaders} from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const S3_PUBLIC_URL = process.env.NEXT_PUBLIC_S3_PUBLIC_URL || "http://localhost/minio";
 
 /**
  * Get a presigned URL for direct file upload to S3/MinIO
@@ -75,10 +76,10 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
   console.log("[uploadAvatar] Uploading to S3/MinIO...");
   await uploadToPresignedUrl(presignedUrl, file);
 
-  // Generate the public URL (same path as presigned URL but without query params)
-  // The backend generates the path as: avatars/{userId}.{extension}
-  const ext = file.name.substring(file.name.lastIndexOf("."));
-  const publicUrl = `${process.env.NEXT_PUBLIC_S3_PUBLIC_URL || "http://localhost:9000/trip-manager"}/avatars/${userId}${ext}`;
+   // Generate the public URL (same path as presigned URL but without query params)
+   // The backend generates the path as: avatars/{userId}.{extension}
+   const ext = file.name.substring(file.name.lastIndexOf("."));
+   const publicUrl = `${S3_PUBLIC_URL}/avatars/${userId}${ext}`;
 
   console.log("[uploadAvatar] Avatar uploaded successfully:", publicUrl);
   return publicUrl;
