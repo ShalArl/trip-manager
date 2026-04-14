@@ -165,9 +165,9 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		// Example:
 		//   Internal: http://minio:9000/trip-manager/avatars/file.jpg?sig
 		//   Public:   https://domain.com/minio/trip-manager/avatars/file.jpg?sig
-		fileURL := fmt.Sprintf("%s/%s/%s?%s",
-			s.publicURL, // https://travel-nugget.duckdns.org/minio
-			s.bucket,    // trip-manager
+		// Note: s.publicURL already includes the bucket name!
+		fileURL := fmt.Sprintf("%s/%s?%s",
+			s.publicURL, // https://travel-nugget.duckdns.org/minio/trip-manager (bucket name already included)
 			fileName,    // avatars/a41cc4c9...
 			extractQueryString(urlStr)) // X-Amz-Algorithm=...
 
