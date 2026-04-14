@@ -162,11 +162,16 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 	if s.publicURL != "" {
 		urlStr := presignedURL
 
-		// Simple approach: rebuild the URL with publicURL
-		fileURL := fmt.Sprintf("%s/%s?%s",
-			s.publicURL,
-			fileName,
-			extractQueryString(urlStr))
+		// Rebuild the URL with publicURL
+		// Important: Include bucket name in the path!
+		// Example:
+		//   Internal: http://minio:9000/trip-manager/avatars/file.jpg?sig
+		//   Public:   https://domain.com/minio/trip-manager/avatars/file.jpg?sig
+		fileURL := fmt.Sprintf("%s/%s/%s?%s",
+			s.publicURL,                    // https://travel-nugget.duckdns.org/minio
+			s.bucket,                       // trip-manager
+			fileName,                       // avatars/a41cc4c9...
+			extractQueryString(urlStr))     // X-Amz-Algorithm=...
 
 		log.Printf("Presigned URL converted from internal endpoint to public URL")
 		log.Printf("  Internal: %s", presignedURL[:100]) // Log first 100 chars to avoid leaking full signature
