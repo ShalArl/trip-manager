@@ -89,6 +89,5 @@ func setupLocalStorage(cfg *config.Config) (storage.Storage, error) {
 		AccessKey: cfg.S3AccessKey,
 		SecretKey: cfg.S3SecretKey,
 		PublicURL: cfg.S3PublicURL,
-		UseSSL:    cfg.S3UseSSL,
 	})
 }
