@@ -10,6 +10,7 @@ BUCKET_NAME="${S3_BUCKET:-trip-manager}"
 MINIO_ENDPOINT="${S3_ENDPOINT:-http://minio:9000}"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
+DOMAIN="${DOMAIN:-localhost}"
 
 echo "🔍 MinIO Initialization Debug:"
 echo "  Endpoint: $MINIO_ENDPOINT"
@@ -43,13 +44,15 @@ echo "Setting bucket policy to public read..."
 # Configure CORS for presigned URL uploads
 # Allows browser-based direct uploads to MinIO via presigned URLs
 echo "Configuring CORS for presigned URLs..."
-cat > /tmp/cors.json << 'EOF'
+cat > /tmp/cors.json << EOF
 [
   {
     "AllowedOrigins": [
       "http://localhost:3000",
       "http://localhost",
-      "http://127.0.0.1:3000"
+      "http://127.0.0.1:3000",
+      "https://${DOMAIN}",
+      "https://www.${DOMAIN}"
     ],
     "AllowedMethods": [
       "GET",
@@ -72,27 +75,13 @@ cat > /tmp/cors.json << 'EOF'
 EOF
 
 # Apply CORS configuration
-/usr/bin/mc cors set local/$BUCKET_NAME /tmp/cors.json || true
-
-# For production deployments, add domain-based CORS
-# Uncomment and customize for your production domain:
-# cat > /tmp/cors-prod.json << 'EOF'
-# [
-#   {
-#     "AllowedOrigins": [
-#       "https://yourdomain.com"
-#     ],
-#     "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
-#     "AllowedHeaders": ["*"],
-#     "ExposeHeaders": ["ETag", "x-amz-version-id"],
-#     "MaxAgeSeconds": 3000
-#   }
-# ]
-# EOF
-# /usr/bin/mc cors set local/$BUCKET_NAME /tmp/cors-prod.json
+if /usr/bin/mc cors set local/$BUCKET_NAME /tmp/cors.json; then
+    echo "✓ CORS: Configured for https://${DOMAIN} and localhost"
+else
+    echo "⚠️  CORS configuration failed – presigned URL uploads from browsers may not work"
+fi
 
 echo "✓ MinIO initialization complete!"
 echo "✓ Bucket: $BUCKET_NAME"
 echo "✓ Policy: Public read enabled"
-echo "✓ CORS: Configured for presigned URLs"
 
