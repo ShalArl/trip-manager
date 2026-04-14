@@ -170,6 +170,12 @@ jobs:
       - name: Add server to known hosts
         run: ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Create remote directories
+        run: |
+          ssh -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "mkdir -p /home/${{ secrets.SERVER_USER }}/app/cloud/{docker,logs}"
+
       - name: Copy deploy files to server
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
