@@ -29,7 +29,7 @@ export async function getTrips(): Promise<TripResponse[]> {
   const token = localStorage.getItem("token");
   console.log("Token vorhanden:", !!token);
   console.log("API_URL:", API_URL);
-  
+
   const response = await fetch(`${API_URL}/api/trips`, {
     method: "GET",
     headers: {
@@ -52,7 +52,7 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
   const token = localStorage.getItem("token");
   console.log("Token vorhanden:", !!token);
   console.log("API_URL:", API_URL);
-  
+
   const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
     method: "GET",
     headers: {
