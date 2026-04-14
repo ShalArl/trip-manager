@@ -144,6 +144,7 @@ func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error)
 
 // PresignURL generates a presigned URL for direct file upload to S3/MinIO
 // This allows clients to upload files directly without going through the backend
+// IMPORTANT: Returns URL with publicURL (for browser access), not internal endpoint
 func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
 	req := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
@@ -157,6 +158,50 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
-	return result.URL, nil
+	// CRITICAL FIX: Replace the internal endpoint with public URL
+	// The presigned URL from AWS SDK uses the internal endpoint (e.g., http://minio:9000)
+	// But for browser access (especially with HTTPS), we need to use the public URL
+	// Example:
+	//   - Internal (from SDK): http://minio:9000/bucket/file?X-Amz-Algorithm=...
+	//   - Public (what we need): https://yourdomain.com/minio/bucket/file?X-Amz-Algorithm=...
+
+	presignedURL := result.URL
+
+	// If endpoint is set (MinIO) and differs from publicURL, replace it
+	if s.publicURL != "" {
+		// The presigned URL format is: {endpoint}/{bucket}/{key}?{query}
+		// We need to replace the endpoint with publicURL
+		// Extract just the query string from the presigned URL
+		urlStr := presignedURL
+
+		// Find the position of the bucket in the URL
+		// Format: http://minio:9000/bucket/key?query
+		// We want: https://domain.com/minio/bucket/key?query
+
+		// Simple approach: rebuild the URL with publicURL
+		fileURL := fmt.Sprintf("%s/%s?%s",
+			s.publicURL,
+			fileName,
+			extractQueryString(urlStr))
+
+		log.Printf("Presigned URL converted from internal endpoint to public URL")
+		log.Printf("  Internal: %s", presignedURL[:100]) // Log first 100 chars to avoid leaking full signature
+		log.Printf("  Public: %s", fileURL[:100])
+
+		return fileURL, nil
+	}
+
+	return presignedURL, nil
+}
+
+// extractQueryString extracts the query string part from a presigned URL
+// Example: "http://minio:9000/bucket/file?X-Amz-Algorithm=..." -> "X-Amz-Algorithm=..."
+func extractQueryString(url string) string {
+	for i := len(url) - 1; i >= 0; i-- {
+		if url[i] == '?' {
+			return url[i+1:]
+		}
+	}
+	return ""
 }
 
