@@ -75,10 +75,13 @@ cat > /tmp/cors.json << EOF
 EOF
 
 # Apply CORS configuration
-/usr/bin/mc cors set local/$BUCKET_NAME /tmp/cors.json || true
+if /usr/bin/mc cors set local/$BUCKET_NAME /tmp/cors.json; then
+    echo "✓ CORS: Configured for https://${DOMAIN} and localhost"
+else
+    echo "⚠️  CORS configuration failed – presigned URL uploads from browsers may not work"
+fi
 
 echo "✓ MinIO initialization complete!"
 echo "✓ Bucket: $BUCKET_NAME"
 echo "✓ Policy: Public read enabled"
-echo "✓ CORS: Configured for https://${DOMAIN} and localhost"
 
