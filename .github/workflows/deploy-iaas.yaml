@@ -202,19 +202,26 @@ jobs:
              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
              "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
 
-      - name: Generate .env.example file
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
-          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
-          GHCR_PAT=${{ secrets.GHCR_PAT }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          DOMAIN=${{ secrets.DOMAIN }}
-          EOF
+       - name: Generate .env.example file
+         run: |
+           ssh -p ${{ secrets.SERVER_PORT }} \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+             tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
+           GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
+           GHCR_PAT=${{ secrets.GHCR_PAT }}
+           DB_USER=${{ secrets.DB_USER }}
+           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+           DB_NAME=${{ secrets.DB_NAME }}
+           JWT_SECRET=${{ secrets.JWT_SECRET }}
+           DOMAIN=${{ secrets.DOMAIN }}
+           S3_ENDPOINT=${{ secrets.S3_ENDPOINT || 'http://minio:9000' }}
+           S3_BUCKET=${{ secrets.S3_BUCKET || 'trip-manager' }}
+           S3_REGION=${{ secrets.S3_REGION || 'us-east-1' }}
+           S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY || 'minioadmin' }}
+           S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY || 'minioadmin' }}
+           S3_PUBLIC_URL=${{ secrets.S3_PUBLIC_URL || 'https://{DOMAIN}/minio' }}
+           S3_USE_SSL=${{ secrets.S3_USE_SSL || 'false' }}
+           EOF
 
       - name: Execute deploy script on server
         run: |

@@ -20,6 +20,15 @@ log() {
 
 log "📋 Deployment started"
 
+# Process .env file with envsubst to replace variables like {DOMAIN}
+if [ -f "$PROJECT_DIR/.env" ]; then
+    log "🔄 Processing .env file with environment variables..."
+    # Create a temporary .env.processed file
+    envsubst < "$PROJECT_DIR/.env" > "$PROJECT_DIR/.env.processed"
+    mv "$PROJECT_DIR/.env.processed" "$PROJECT_DIR/.env"
+    log "✅ .env file processed successfully"
+fi
+
 # Load environment variables from .env file
 if [ -f "$PROJECT_DIR/.env" ]; then
     log "📂 Loading environment variables from .env..."
