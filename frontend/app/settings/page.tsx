@@ -2,61 +2,20 @@
 
 import ProfileSettings from "@/components/settings/ProfileSettings";
 import PasswordSettings from "@/components/settings/PasswordSettings";
-import { useEffect, useState } from "react";
-import { UserResponse } from "@/types/user";
-import { getMe } from "@/lib/api/auth";
+import { useState } from "react";
+import { useUserContext } from "@/lib/context/UserContext";
 import { User, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useUserContext();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const userData = await getMe();
-      setUser(userData);
-    } catch (err) {
-      setError("Fehler beim Laden der Benutzerinformationen");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 w-48 bg-zinc-300 dark:bg-zinc-700 rounded-lg" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="h-40 bg-zinc-300 dark:bg-zinc-700 rounded-xl" />
-              <div className="md:col-span-3 h-96 bg-zinc-300 dark:bg-zinc-700 rounded-xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-6">
-            <p className="text-sm font-medium text-red-800 dark:text-red-200">
-              {error || "Fehler beim Laden der Einstellungen"}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+  // Redirect to home if not logged in
+  if (!user) {
+    router.push("/");
+    return null;
   }
 
   return (
@@ -104,11 +63,11 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Content */}
-          <div className="md:col-span-3">
-            {activeTab === "profile" && user && <ProfileSettings user={user} />}
-            {activeTab === "password" && <PasswordSettings />}
-          </div>
+           {/* Content */}
+           <div className="md:col-span-3">
+             {activeTab === "profile" && <ProfileSettings user={user} />}
+             {activeTab === "password" && <PasswordSettings />}
+           </div>
         </div>
       </div>
     </div>

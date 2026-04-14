@@ -17,25 +17,34 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const passwordValidation = validatePassword(password);
 
-  function handleSubmit(e: React.SyntheticEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     if (!name.trim() || !email.trim()) {
       setError("Bitte alle Felder ausfüllen.");
+      setIsLoading(false);
       return;
     }
 
     if (!passwordValidation.isValid) {
       setError(passwordValidation.errors[0] || "Passwort erfüllt nicht alle Anforderungen.");
+      setIsLoading(false);
       return;
     }
 
-    // Registrieren
-    onRegisterAction({ name, email, password });
+    try {
+      // Registrieren
+      await onRegisterAction({ name, email, password });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registrierung fehlgeschlagen. Bitte versuche es erneut.");
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -181,10 +190,17 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
 
         <button
           type="submit"
-          disabled={!name.trim() || !email.trim() || !passwordValidation.isValid}
-          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-600 text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2"
+          disabled={!name.trim() || !email.trim() || !passwordValidation.isValid || isLoading}
+          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-600 text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2 flex items-center justify-center"
         >
-          Konto erstellen
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Wird erstellt...
+            </div>
+          ) : (
+            "Konto erstellen"
+          )}
         </button>
       </form>
 

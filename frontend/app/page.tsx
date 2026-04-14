@@ -1,20 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-import { User } from "@/types/user";
-import { Trip } from "@/types/trip";
 import { getTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
-
-//import { mockTrips } from "@/lib/mock-trips";
 import { register, login } from "@/lib/api/auth";
-
+import { useUserContext } from "@/lib/context/UserContext";
 import AuthPage from "@/components/auth/AuthPage";
 import Navbar from "@/components/global/Navbar";
 import Hero from "@/components/home/Hero";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
+import { useQueryClient } from "@tanstack/react-query";
 
 type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 type LoginRequest = components["schemas"]["LoginRequest"];
@@ -24,13 +20,10 @@ type TripResponse = components["schemas"]["TripResponse"];
 
 export default function Home() {
   
-  const [user, setUser] = useState<User | null>(null);
-  useEffect(() => {
-    const saved = localStorage.getItem("user");
-    if (saved) setUser(JSON.parse(saved));
-  }, []);
-
+  const { user, isLoading, updateUser } = useUserContext();
   const [trips, setTrips] = useState<TripResponse[]>([]);
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (user) {
       getTrips().then(setTrips).catch(console.error);
@@ -38,36 +31,44 @@ export default function Home() {
   }, [user]);
 
   const handleRegister = async (createUserRequest: CreateUserRequest) => {
-    const response: AuthResponse = await register(createUserRequest)
-    console.log(response)
-    // Store token FIRST, then user - this ensures token is available when useEffect runs
-    localStorage.setItem("token", response.token);
-    localStorage.setItem("user", JSON.stringify({ 
-      id: response.user.id,
-      name: response.user.name, 
-      email: response.user.email 
-    }));
-    setUser({ name: response.user.name, email: response.user.email });
+    try {
+      const response: AuthResponse = await register(createUserRequest)
+      // Store token
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("userId", response.user.id);
+      // Update user context
+      updateUser(response.user);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
+    }
   }
 
   const handleLogin = async (loginRequest: LoginRequest) => {
-    const response = await login(loginRequest);
-    console.log(response)
-    // Store token FIRST, then user - this ensures token is available when useEffect runs
-    localStorage.setItem("token", response.token);
-    localStorage.setItem("user", JSON.stringify({ 
-      id: response.user.id,
-      name: response.user.name, 
-      email: response.user.email 
-    }));
-    console.log("Token: " + response.token);
-    setUser({ name: response.user.name, email: response.user.email });
+    try {
+      const response = await login(loginRequest);
+      // Store token
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("userId", response.user.id);
+      // Update user context
+      updateUser(response.user);
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
   }
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
     localStorage.removeItem("user");
-    setUser(null);
+    updateUser(null);
   };
+
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   if (!user) {
     return <AuthPage onLoginAction={handleLogin} onRegisterAction={handleRegister} />;

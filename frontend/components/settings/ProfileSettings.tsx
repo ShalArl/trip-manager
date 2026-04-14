@@ -1,12 +1,15 @@
 "use client";
 
 import {useRef, useState} from "react";
-import {UserResponse} from "@/types/user";
+import {UserResponse, UpdateUserRequest} from "@/types/user";
+import {updateMe} from "@/lib/api/auth";
+import {uploadAvatar} from "@/lib/api/uploads";
+import {useUserContext} from "@/lib/context/UserContext";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {updateMe} from "@/lib/api/auth";
-import {AlertCircle, CheckCircle, ImagePlus, Mail, Trash2, User as UserIcon} from "lucide-react";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import {AlertCircle, CheckCircle, ImagePlus, Mail, Trash2} from "lucide-react";
 
 type ProfileSettingsProps = {
     user: UserResponse;
@@ -16,12 +19,14 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
     const [name, setName] = useState(user.name);
     const [email, setEmail] = useState(user.email);
     const [bio, setBio] = useState(user.bio || "");
-    const [avatarPreview, setAvatarPreview] = useState<string>(user.avatarUrl || "");
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatarUrl || null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const { updateUser: updateUserContext } = useUserContext();
 
     const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -50,7 +55,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
 
     const handleRemoveAvatar = () => {
         setAvatarFile(null);
-        setAvatarPreview("");
+        setAvatarPreview(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -58,47 +63,38 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError(null);
         setSuccess(false);
+        setLoading(true);
 
         try {
-            // Prepare data
-            const updateData = {
-                name,
-                email,
-                bio,
-            };
+            let avatarUrl: string | undefined = avatarPreview || undefined;
 
-            // If avatar file was selected, use multipart form data
+            // If avatar file was selected, upload it directly to S3/MinIO using presigned URL
             if (avatarFile) {
-                const formData = new FormData();
-                formData.append("file", avatarFile);
-                formData.append("data", JSON.stringify(updateData));
-
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": `Bearer ${localStorage.getItem("token")}`,
-                    },
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || "Failed to update profile");
-                }
-
-                const data = await response.json();
-                setSuccess(true);
-                setAvatarFile(null);
-            } else {
-                // No file, use JSON
-                const updatedUser = await updateMe(updateData as any);
-                setSuccess(true);
+                console.log("[ProfileSettings] Starting presigned avatar upload...");
+                const userId = user.id;
+                avatarUrl = await uploadAvatar(avatarFile, userId);
+                console.log("[ProfileSettings] Avatar uploaded successfully:", avatarUrl);
                 setAvatarFile(null);
             }
 
+            // Prepare data for profile update (no file, just metadata + avatar URL)
+            const updateData: UpdateUserRequest = {
+                name,
+                email,
+                bio,
+                ...(avatarUrl && { avatarUrl }),
+            };
+
+            console.log("[ProfileSettings] Updating user profile...");
+            const data = await updateMe(updateData);
+            console.log("[ProfileSettings] Profile updated:", data);
+
+            // Update user context - broadcasts to all components using UserContext
+            updateUserContext(data);
+            setSuccess(true);
+            setAvatarPreview(data.avatarUrl || null);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err) {
             setError(
@@ -113,6 +109,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
         name !== user.name ||
         email !== user.email ||
         bio !== (user.bio || "") ||
+        avatarPreview !== (user.avatarUrl || null) ||
         avatarFile !== null;
 
     return (
@@ -148,20 +145,14 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                     </Label>
 
                     <div className="flex items-center gap-6">
-                        {/* Avatar Preview */}
+                        {/* Avatar Preview - Same as Navbar */}
                         <div className="flex-shrink-0">
-                            <div
-                                className="relative h-32 w-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center border-4 border-zinc-200 dark:border-zinc-800">
-                                {avatarPreview ? (
-                                    <img
-                                        src={avatarPreview}
-                                        alt="Avatar Vorschau"
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <UserIcon className="h-16 w-16 text-white"/>
-                                )}
-                            </div>
+                            <Avatar className="h-32 w-32 border-4 border-zinc-200 dark:border-zinc-800">
+                                {avatarPreview && <AvatarImage src={avatarPreview} alt={name}/>}
+                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white text-lg font-semibold">
+                                    {name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
                         </div>
 
                         {/* Upload Controls */}
@@ -206,7 +197,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 <div className="space-y-3">
                     <Label htmlFor="name"
                            className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                        <UserIcon className="h-4 w-4"/>
+                        📝
                         Name
                     </Label>
                     <Input

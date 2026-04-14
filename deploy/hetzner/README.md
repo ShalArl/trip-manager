@@ -111,10 +111,12 @@ This is more reliable than passing parameters, especially if your SSH key is not
 1. **Validates environment** - Checks for .env file and required variables
 2. **Creates remote directory** - Creates `/home/$USERNAME/app/cloud` on server
 3. **Copies deploy files** - Transfers `deploy.sh` and `docker-compose.yaml`
-4. **Generates Caddyfile** - Substitutes environment variables in Caddyfile
-5. **Creates .env on server** - Generates environment file for Docker Compose
-6. **Executes deployment** - Runs the deploy script on remote server
-7. **Verifies deployment** - Checks Docker Compose status
+4. **Copies docker directory** - Copies `docker/` with initialization scripts (e.g., `minio-init.sh`)
+5. **Makes scripts executable** - Ensures all `.sh` files have execute permissions
+6. **Generates Caddyfile** - Substitutes environment variables in Caddyfile
+7. **Creates .env on server** - Generates environment file for Docker Compose
+8. **Executes deployment** - Runs the deploy script on remote server
+9. **Verifies deployment** - Checks Docker Compose status
 
 ## Troubleshooting
 
@@ -202,6 +204,17 @@ DB_NAME=trip_manager
 JWT_SECRET=your-jwt-secret-key
 DOMAIN=yourdomain.com
 ```
+
+## Docker Directory
+
+The `docker/` directory is automatically copied to the server and contains:
+
+- **`minio-init.sh`** - Initializes MinIO S3 storage
+  - Creates bucket (from `S3_BUCKET` env var)
+  - Sets public read permissions
+  - Configures MinIO client
+
+This script runs automatically when `docker-compose up` is executed on the server via the `minio-init` service.
 
 ## Testing Deployment
 

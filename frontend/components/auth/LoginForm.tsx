@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { components } from "@/generated/types";
 
 type LoginRequest = components["schemas"]["LoginRequest"];
@@ -14,18 +14,26 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     if (!email.trim() || !password.trim()) {
       setError("Bitte alle Felder ausfüllen.");
+      setIsLoading(false);
       return;
     }
 
-    // Kein Passwort, keine Überprüfung — einfach einloggen
-    onLoginAction({ email, password });
+    try {
+      // Kein Passwort, keine Überprüfung — einfach einloggen
+      onLoginAction({ email, password });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login fehlgeschlagen. Bitte versuche es erneut.");
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -71,9 +79,17 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
 
         <button
           type="submit"
-          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2"
+          disabled={!email.trim() || !password.trim() || isLoading}
+          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-600 text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2 flex items-center justify-center"
         >
-          Anmelden
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Wird angemeldet...
+            </div>
+          ) : (
+            "Anmelden"
+          )}
         </button>
       </form>
 

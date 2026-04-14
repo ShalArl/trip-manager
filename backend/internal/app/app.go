@@ -41,8 +41,8 @@ func New(cfg *config.Config) (*App, error) {
 	// Initialize logger
 	logger := log.New(os.Stdout, "[trip-manager] ", log.LstdFlags|log.Lshortfile)
 
-	// Initialize storage (local or S3)
-	stor, err := setupStorage(cfg, logger)
+	// Initialize storage (using local storage for now, can be replaced with S3/GCS later)
+	stor, err := setupLocalStorage(cfg)
 	if err != nil {
 		logger.Printf("Warning: Failed to initialize storage: %v", err)
 		return nil, fmt.Errorf("failed to initialize storage: %w", err)
@@ -81,32 +81,14 @@ func (a *App) Close() error {
 	return nil
 }
 
-// setupStorage initializes storage based on configuration
-// Supports both local storage (development) and S3 (MinIO/AWS)
-func setupStorage(cfg *config.Config, logger *log.Logger) (storage.Storage, error) {
-	if cfg.StorageType == "s3" {
-		// Use S3 storage (MinIO in development, AWS S3 in production)
-		s3Storage, err := storage.NewS3Storage(storage.S3Config{
-			Bucket:    cfg.S3Bucket,
-			Region:    cfg.S3Region,
-			Endpoint:  cfg.S3Endpoint,
-			PublicURL: cfg.S3PublicURL,
-			AccessKey: cfg.S3AccessKey,
-			SecretKey: cfg.S3SecretKey,
-			UseSSL:    cfg.S3UseSSL,
-		})
-		if err != nil {
-			return nil, err
-		}
-		logger.Println("✅ S3 Storage initialized (MinIO or AWS S3)")
-		return s3Storage, nil
-	}
-
-	// Default to local storage
-	localStorage, err := storage.NewLocalStorage(cfg.UploadDir)
-	if err != nil {
-		return nil, err
-	}
-	logger.Println("✅ Local Storage initialized")
-	return localStorage, nil
+func setupLocalStorage(cfg *config.Config) (storage.Storage, error) {
+	return storage.NewS3Storage(storage.S3Config{
+		Bucket:    cfg.S3Bucket,
+		Region:    cfg.S3Region,
+		Endpoint:  cfg.S3Endpoint,
+		AccessKey: cfg.S3AccessKey,
+		SecretKey: cfg.S3SecretKey,
+		PublicURL: cfg.S3PublicURL,
+		UseSSL:    cfg.S3UseSSL,
+	})
 }

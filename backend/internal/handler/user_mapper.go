@@ -12,8 +12,14 @@ import (
 func mapUserToUserResponse(user *domain.User, storage *storage.Storage) *generated.UserResponse {
 	id, _ := uuid.Parse(user.ID)
 
+	// Set avatarUrl from domain, convert to pointer if not empty
+	var avatarUrl *string
+	if user.AvatarURL != "" {
+		avatarUrl = ptr.ToPtr(user.AvatarURL)
+	}
+
 	return &generated.UserResponse{
-		AvatarUrl: nil,
+		AvatarUrl: avatarUrl,
 		Bio:       &user.Bio,
 		CreatedAt: &user.CreatedAt,
 		Email:     openapitypes.Email(user.Email),

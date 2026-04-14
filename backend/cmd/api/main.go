@@ -71,6 +71,9 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.AuthMiddleware(authManager))
 
+			// ─── Upload Routes ──────────────────────────────────────────────────────
+			r.Post("/uploads/presigned", handler.GetPresignedURLHandler(application))
+
 			// ─── User Routes ────────────────────────────────────────────────────────
 			r.Get("/users/me", handler.GetMeHandler(application))
 			r.Put("/users/me", handler.UpdateMeHandler(application))

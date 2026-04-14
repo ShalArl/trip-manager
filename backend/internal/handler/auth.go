@@ -3,12 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/ShalArl/trip-manager/internal/app"
-	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/middleware"
 )
@@ -67,7 +64,8 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 }
 
 // UpdateMeHandler handles PUT /api/users/me
-// Supports optional avatar file upload via multipart/form-data
+// Expects JSON request body with UpdateUserRequest
+// For avatar uploads, use POST /api/uploads/presigned to get a presigned URL first
 func UpdateMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
@@ -77,74 +75,17 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		// Parse multipart form (supports both JSON and multipart)
-		contentType := r.Header.Get("Content-Type")
 		var req generated.UpdateUserRequest
-		var avatarFile io.Reader
-		var avatarFileName string
 
-		if strings.HasPrefix(contentType, "multipart/form-data") {
-			// Handle multipart form data with optional file
-			if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
-				respondError(w, http.StatusBadRequest, "Invalid form data")
-				return
-			}
-
-			// Parse JSON fields from form
-			if jsonData := r.FormValue("data"); jsonData != "" {
-				if err := json.Unmarshal([]byte(jsonData), &req); err != nil {
-					respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid data field: %v", err))
-					return
-				}
-			}
-
-			// Handle optional avatar file
-			file, header, err := r.FormFile("avatar")
-			if err == nil {
-				// File was provided
-				defer file.Close()
-
-				// Validate file type
-				validImageTypes := map[string]bool{
-					"image/jpeg": true,
-					"image/png":  true,
-					"image/gif":  true,
-					"image/webp": true,
-				}
-
-				contentType := header.Header.Get("Content-Type")
-				if !validImageTypes[contentType] {
-					respondError(w, http.StatusBadRequest, "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed")
-					return
-				}
-
-				// Validate file size
-				if header.Size > MaxUploadSize {
-					respondError(w, http.StatusBadRequest, "File is too large (max 5MB)")
-					return
-				}
-
-				avatarFile = file
-				avatarFileName = header.Filename
-			}
-		} else {
-			// Handle regular JSON
-			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-				respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
-				return
-			}
+		// Handle regular JSON only (multipart uploads no longer supported)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
+			return
 		}
 
-		app.Logger.Printf("UpdateMe: userId=%s", userId)
+		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%s, email=%s", userId, req.Name, req.Email)
 
-		// Use UserService to handle update (with optional avatar upload)
-		var user *domain.User
-		if avatarFile != nil {
-			user, err = app.Services.User.UpdateUserWithAvatar(r.Context(), userId, &req, avatarFile, avatarFileName)
-		} else {
-			user, err = app.Services.User.UpdateUser(r.Context(), userId, &req)
-		}
-
+		user, err := app.Services.User.UpdateUser(r.Context(), userId, &req)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return

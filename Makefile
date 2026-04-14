@@ -1,4 +1,3 @@
-.PHONY: help build test run run-dev migrate migrate-create clean migrate-down build-windows run-windows run-dev-win
 
 # Variables
 BINARY_NAME=api
@@ -22,6 +21,18 @@ help:
 	@echo "  make run-windows    Build and run the server for Windows"
 	@echo "  make build-windows  Build the backend binary for Windows"
 	@echo ""
+	@echo "Docker Commands (Recommended):"
+	@echo "  make docker-up      Start all services with docker-compose"
+	@echo "  make docker-down    Stop all services"
+	@echo "  make docker-logs    View logs from all services"
+	@echo "  make docker-logs-SERVICE  View logs for a specific service"
+	@echo ""
+	@echo "Legacy Commands (Use docker-compose instead):"
+	@echo "  make db-up          Start PostgreSQL (use docker-compose up database)"
+	@echo "  make db-down        Stop PostgreSQL (use docker-compose down)"
+	@echo "  make storage-up     Start MinIO (use docker-compose up minio minio-init)"
+	@echo "  make storage-down   Stop MinIO"
+	@echo ""
 	@echo "Other Commands:"
 	@echo "  make test           Run all tests"
 	@echo "  make test-verbose   Run tests with verbose output"
@@ -34,13 +45,6 @@ help:
 	@echo "Cleanup Commands:"
 	@echo "  make clean          Remove built binaries"
 	@echo "  make clean-all      Remove binaries and generated files"
-	@echo ""
-	@echo "Docker Commands:"
-	@echo "  make db-up          Start PostgreSQL with Docker"
-	@echo "  make db-down        Stop PostgreSQL Docker container"
-	@echo "  make storage-up     Start MinIO with Docker"
-	@echo "  make storage-setup  Start MinIO and create bucket"
-	@echo "  make storage-down   Stop MinIO Docker container"
 	@echo ""
 
 # Build the backend binary
@@ -167,21 +171,9 @@ storage-up:
 	@echo "⏳ Waiting for MinIO to be ready..."
 	@until curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; do sleep 1; done
 	@echo "✓ MinIO is ready!"
-
-# Setup MinIO bucket (creates if not exists)
-storage-setup: storage-up
 	@echo ""
-	@echo "Setting up MinIO bucket..."
-	@command -v mc >/dev/null 2>&1 || { echo "Installing MinIO Client (mc)..."; curl -s https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod +x /tmp/mc && sudo mv /tmp/mc /usr/local/bin/mc 2>/dev/null || echo "Please install mc manually: https://min.io/download#minio-client"; }
-	@sleep 1
-	@mc alias set minio http://localhost:9000 minioadmin minioadmin 2>/dev/null || true
-	@mc mb minio/trip-manager 2>/dev/null || echo "✓ Bucket already exists"
-	@echo "✓ MinIO bucket setup complete"
-	@echo ""
-	@echo "Ready to use MinIO:"
-	@echo "  Access at:  http://localhost:9000"
-	@echo "  Console at: http://localhost:9001"
-	@echo "  Bucket:     trip-manager"
+	@echo "To set up bucket automatically, use docker-compose:"
+	@echo "  docker-compose up minio minio-init"
 
 # Stop MinIO Docker container
 storage-down:
@@ -190,9 +182,31 @@ storage-down:
 	@docker rm trip_manager_minio 2>/dev/null || true
 	@echo "✓ MinIO stopped"
 
-# View Docker logs
+# Start all services with docker-compose
+docker-up:
+	@echo "Starting all services with docker-compose..."
+	@docker-compose up -d
+	@echo "✓ All services started"
+	@echo ""
+	@echo "Services:"
+	@echo "  Frontend:  http://localhost:3000"
+	@echo "  Backend:   http://localhost:8000"
+	@echo "  MinIO:     http://localhost:9000 (API) & http://localhost:9001 (Console)"
+	@echo "  Database:  localhost:5432"
+
+# Stop all services with docker-compose
+docker-down:
+	@echo "Stopping all services..."
+	@docker-compose down
+	@echo "✓ All services stopped"
+
+# View docker-compose logs
 docker-logs:
-	@docker logs -f trip_manager_db
+	@docker-compose logs -f
+
+# View logs for a specific service
+docker-logs-%:
+	@docker-compose logs -f $*
 
 # Clean up built binaries
 clean:
@@ -227,7 +241,7 @@ deps-check:
 	@echo "✓ Dependencies verified"
 
 # Setup development environment
-dev-setup: db-up db-setup storage-setup build
+dev-setup: db-up db-setup build
 	@echo ""
 	@echo "✓ Development environment setup complete!"
 	@echo ""
@@ -250,25 +264,10 @@ version:
 # All help and info
 info: version help
 	@echo ""
-	@echo "Environment Variables (Backend):"
+	@echo "Environment Variables:"
 	@echo "  DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager (required)"
 	@echo "  SERVER_PORT=8000 (default)"
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"
-	@echo ""
-	@echo "Storage Configuration:"
-	@echo "  STORAGE_TYPE=local (default) | s3"
-	@echo ""
-	@echo "  For Local Storage:"
-	@echo "    UPLOAD_DIR=./uploads (default)"
-	@echo ""
-	@echo "  For S3 Storage (MinIO/AWS):"
-	@echo "    S3_ENDPOINT=http://minio:9000 (MinIO) or empty (AWS)"
-	@echo "    S3_BUCKET=trip-manager (default)"
-	@echo "    S3_REGION=us-east-1 (default)"
-	@echo "    S3_ACCESS_KEY=minioadmin"
-	@echo "    S3_SECRET_KEY=minioadmin"
-	@echo "    S3_PUBLIC_URL=http://localhost:9000"
-	@echo "    S3_USE_SSL=false (default)"
 	@echo ""
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
 	"github.com/ShalArl/trip-manager/internal/service"
 	"github.com/ShalArl/trip-manager/internal/storage"
@@ -25,7 +26,7 @@ type ServiceContainer struct {
 	User     service.UserService
 	Activity service.ActivityService
 	Auth     service.AuthService
-	Media    *service.MediaService
+	Media    *infrastructure.MediaService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
@@ -44,12 +45,12 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
 	locationService := service.NewLocationService(locationRepo)
 
-	// Initialize media service first (needed by user service)
-	mediaService := service.NewMediaService(cfg.Storage)
-
-	// Initialize user service with media service
-	userService := service.NewUserService(userRepo, mediaService)
+	// Initialize user service
+	userService := service.NewUserService(userRepo)
 	activityService := service.NewActivityService(activityRepo)
+
+	// Initialize media service (needed by handlers for presigned URLs)
+	mediaService := infrastructure.NewMediaService(cfg.Storage)
 
 	// Initialize auth manager (7 day token expiration)
 	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)

@@ -9,14 +9,13 @@ function getAuthToken(): string | null {
 }
 
 // Helper function to get auth headers
-function getAuthHeaders(): HeadersInit {
+export function getAuthHeaders(): HeadersInit {
   const token = getAuthToken();
   return {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 }
-
 
 
 export async function register(createUserRequest: CreateUserRequest) {
@@ -102,10 +101,12 @@ export async function getMe() {
 
     if (!response.ok) {
         const errorData = await response.text();
-        console.error(`Fehler beim Abrufen des Profils (${response.status}):`, errorData);
-        throw new Error(`Fehler beim Abrufen des Profils: ${response.status}`);
+        // console.error(`Fehler beim Abrufen des Profils (${response.status}):`, errorData);
+        // throw new Error(`Fehler beim Abrufen des Profils: ${response.status}`);
+        // Do nothing
     }
 
     const userData = await response.json();
     return userData as UserResponse;
 }
+

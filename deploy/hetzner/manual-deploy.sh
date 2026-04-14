@@ -154,6 +154,14 @@ ssh_cmd "mkdir -p $REMOTE_PATH" || error "Failed to create remote directory $REM
 scp_cmd "$DEPLOYMENT_DIR/deploy.sh" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy deploy.sh"
 scp_cmd "$PROJECT_DIR/docker-compose.yaml" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy docker-compose.yaml"
 
+# Copy docker directory with all initialization scripts
+log "📤 Copying docker directory to server..."
+scp_cmd -r "$PROJECT_DIR/docker" "$REMOTE_HOST:$REMOTE_PATH/" || error "Failed to copy docker directory"
+
+# Make minio-init.sh executable on the server
+log "🔧 Making docker scripts executable..."
+ssh_cmd "chmod +x $REMOTE_PATH/docker/*.sh" || error "Failed to make docker scripts executable"
+
 log "✅ Deploy files copied"
 
 # 2. Generate and copy Caddyfile with environment variable substitution

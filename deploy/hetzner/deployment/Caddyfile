@@ -15,6 +15,17 @@ $DOMAIN {
         reverse_proxy backend:8000
     }
 
+    # MinIO Reverse Proxy for Presigned URLs
+    # Frontend needs to upload directly to MinIO via presigned URLs
+    handle /minio/* {
+        reverse_proxy minio:9000 {
+            # Preserve original request headers for S3-compatible presigned URLs
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-For {remote}
+        }
+    }
+
     # Frontend Reverse Proxy
     handle {
         reverse_proxy frontend:3000

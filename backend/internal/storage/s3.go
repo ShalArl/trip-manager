@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // S3Storage implements Storage interface using AWS S3 or S3-compatible services (like MinIO)
@@ -90,21 +92,34 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 
 // Upload saves a file to S3 and returns the public URL
 func (s *S3Storage) Upload(ctx context.Context, fileName string, file io.Reader) (string, error) {
-	uploader := manager.NewUploader(s.client)
 
-	// Upload file with public-read ACL (or private, depending on use case)
-	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	log.Printf("Uploading file %s", fileName)
+	uploader := transfermanager.New(s.client)
+
+	// Upload file with public-read ACL
+	// Note: For MinIO, ensure bucket policy is set to allow public read access
+	_, err := uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 		Body:   file,
-		ACL:    types.ObjectCannedACLPublicRead, // Make file publicly readable
+		ACL:    types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file to S3: %w", err)
+		log.Printf("Warning: Upload with ACL failed: %v. Retrying without ACL...", err)
+		// For MinIO: Try uploading without ACL - bucket policy should handle public access
+		_, err = uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(fileName),
+			Body:   file,
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to upload file to S3: %w", err)
+		}
 	}
 
 	// Return public URL
 	fileURL := fmt.Sprintf("%s/%s", s.publicURL, fileName)
+	log.Printf("File uploaded successfully: %s", fileURL)
 	return fileURL, nil
 }
 
@@ -127,4 +142,21 @@ func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error)
 	return fileURL, nil
 }
 
+// PresignURL generates a presigned URL for direct file upload to S3/MinIO
+// This allows clients to upload files directly without going through the backend
+func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
+	req := &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fileName),
+	}
+
+	// Create presigned URL using PutObject (for uploads)
+	presigner := s3.NewPresignClient(s.client)
+	result, err := presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	return result.URL, nil
+}
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useChangePassword } from "@/lib/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { changePassword } from "@/lib/api/auth";
 import { validatePassword, getPasswordStrengthLabel, getPasswordStrengthColor, getPasswordStrengthBarColor } from "@/lib/validators/passwordValidator";
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Shield, Check, X } from "lucide-react";
 
@@ -13,10 +13,10 @@ export default function PasswordSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { mutate: changePasswordMutation, isPending: loading } = useChangePassword();
   const newPasswordValidation = validatePassword(newPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,27 +35,28 @@ export default function PasswordSettings() {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      await changePassword({
+    changePasswordMutation(
+      {
         currentPassword,
         newPassword,
-      });
-      setSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Fehler beim Ändern des Passworts"
-      );
-    } finally {
-      setLoading(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Fehler beim Ändern des Passworts"
+          );
+        },
+      }
+    );
   };
 
   return (

@@ -28,6 +28,8 @@ func NewLocalStorage(basePath string) (*LocalStorage, error) {
 
 // Upload saves a file to local storage and returns the URL
 func (ls *LocalStorage) Upload(ctx context.Context, fileName string, file io.Reader) (string, error) {
+	// Log the upload action
+	log.Printf("Uploading file to localStorage %s", fileName)
 	// Create subdirectories if needed
 	filePath := filepath.Join(ls.basePath, fileName)
 	dir := filepath.Dir(filePath)
