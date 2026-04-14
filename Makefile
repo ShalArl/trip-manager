@@ -1,4 +1,3 @@
-.PHONY: help build test run run-dev migrate migrate-create clean migrate-down build-windows run-windows run-dev-win
 
 # Variables
 BINARY_NAME=api
@@ -13,31 +12,39 @@ help:
 	@echo "=================================="
 	@echo ""
 	@echo "Development Commands (Linux/macOS):"
-	@echo "  make run-dev       Run the server with auto-reload (requires air)"
-	@echo "  make run           Build and run the server"
-	@echo "  make build         Build the backend binary"
+	@echo "  make run-dev        Run the server with auto-reload (requires air)"
+	@echo "  make run            Build and run the server"
+	@echo "  make build          Build the backend binary"
 	@echo ""
 	@echo "Development Commands (Windows):"
-	@echo "  make run-dev-win   Run the server for Windows with auto-reload (requires air)"
-	@echo "  make run-windows   Build and run the server for Windows"
-	@echo "  make build-windows Build the backend binary for Windows"
+	@echo "  make run-dev-win    Run the server for Windows with auto-reload (requires air)"
+	@echo "  make run-windows    Build and run the server for Windows"
+	@echo "  make build-windows  Build the backend binary for Windows"
+	@echo ""
+	@echo "Docker Commands (Recommended):"
+	@echo "  make docker-up      Start all services with docker-compose"
+	@echo "  make docker-down    Stop all services"
+	@echo "  make docker-logs    View logs from all services"
+	@echo "  make docker-logs-SERVICE  View logs for a specific service"
+	@echo ""
+	@echo "Legacy Commands (Use docker-compose instead):"
+	@echo "  make db-up          Start PostgreSQL (use docker-compose up database)"
+	@echo "  make db-down        Stop PostgreSQL (use docker-compose down)"
+	@echo "  make storage-up     Start MinIO (use docker-compose up minio minio-init)"
+	@echo "  make storage-down   Stop MinIO"
 	@echo ""
 	@echo "Other Commands:"
-	@echo "  make test          Run all tests"
-	@echo "  make test-verbose  Run tests with verbose output"
+	@echo "  make test           Run all tests"
+	@echo "  make test-verbose   Run tests with verbose output"
 	@echo ""
 	@echo "Database Commands:"
-	@echo "  make migrate       Run pending migrations (auto-runs on server start)"
-	@echo "  make db-reset      Reset the database (CAUTION: deletes all data)"
-	@echo "  make db-setup      Setup database with migrations"
+	@echo "  make migrate        Run pending migrations (auto-runs on server start)"
+	@echo "  make db-reset       Reset the database (CAUTION: deletes all data)"
+	@echo "  make db-setup       Setup database with migrations"
 	@echo ""
 	@echo "Cleanup Commands:"
-	@echo "  make clean         Remove built binaries"
-	@echo "  make clean-all     Remove binaries and generated files"
-	@echo ""
-	@echo "Docker Commands:"
-	@echo "  make docker-up     Start PostgreSQL with Docker"
-	@echo "  make docker-down   Stop PostgreSQL Docker container"
+	@echo "  make clean          Remove built binaries"
+	@echo "  make clean-all      Remove binaries and generated files"
 	@echo ""
 
 # Build the backend binary
@@ -121,7 +128,7 @@ db-reset:
 	@echo "✓ Database reset complete"
 
 # Start PostgreSQL with Docker
-docker-up:
+db-up:
 	@echo "Starting PostgreSQL with Docker..."
 	@docker run -d \
 		--name trip_manager_db \
@@ -139,15 +146,67 @@ docker-up:
 	@echo "✓ Database is ready!"
 
 # Stop PostgreSQL Docker container
-docker-down:
+db-down:
 	@echo "Stopping PostgreSQL container..."
 	@docker stop trip_manager_db 2>/dev/null || true
 	@docker rm trip_manager_db 2>/dev/null || true
 	@echo "✓ PostgreSQL stopped"
 
-# View Docker logs
+# Start MinIO with Docker
+storage-up:
+	@echo "Starting MinIO with Docker..."
+	@docker run -d \
+		--name trip_manager_minio \
+		-e MINIO_ROOT_USER=minioadmin \
+		-e MINIO_ROOT_PASSWORD=minioadmin \
+		-p 9000:9000 \
+		-p 9001:9001 \
+		-v trip_manager_minio_data:/data \
+		quay.io/minio/minio:latest server /data --console-address ":9001"
+	@echo "✓ MinIO started"
+	@echo "  S3 API:       http://localhost:9000"
+	@echo "  Console:      http://localhost:9001"
+	@echo "  Credentials:  minioadmin:minioadmin"
+	@sleep 3
+	@echo "⏳ Waiting for MinIO to be ready..."
+	@until curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; do sleep 1; done
+	@echo "✓ MinIO is ready!"
+	@echo ""
+	@echo "To set up bucket automatically, use docker-compose:"
+	@echo "  docker-compose up minio minio-init"
+
+# Stop MinIO Docker container
+storage-down:
+	@echo "Stopping MinIO container..."
+	@docker stop trip_manager_minio 2>/dev/null || true
+	@docker rm trip_manager_minio 2>/dev/null || true
+	@echo "✓ MinIO stopped"
+
+# Start all services with docker-compose
+docker-up:
+	@echo "Starting all services with docker-compose..."
+	@docker-compose up -d
+	@echo "✓ All services started"
+	@echo ""
+	@echo "Services:"
+	@echo "  Frontend:  http://localhost:3000"
+	@echo "  Backend:   http://localhost:8000"
+	@echo "  MinIO:     http://localhost:9000 (API) & http://localhost:9001 (Console)"
+	@echo "  Database:  localhost:5432"
+
+# Stop all services with docker-compose
+docker-down:
+	@echo "Stopping all services..."
+	@docker-compose down
+	@echo "✓ All services stopped"
+
+# View docker-compose logs
 docker-logs:
-	@docker logs -f trip_manager_db
+	@docker-compose logs -f
+
+# View logs for a specific service
+docker-logs-%:
+	@docker-compose logs -f $*
 
 # Clean up built binaries
 clean:
@@ -182,7 +241,7 @@ deps-check:
 	@echo "✓ Dependencies verified"
 
 # Setup development environment
-dev-setup: docker-up db-setup build
+dev-setup: db-up db-setup build
 	@echo ""
 	@echo "✓ Development environment setup complete!"
 	@echo ""
@@ -193,7 +252,7 @@ dev-setup: docker-up db-setup build
 	@echo ""
 
 # Start everything (DB + Server)
-dev: docker-up
+dev: storage-down db-down storage-up db-up
 	@echo "Database started. Starting server..."
 	@$(MAKE) run
 

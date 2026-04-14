@@ -30,17 +30,19 @@ jobs:
       - uses: dorny/paths-filter@v4
         id: changes
         with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'api-spec/**'
-              - '.github/workflows/deploy-iaas.yaml'
-              - 'deploy/hetzner/deployment/**'
-            frontend:
-              - 'frontend/**'
-              - 'api-spec/**'
-              - '.github/workflows/deploy-iaas.yaml'
-              - 'deploy/hetzner/deployment/**'
+           filters: |
+             backend:
+               - 'backend/**'
+               - 'api-spec/**'
+               - '.github/workflows/deploy-iaas.yaml'
+               - 'deploy/hetzner/deployment/**'
+               - 'docker/**'
+             frontend:
+               - 'frontend/**'
+               - 'api-spec/**'
+               - '.github/workflows/deploy-iaas.yaml'
+               - 'deploy/hetzner/deployment/**'
+               - 'docker/**'
 
   # Build and push backend image if changes detected
   build-backend:
@@ -172,38 +174,54 @@ jobs:
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
         run: |
-          scp -P ${{ secrets.SERVER_PORT }} \
-            -r deploy/hetzner/deployment/deploy.sh \
-            docker-compose.yaml \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
-          
-          # Replace placeholders in Caddyfile and copy to server
-          envsubst < deploy/hetzner/deployment/Caddyfile > deploy/hetzner/Caddyfile.final
-          
-          scp -P ${{ secrets.SERVER_PORT }} \
-            deploy/hetzner/deployment/deploy.sh \
-            docker-compose.yaml \
-            deploy/hetzner/Caddyfile.final \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
-          
-          # Rename Caddyfile on server
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
+           # Copy main files
+           scp -P ${{ secrets.SERVER_PORT }} \
+             deploy/hetzner/deployment/deploy.sh \
+             docker-compose.yaml \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
+           
+           # Copy docker directory with initialization scripts
+           scp -P ${{ secrets.SERVER_PORT }} \
+             docker/minio-init.sh \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/docker/
+           
+           # Make all scripts executable
+           ssh -p ${{ secrets.SERVER_PORT }} \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+             "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/docker/*.sh"
+           
+           # Replace placeholders in Caddyfile and copy to server
+           envsubst < deploy/hetzner/deployment/Caddyfile > deploy/hetzner/Caddyfile.final
+           
+           scp -P ${{ secrets.SERVER_PORT }} \
+             deploy/hetzner/Caddyfile.final \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
+           
+           # Rename Caddyfile on server
+           ssh -p ${{ secrets.SERVER_PORT }} \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+             "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
 
-      - name: Generate .env.example file
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
-          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
-          GHCR_PAT=${{ secrets.GHCR_PAT }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          DOMAIN=${{ secrets.DOMAIN }}
-          EOF
+       - name: Generate .env.example file
+         run: |
+           ssh -p ${{ secrets.SERVER_PORT }} \
+             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+             tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
+           GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
+           GHCR_PAT=${{ secrets.GHCR_PAT }}
+           DB_USER=${{ secrets.DB_USER }}
+           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+           DB_NAME=${{ secrets.DB_NAME }}
+           JWT_SECRET=${{ secrets.JWT_SECRET }}
+           DOMAIN=${{ secrets.DOMAIN }}
+           S3_ENDPOINT=${{ secrets.S3_ENDPOINT || 'http://minio:9000' }}
+           S3_BUCKET=${{ secrets.S3_BUCKET || 'trip-manager' }}
+           S3_REGION=${{ secrets.S3_REGION || 'us-east-1' }}
+           S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY || 'minioadmin' }}
+           S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY || 'minioadmin' }}
+           S3_PUBLIC_URL=${{ secrets.S3_PUBLIC_URL || 'https://{DOMAIN}/minio' }}
+           S3_USE_SSL=${{ secrets.S3_USE_SSL || 'false' }}
+           EOF
 
       - name: Execute deploy script on server
         run: |

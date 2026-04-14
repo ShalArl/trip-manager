@@ -67,7 +67,38 @@ paths:
         '401':
           description: Invalid credentials
 
-  # ─── User Profile ──────────────────────────────────────────────────────────
+  # ─── Uploads ────────────────────────────────────────────────────────────────
+
+  /uploads/presigned:
+    post:
+       summary: Get a presigned URL for direct file upload
+       description: >
+         Request a presigned URL to upload files directly to S3/MinIO without routing through the backend.
+         Presigned URLs are valid for 15 minutes and can be used with PUT requests to upload files directly.
+       operationId: getPresignedUrl
+       tags:
+         - Uploads
+       requestBody:
+         required: true
+         content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/PresignedURLRequest'
+       responses:
+         '200':
+           description: Presigned URL generated successfully
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/PresignedURLResponse'
+         '400':
+           description: Invalid mediaType or missing required fields
+         '401':
+           description: Unauthorized
+         '500':
+           description: Failed to generate presigned URL
+
+   # ─── User Profile ──────────────────────────────────────────────────────────
 
   /users/me:
     get:
@@ -84,29 +115,33 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           description: Unauthorized
-
     put:
-      summary: Update current user profile
-      operationId: updateMe
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: Profile updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
+       summary: Update current user profile
+       description: >
+         Update user profile with profile information.
+         To upload a profile avatar: (1) Request a presigned URL via POST /uploads/presigned,
+         (2) upload the file directly to the presigned URL, (3) update the user profile
+         with the avatarUrl returned by the upload.
+       operationId: updateMe
+       tags:
+         - Users
+       requestBody:
+         required: true
+         content:
+           application/json:
+             schema:
+               $ref: '#/components/schemas/UpdateUserRequest'
+       responses:
+         '200':
+           description: Profile updated
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/UserResponse'
+         '400':
+           description: Invalid input
+         '401':
+           description: Unauthorized
 
   /users/me/password:
     put:
@@ -646,9 +681,44 @@ components:
           type: integer
           description: Token validity in seconds (e.g. 3600)
         user:
-          $ref: '#/components/schemas/UserResponse'
+           $ref: '#/components/schemas/UserResponse'
 
-    # ── User ──────────────────────────────────────────────────────────────────
+    # ── Upload ────────────────────────────────────────────────────────────────
+
+    PresignedURLRequest:
+       description: Request for a presigned URL to upload files directly to S3/MinIO
+       type: object
+       required:
+         - fileName
+         - mediaType
+       properties:
+         fileName:
+           type: string
+           description: Name of the file to upload (e.g., "avatar.jpg")
+           example: avatar.jpg
+         mediaType:
+           type: string
+           enum: [avatar, trip, location, activity]
+           description: Type of media being uploaded
+
+    PresignedURLResponse:
+       description: Presigned URL response for direct file uploads
+       type: object
+       required:
+         - presignedUrl
+         - expiresIn
+       properties:
+         presignedUrl:
+           type: string
+           format: uri
+           description: URL that can be used to upload the file directly to S3/MinIO
+           example: "http://minio:9000/trip-manager/avatars/user-id.jpg?X-Amz-Algorithm=..."
+         expiresIn:
+           type: integer
+           description: Presigned URL expiration time in seconds (typically 900 = 15 minutes)
+           example: 900
+
+     # ── User ──────────────────────────────────────────────────────────────────
 
     UserResponse:
       description: Full user object returned by profile endpoints.

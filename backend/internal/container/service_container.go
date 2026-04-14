@@ -6,6 +6,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
 	"github.com/ShalArl/trip-manager/internal/service"
 	"github.com/ShalArl/trip-manager/internal/storage"
@@ -13,9 +14,10 @@ import (
 )
 
 type ServiceConfig struct {
-	DB     *sqlx.DB
-	Logger *log.Logger
-	Config *config.Config
+	DB      *sqlx.DB
+	Logger  *log.Logger
+	Config  *config.Config
+	Storage storage.Storage
 }
 
 type ServiceContainer struct {
@@ -24,6 +26,7 @@ type ServiceContainer struct {
 	User     service.UserService
 	Activity service.ActivityService
 	Auth     service.AuthService
+	Media    *infrastructure.MediaService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
@@ -31,9 +34,6 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	var locationRepo repository.LocationRepository
 	var userRepo repository.UserRepository
 	var activityRepo repository.ActivityRepository
-
-	// Storage for GCS operations
-	var s *storage.Storage
 
 	// Initialize repositories with the database connection
 	tripRepo = repository.NewTripRepository(cfg.DB)
@@ -44,8 +44,13 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
 	locationService := service.NewLocationService(locationRepo)
-	userService := service.NewUserService(userRepo, s)
+
+	// Initialize user service
+	userService := service.NewUserService(userRepo)
 	activityService := service.NewActivityService(activityRepo)
+
+	// Initialize media service (needed by handlers for presigned URLs)
+	mediaService := infrastructure.NewMediaService(cfg.Storage)
 
 	// Initialize auth manager (7 day token expiration)
 	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)
@@ -59,5 +64,6 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 		User:     userService,
 		Activity: activityService,
 		Auth:     authService,
+		Media:    mediaService,
 	}
 }

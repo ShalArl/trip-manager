@@ -7,6 +7,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
 // LoginHandler handles POST /api/auth/login
@@ -43,9 +44,9 @@ func LoginHandler(app *app.App) http.HandlerFunc {
 func GetMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -63,23 +64,26 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 }
 
 // UpdateMeHandler handles PUT /api/users/me
+// Expects JSON request body with UpdateUserRequest
+// For avatar uploads, use POST /api/uploads/presigned to get a presigned URL first
 func UpdateMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract userId from JWT token in context (middleware will add it)
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		// Extract userId from JWT token in context
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
 		var req generated.UpdateUserRequest
 
+		// Handle regular JSON only (multipart uploads no longer supported)
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 			return
 		}
 
-		app.Logger.Printf("UpdateMe: userId=%s", userId)
+		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%s, email=%s", userId, req.Name, req.Email)
 
 		user, err := app.Services.User.UpdateUser(r.Context(), userId, &req)
 		if err != nil {
@@ -95,10 +99,10 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 // ChangePasswordHandler handles PUT /api/users/me/password
 func ChangePasswordHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract userId from JWT token in context (middleware will add it)
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		// Extract userId from JWT token in context
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -111,7 +115,7 @@ func ChangePasswordHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("ChangePassword: userId=%s", userId)
 
-		err := app.Services.Auth.ChangePassword(r.Context(), userId, &req)
+		err = app.Services.Auth.ChangePassword(r.Context(), userId, &req)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -124,9 +128,9 @@ func ChangePasswordHandler(app *app.App) http.HandlerFunc {
 // GetUserHandler handles GET /api/users/{userId}
 func GetUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -175,9 +179,9 @@ func CreateUserHandler(app *app.App) http.HandlerFunc {
 // UpdateUserHandler handles PUT /api/users/{userId}
 func UpdateUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -205,15 +209,15 @@ func UpdateUserHandler(app *app.App) http.HandlerFunc {
 // DeleteUserHandler handles DELETE /api/users/{userId}
 func DeleteUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId := r.PathValue("userId")
-		if userId == "" {
-			respondError(w, http.StatusBadRequest, "User ID is required")
+		userId, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
 		app.Logger.Printf("DeleteUser: id=%s", userId)
 
-		err := app.Services.User.DeleteUser(r.Context(), userId)
+		err = app.Services.User.DeleteUser(r.Context(), userId)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

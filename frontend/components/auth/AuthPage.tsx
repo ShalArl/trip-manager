@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { components } from "@/generated/types";
-import { User } from "@/types/user";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 
