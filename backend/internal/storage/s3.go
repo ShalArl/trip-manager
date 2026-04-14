@@ -142,7 +142,7 @@ func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error)
 	return fileURL, nil
 }
 
-// PresignURL generates a presigned URL for direct file upload to S3/MinIO
+// GeneratePresignedURL generates a presigned URL for direct file upload to S3/MinIO
 // This allows clients to upload files directly without going through the backend
 func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
 	req := &s3.PutObjectInput{
@@ -157,6 +157,34 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
-	return result.URL, nil
+	presignedURL := result.URL
+
+	if s.publicURL != "" {
+		urlStr := presignedURL
+
+		// Simple approach: rebuild the URL with publicURL
+		fileURL := fmt.Sprintf("%s/%s?%s",
+			s.publicURL,
+			fileName,
+			extractQueryString(urlStr))
+
+		log.Printf("Presigned URL converted from internal endpoint to public URL")
+		log.Printf("  Internal: %s", presignedURL[:100]) // Log first 100 chars to avoid leaking full signature
+		log.Printf("  Public: %s", fileURL[:100])
+
+		return fileURL, nil
+	}
+
+	return presignedURL, nil
 }
 
+// extractQueryString extracts the query string part from a presigned URL
+// Example: "http://minio:9000/bucket/file?X-Amz-Algorithm=..." -> "X-Amz-Algorithm=..."
+func extractQueryString(url string) string {
+	for i := len(url) - 1; i >= 0; i-- {
+		if url[i] == '?' {
+			return url[i+1:]
+		}
+	}
+	return ""
+}
