@@ -51,17 +51,11 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 
 	// Build AWS config
 	var opts []func(*config.LoadOptions) error
-
-	// Add custom credentials if provided
 	if cfg.AccessKey != "" && cfg.SecretKey != "" {
 		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			cfg.AccessKey,
-			cfg.SecretKey,
-			"", // No session token
+			cfg.AccessKey, cfg.SecretKey, "",
 		)))
 	}
-
-	// Add region
 	opts = append(opts, config.WithRegion(cfg.Region))
 
 	awsCfg, err := config.LoadDefaultConfig(context.Background(), opts...)
@@ -69,16 +63,22 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	// Create S3 client with optional custom endpoint (for MinIO)
 	var client *s3.Client
-	if cfg.Endpoint != "" {
-		// For MinIO or custom S3 services
+
+	// WICHTIG: Wir nutzen die PublicURL (https://travel-nugget.duckdns.org/minio)
+	// als BaseEndpoint für den Client, falls vorhanden.
+	// Das sorgt dafür, dass die Signatur für den externen Host erstellt wird.
+	if cfg.PublicURL != "" {
+		client = s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(cfg.PublicURL)
+			o.UsePathStyle = true
+		})
+	} else if cfg.Endpoint != "" {
 		client = s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String(cfg.Endpoint)
-			o.UsePathStyle = true // Required for MinIO
+			o.UsePathStyle = true
 		})
 	} else {
-		// For AWS S3
 		client = s3.NewFromConfig(awsCfg)
 	}
 
@@ -150,45 +150,11 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		Key:    aws.String(fileName),
 	}
 
-	// Create presigned URL using PutObject (for uploads)
 	presigner := s3.NewPresignClient(s.client)
 	result, err := presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
+		return "", err
 	}
 
-	presignedURL := result.URL
-
-	if s.publicURL != "" {
-		urlStr := presignedURL
-
-		// Example:
-		//   Internal: http://minio:9000/trip-manager/avatars/file.jpg?sig
-		//   Public:   https://domain.com/minio/trip-manager/avatars/file.jpg?sig
-		// Note: publicURL does NOT include bucket name, AWS SDK does
-		fileURL := fmt.Sprintf("%s/%s/%s?%s",
-			s.publicURL, // https://travel-nugget.duckdns.org/minio (NO bucket!)
-			s.bucket,    // trip-manager
-			fileName,    // avatars/a41cc4c9...
-			extractQueryString(urlStr)) // X-Amz-Algorithm=...
-
-		log.Printf("Presigned URL converted from internal endpoint to public URL")
-		log.Printf("  Internal: %s", presignedURL[:100]) // Log first 100 chars to avoid leaking full signature
-		log.Printf("  Public: %s", fileURL[:100])
-
-		return fileURL, nil
-	}
-
-	return presignedURL, nil
-}
-
-// extractQueryString extracts the query string part from a presigned URL
-// Example: "http://minio:9000/bucket/file?X-Amz-Algorithm=..." -> "X-Amz-Algorithm=..."
-func extractQueryString(url string) string {
-	for i := len(url) - 1; i >= 0; i-- {
-		if url[i] == '?' {
-			return url[i+1:]
-		}
-	}
-	return ""
+	return result.URL, nil
 }
