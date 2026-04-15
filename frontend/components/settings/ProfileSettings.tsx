@@ -149,7 +149,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                         <div className="flex-shrink-0">
                             <Avatar className="h-32 w-32 border-4 border-zinc-200 dark:border-zinc-800">
                                 {avatarPreview && <AvatarImage src={avatarPreview} alt={name}/>}
-                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white text-lg font-semibold">
+                                <AvatarFallback className="bg-blue-500 text-white text-lg font-semibold">
                                     {name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>

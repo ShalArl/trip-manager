@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/infrastructure"
@@ -71,12 +70,7 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		}
 
 		// Generate presigned URL via MediaService
-		presignedURL, err := app.Services.Media.GeneratePresignedURL(r.Context(), infrastructure.PresignedURLOptions{
-			MediaType: mediaType,
-			UserID:    userId,
-			FileName:  req.FileName,
-			ExpiresIn: 15 * time.Minute,
-		})
+		presignedURL, err := app.Services.Media.GeneratePresignedURL(r.Context(), userId, mediaType, req.FileName)
 		if err != nil {
 			app.Logger.Printf("[Handler] GetPresignedURL: Failed to generate presigned URL: %v", err)
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate presigned URL: %v", err))
@@ -93,6 +87,3 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		respondJSON(w, http.StatusOK, response)
 	}
 }
-
-
-

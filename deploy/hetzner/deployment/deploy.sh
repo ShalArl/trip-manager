@@ -79,11 +79,7 @@ else
     log "✅ Frontend is healthy"
 fi
 
-# 5. Reload Caddy configuration (Host Caddy)
-log "🔄 Reloading Caddy configuration..."
-sudo systemctl reload caddy 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Caddy reload warning"
-
-# 6. Cleanup old images
+# 5. Cleanup old images
 log "🧹 Cleaning up old images..."
 docker image prune -f 2>&1 | tee -a "$LOG_FILE"
 
