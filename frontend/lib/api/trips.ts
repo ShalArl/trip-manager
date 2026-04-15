@@ -71,64 +71,86 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
 }
 
 export async function getPublicTrips(): Promise<TripResponse[]> {
-    // TODO: Replace with real API call
-    const mockTrips: TripResponse[] = [
-        {
-            id: "mock-1",
-            title: "Abenteuer in Japan",
-            shortDescription: "Tokio, Kyoto und mehr",
-            startDate: "2026-05-01",
-            endDate: "2026-05-15",
-            status: "planned",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: {
-                id: "user-1",
-                name: "Anna Müller",
-                email: "anna@example.com",
-            },
-        },
-        {
-            id: "mock-2",
-            title: "Roadtrip durch Norwegen",
-            shortDescription: "Fjorde und Nordlichter",
-            startDate: "2026-07-10",
-            endDate: "2026-07-20",
-            status: "planned",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: {
-                id: "user-2",
-                name: "Max Schmidt",
-                email: "max@example.com",
-            },
-        },
-        {
-            id: "mock-3",
-            title: "Städtetrip nach Barcelona",
-            shortDescription: "Kultur, Strand und Tapas",
-            startDate: "2026-06-05",
-            endDate: "2026-06-10",
-            status: "planned",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: {
-                id: "user-3",
-                name: "Lisa Weber",
-                email: "lisa@example.com",
-            },
-        },
-    ];
+  // TODO: Replace with real API call
+  const mockTrips: TripResponse[] = [
+    {
+      id: "mock-1",
+      title: "Abenteuer in Japan",
+      shortDescription: "Tokio, Kyoto und mehr",
+      startDate: "2026-05-01",
+      endDate: "2026-05-15",
+      status: "planned",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: {
+        id: "user-1",
+        name: "Anna Müller",
+        email: "anna@example.com",
+      },
+    },
+    {
+      id: "mock-2",
+      title: "Roadtrip durch Norwegen",
+      shortDescription: "Fjorde und Nordlichter",
+      startDate: "2026-07-10",
+      endDate: "2026-07-20",
+      status: "planned",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: {
+        id: "user-2",
+        name: "Max Schmidt",
+        email: "max@example.com",
+      },
+    },
+    {
+      id: "mock-3",
+      title: "Städtetrip nach Barcelona",
+      shortDescription: "Kultur, Strand und Tapas",
+      startDate: "2026-06-05",
+      endDate: "2026-06-10",
+      status: "planned",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: {
+        id: "user-3",
+        name: "Lisa Weber",
+        email: "lisa@example.com",
+      },
+    },
+  ];
 
-    return mockTrips;
+  return mockTrips;
+}
+
+export async function searchTripss(query: string): Promise<TripResponse[]> {
+  // TODO: Replace with real API call
+  const allTrips = await getPublicTrips();
+
+  return allTrips.filter((trip) =>
+    trip.title.toLowerCase().includes(query.toLowerCase()) ||
+    trip.shortDescription.toLowerCase().includes(query.toLowerCase())
+  );
 }
 
 export async function searchTrips(query: string): Promise<TripResponse[]> {
-    // TODO: Replace with real API call
-    const allTrips = await getPublicTrips();
-    
-    return allTrips.filter((trip) =>
-        trip.title.toLowerCase().includes(query.toLowerCase()) ||
-        trip.shortDescription.toLowerCase().includes(query.toLowerCase())
-    );
+  const response = await fetch(
+    `${API_URL}/api/trips/search?q=${encodeURIComponent(query)}`,
+    {
+      method: "GET",
+      /*headers: {
+        "Authorization": `Bearer ${token}`,
+      },*/
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`Fehler bei Suche (${response.status}):`, errorData);
+    throw new Error(`Fehler bei Suche: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  return data.data as TripResponse[];
 }

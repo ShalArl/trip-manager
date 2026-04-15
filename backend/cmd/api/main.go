@@ -66,6 +66,7 @@ func main() {
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
 		r.Post("/auth/register", handler.CreateUserHandler(application))
 		r.Post("/auth/login", handler.LoginHandler(application))
+		r.Get("/trips/search", handler.SearchTripsHandler(application)) // ← hier hinzufügen#
 
 		// Protected routes - require JWT authentication
 		r.Group(func(r chi.Router) {
@@ -85,7 +86,6 @@ func main() {
 			// ─── Trip Routes ────────────────────────────────────────────────────────
 			r.Get("/trips", handler.ListTripsHandler(application))
 			r.Post("/trips", handler.CreateTripHandler(application))
-			r.Get("/trips/search", handler.SearchTripsHandler(application))
 			r.Get("/trips/{tripId}", handler.GetTripHandler(application))
 			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
 			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
