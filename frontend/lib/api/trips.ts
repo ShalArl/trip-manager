@@ -67,7 +67,7 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
   }
 
   const data = await response.json();
-  return data.data as TripResponse;
+  return data as TripResponse;
 }
 
 export async function getPublicTrips(): Promise<TripResponse[]> {
