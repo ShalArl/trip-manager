@@ -19,10 +19,11 @@ $DOMAIN {
     # Frontend needs to upload directly to MinIO via presigned URLs
     # IMPORTANT: Do NOT override the Host header - presigned URLs are signed with the original host
     handle /minio/* {
+        uri strip_prefix /minio
         reverse_proxy minio:9000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
             header_up X-Forwarded-Proto {scheme}
-            header_up X-Forwarded-For {remote}
-            header_up X-Forwarded-Host {host}
         }
     }
 
