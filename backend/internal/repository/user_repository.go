@@ -89,7 +89,7 @@ func (u *UserRepositoryImpl) UpdateUserProfile(ctx context.Context, user *domain
 		return nil, err
 	}
 
-	log.Printf("[Repository] UpdateUserProfile: User before DB update - ID=%s, AvatarURL=%s", rec.ID, rec.AvatarURL)
+	log.Printf("[Repository] UpdateUserProfile: User before DB update - ID=%s, AvatarURL=%s", rec.ID, *rec.AvatarURL)
 
 	query := `UPDATE users SET email = $1, name = $2, bio = $3, avatar_url = $4, updated_at = $5
 	         WHERE id = $6
@@ -98,7 +98,7 @@ func (u *UserRepositoryImpl) UpdateUserProfile(ctx context.Context, user *domain
 	err = u.db.QueryRowContext(ctx, query, rec.Email, rec.Name, rec.Bio, rec.AvatarURL, rec.UpdatedAt, rec.ID).
 		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.AvatarURL, &rec.CreatedAt, &rec.UpdatedAt)
 
-	log.Printf("[Repository] UpdateUserProfile: User after DB update - ID=%s, AvatarURL=%s", rec.ID, rec.AvatarURL)
+	log.Printf("[Repository] UpdateUserProfile: User after DB update - ID=%s, AvatarURL=%s", rec.ID, *rec.AvatarURL)
 
 	if err != nil {
 		var pgErr *pq.Error
