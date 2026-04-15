@@ -67,5 +67,68 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
   }
 
   const data = await response.json();
-  return data as TripResponse;
+  return data.data as TripResponse;
+}
+
+export async function getPublicTrips(): Promise<TripResponse[]> {
+    // TODO: Replace with real API call
+    const mockTrips: TripResponse[] = [
+        {
+            id: "mock-1",
+            title: "Abenteuer in Japan",
+            shortDescription: "Tokio, Kyoto und mehr",
+            startDate: "2026-05-01",
+            endDate: "2026-05-15",
+            status: "planned",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy: {
+                id: "user-1",
+                name: "Anna Müller",
+                email: "anna@example.com",
+            },
+        },
+        {
+            id: "mock-2",
+            title: "Roadtrip durch Norwegen",
+            shortDescription: "Fjorde und Nordlichter",
+            startDate: "2026-07-10",
+            endDate: "2026-07-20",
+            status: "planned",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy: {
+                id: "user-2",
+                name: "Max Schmidt",
+                email: "max@example.com",
+            },
+        },
+        {
+            id: "mock-3",
+            title: "Städtetrip nach Barcelona",
+            shortDescription: "Kultur, Strand und Tapas",
+            startDate: "2026-06-05",
+            endDate: "2026-06-10",
+            status: "planned",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy: {
+                id: "user-3",
+                name: "Lisa Weber",
+                email: "lisa@example.com",
+            },
+        },
+    ];
+
+    return mockTrips;
+}
+
+export async function searchTrips(query: string): Promise<TripResponse[]> {
+    // TODO: Replace with real API call
+    const allTrips = await getPublicTrips();
+    
+    return allTrips.filter((trip) =>
+        trip.title.toLowerCase().includes(query.toLowerCase()) ||
+        trip.shortDescription.toLowerCase().includes(query.toLowerCase())
+    );
 }
