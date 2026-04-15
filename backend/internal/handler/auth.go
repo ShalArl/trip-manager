@@ -77,7 +77,6 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 
 		var req generated.UpdateUserRequest
 
-		// Handle regular JSON only (multipart uploads no longer supported)
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 			return
