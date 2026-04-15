@@ -115,7 +115,6 @@ func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, e
 		Key:    aws.String(fileName),
 	}
 
-	// Hier passiert die Magie: Die Signatur wird jetzt für den Endpoint in PublicURL erstellt
 	result, err := s.presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
 	if err != nil {
 		return "", err
