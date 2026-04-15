@@ -105,8 +105,7 @@ func (s *S3Storage) ReadFile(ctx context.Context, fileName string) (io.ReadClose
 }
 
 func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error) {
-	// Resultat: https://travel-nugget.duckdns.org/minio/trip-manager/avatars/file.png
-	return fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucket, fileName), nil
+	return fmt.Sprintf("%s/minio/%s/%s", s.publicURL, s.bucket, fileName), nil
 }
 
 func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
