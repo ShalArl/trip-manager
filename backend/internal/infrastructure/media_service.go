@@ -4,108 +4,84 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ShalArl/trip-manager/internal/storage"
 )
 
-// MediaService handles file operations like avatar uploads
+type MediaType string
+
+const (
+	MediaTypeAvatar   MediaType = "avatars"
+	MediaTypeTrip     MediaType = "trips"
+	MediaTypeLocation MediaType = "locations"
+	MediaTypeActivity MediaType = "activity"
+)
+
 type MediaService struct {
 	storage storage.Storage
 }
 
-// NewMediaService creates a new media service
 func NewMediaService(stor storage.Storage) *MediaService {
-	return &MediaService{
-		storage: stor,
-	}
+	return &MediaService{storage: stor}
 }
 
-// MediaType defines the type of media being uploaded
-type MediaType string
-
-const (
-	MediaTypeAvatar   MediaType = "avatar"
-	MediaTypeTrip     MediaType = "trip"
-	MediaTypeLocation MediaType = "location"
-	MediaTypeActivity MediaType = "activity"
-)
-
-// UploadImageOptions contains options for image uploads
-type UploadImageOptions struct {
-	MediaType MediaType
-	UserID    string
-	FileName  string
-}
-
-// UploadImage uploads an image file and returns the URL
-func (ms *MediaService) UploadImage(ctx context.Context, file io.Reader, opts UploadImageOptions) (string, error) {
-	if opts.UserID == "" {
-		return "", fmt.Errorf("user ID is required")
-	}
-	log.Printf("Test Test ")
-	// Validate media type
-	validTypes := map[MediaType]bool{
-		MediaTypeAvatar:   true,
-		MediaTypeTrip:     true,
-		MediaTypeLocation: true,
-		MediaTypeActivity: true,
-	}
-
-	if !validTypes[opts.MediaType] {
-		return "", fmt.Errorf("invalid media type: %s", opts.MediaType)
-	}
-
-	// Generate safe filename with media type and user ID
-	ext := filepath.Ext(opts.FileName)
-	if ext == "" {
-		ext = ".jpg" // Default extension
-	}
-
-	var storagePath string
-	switch opts.MediaType {
-	case MediaTypeAvatar:
-		// Avatar: one per user, overwrite previous
-		storagePath = fmt.Sprintf("avatars/%s%s", opts.UserID, ext)
-	default:
-		// Other types: use original filename with media type and user ID folder
-		safeFileName := sanitizeFileName(opts.FileName)
-		storagePath = fmt.Sprintf("%s/%s/%s", opts.MediaType, opts.UserID, safeFileName)
-	}
-
-	// Upload to storage
-	fileURL, err := ms.storage.Upload(ctx, storagePath, file)
+func (ms *MediaService) UploadImage(ctx context.Context, file io.Reader, userID string, mediaType MediaType, fileName string) (string, error) {
+	storagePath, err := ms.generateStoragePath(mediaType, userID, fileName)
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file: %w", err)
+		return "", err
 	}
 
-	return fileURL, nil
+	_, err = ms.storage.Upload(ctx, storagePath, file)
+	if err != nil {
+		return "", err
+	}
+
+	return ms.storage.GetUrl(ctx, storagePath)
 }
 
-// DeleteImage deletes an image file
-// Note: This method is reserved for future use
-func (ms *MediaService) DeleteImage(_ context.Context, _ string) error {
-	// Note: This would require adding Delete method to Storage interface
-	// For now, we'll just return success
-	// Storage implementation can handle cleanup
-	return nil
+func (ms *MediaService) GeneratePresignedURL(ctx context.Context, userID string, mediaType MediaType, fileName string) (string, error) {
+	storagePath, err := ms.generateStoragePath(mediaType, userID, fileName)
+	if err != nil {
+		return "", err
+	}
+
+	s3Storage, ok := ms.storage.(*storage.S3Storage)
+	if !ok {
+		return "", fmt.Errorf("storage does not support presigned URLs")
+	}
+
+	return s3Storage.GeneratePresignedURL(ctx, storagePath, 15*time.Minute)
 }
 
-// sanitizeFileName removes potentially dangerous characters from filename
+func (ms *MediaService) generateStoragePath(mType MediaType, userID string, fileName string) (string, error) {
+	// Nutze jetzt die Hilfsfunktion konsequent
+	ext := getFileExtension(fileName)
+
+	if mType == MediaTypeAvatar {
+		// avatars/USER_ID.png
+		return fmt.Sprintf("avatars/%s%s", userID, ext), nil
+	}
+
+	// trips/USER_ID/safe_name.png
+	return fmt.Sprintf("%s/%s/%s", mType, userID, sanitizeFileName(fileName)), nil
+}
+
 func sanitizeFileName(filename string) string {
-	replacer := strings.NewReplacer(
-		" ", "_",
-		"/", "_",
-		"\\", "_",
-		":", "_",
-		"*", "_",
-		"?", "_",
-		"\"", "_",
-		"<", "_",
-		">", "_",
-		"|", "_",
-	)
-	return replacer.Replace(filename)
+	return strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.' {
+			return r
+		}
+		return '_'
+	}, filename)
+}
+
+func getFileExtension(fileName string) string {
+	ext := filepath.Ext(fileName)
+	if ext == "" {
+		return ".jpg"
+	}
+	return ext
 }
