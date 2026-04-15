@@ -151,3 +151,28 @@ func DeleteTripHandler(app *app.App) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
+
+// SearchTripsHandler handles GET /api/trips/search?q=...
+func SearchTripsHandler(app *app.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Query holen
+		query := r.URL.Query().Get("q")
+		if query == "" {
+			respondError(w, http.StatusBadRequest, "query is required")
+			return
+		}
+
+		// Pagination
+		limit, offset := handlePaginationParams(r)
+
+		// Service call
+		trips, total, err := app.Services.Trip.SearchTrips(r.Context(), query, limit, offset)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Response
+		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, offset, total))
+	}
+}

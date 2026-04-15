@@ -26,6 +26,9 @@ type TripRepository interface {
 
 	// DeleteTrip removes a trip
 	DeleteTrip(ctx context.Context, id string, userId string) error
+
+	// SearchTrips searches for trips by query string
+	SearchTrips(ctx context.Context, query string, limit int, offset int) ([]*domain.Trip, int, error)
 }
 
 type TripRepositoryImpl struct {
@@ -162,6 +165,42 @@ func (t *TripRepositoryImpl) DeleteTrip(ctx context.Context, id string, userID s
 		return domain.ErrNotFound
 	}
 	return nil
+}
+
+func (t *TripRepositoryImpl) SearchTrips(ctx context.Context, query string, limit int, offset int) ([]*domain.Trip, int, error) {
+	var results []struct {
+		tripRecord
+		TotalCount int `db:"total_count"`
+	}
+
+	sqlQuery := `
+        SELECT 
+            t.*, 
+            u.id AS user_id, 
+            u.email AS user_email, 
+            u.name AS user_name, 
+            COUNT(*) OVER() as total_count
+        FROM trips t JOIN users u ON t.user_id = u.id 
+        WHERE t.title ILIKE $1 OR t.short_description ILIKE $1
+        ORDER BY t.start_date ASC, t.created_at ASC
+        LIMIT $2 OFFSET $3`
+
+	searchQuery := "%" + query + "%"
+
+	if err := t.db.SelectContext(ctx, &results, sqlQuery, searchQuery, limit, offset); err != nil {
+		return nil, 0, domain.ErrInternal
+	}
+
+	if len(results) == 0 {
+		return []*domain.Trip{}, 0, nil
+	}
+
+	trips := make([]*domain.Trip, len(results))
+	for i, res := range results {
+		trips[i] = res.tripRecord.toTrip()
+	}
+
+	return trips, results[0].TotalCount, nil
 }
 
 func NewTripRepository(db *sqlx.DB) TripRepository {
