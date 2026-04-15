@@ -24,6 +24,12 @@ export default function Home() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/search");
+    }
+  }, [user, isLoading]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -34,11 +40,6 @@ export default function Home() {
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user) {
-    router.push("/search");
-    return null;
   }
 
   return (
