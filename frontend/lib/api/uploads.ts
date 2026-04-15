@@ -80,9 +80,10 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
     // Extract the public URL from the presigned URL by removing query parameters
     // Presigned URL format: https://domain/minio/trip-manager/avatars/userId.ext?X-Amz-Algorithm=...
     // Public URL format:    https://domain/minio/trip-manager/avatars/userId.ext
-    const publicUrl = presignedUrl.split('?')[0];
+    const baseImageUrl = presignedUrl.split('?')[0];
+    const correctAvatarUrl = baseImageUrl.replace('travel-nugget.duckdns.org/', 'travel-nugget.duckdns.org/minio/');
 
-    console.log("[uploadAvatar] Avatar uploaded successfully:", publicUrl);
-    return publicUrl;
+    console.log("[uploadAvatar] Avatar uploaded successfully:", correctAvatarUrl);
+    return correctAvatarUrl;
 }
 
