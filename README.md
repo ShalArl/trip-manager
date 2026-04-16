@@ -30,7 +30,7 @@ pnpm dev
 - Auto-generated types from OpenAPI spec
 
 ### Backend
-- **Go** (1.24+)
+- **Go** (1.25+)
 - Auto-generated server code from OpenAPI spec
 - PostgreSQL database
 - JWT-based authentication
@@ -38,7 +38,6 @@ pnpm dev
 See the following guides for further information:
 - **[Authentication Setup](./backend/AUTH.md)** - JWT configuration and usage
 - **[Makefile](./docs/MAKEFILE.md)** - Development environment setup and common tasks
-- 
 
 ### API Specification
 - **OpenAPI 3.0.0** (`api-spec/openapi.yaml`)
@@ -94,6 +93,9 @@ Comprehensive deployment guides:
 - Manual deployment: `cd deploy/hetzner && ./manual-deploy.sh <server-ip> <user> <port>`
 
 ---
+
+## Learn More
+- **[Documentation](./docs/README.md)** - Full documentation for all aspects of the project
 
 Developed by
 
