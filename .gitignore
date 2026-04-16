@@ -48,3 +48,8 @@ backend/tmp/              # Temporary build files
 backend/.turbo/           # Turbo cache
 
 **/generated/
+
+
+# tests
+
+.venv/

@@ -46,7 +46,7 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 		// Extract userId from JWT token in context
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
@@ -71,7 +71,7 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 		// Extract userId from JWT token in context
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
@@ -101,7 +101,7 @@ func ChangePasswordHandler(app *app.App) http.HandlerFunc {
 		// Extract userId from JWT token in context
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
@@ -129,7 +129,7 @@ func GetUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
@@ -180,7 +180,7 @@ func UpdateUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
@@ -210,7 +210,7 @@ func DeleteUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 

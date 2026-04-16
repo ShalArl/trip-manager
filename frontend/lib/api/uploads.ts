@@ -1,25 +1,19 @@
 import {getAuthHeaders} from "./auth";
+import {FileUploadRequest, PresignedURLRequest, PresignedURLResponse} from "@/types/upload";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
+const S3_URL = process.env.NEXT_PUBLIC_S3_PUBLIC_URL || "http://localhost:9000";
 /**
  * Get a presigned URL for direct file upload to S3/MinIO
- * @param fileName - Name of the file to upload
- * @param mediaType - Type of media (avatar, trip, location, activity)
  * @returns Presigned URL that can be used for PUT requests
+ * @param req PresignedURLRequest
  */
-export async function getPresignedUrl(fileName: string, mediaType: string): Promise<{
-    presignedUrl: string;
-    expiresIn: number;
-}> {
+export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
 
     const response = await fetch(`${API_URL}/api/uploads/presigned`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-            fileName,
-            mediaType,
-        }),
+        body: JSON.stringify(req),
     });
 
     if (!response.ok) {
@@ -33,16 +27,18 @@ export async function getPresignedUrl(fileName: string, mediaType: string): Prom
 
 /**
  * Upload a file directly to S3/MinIO using a presigned URL
- * @param presignedUrl - The presigned URL from getPresignedUrl()
- * @param file - The file to upload
+ * @param fileUploadRequest of type FileUploadRequest
  */
-export async function uploadToPresignedUrl(presignedUrl: string, file: File): Promise<void> {
+export async function uploadToPresignedUrl(fileUploadRequest: FileUploadRequest): Promise<void> {
     console.log("[uploadToPresignedUrl] Starting upload to presigned URL...");
+
+    const file = fileUploadRequest.file;
+    const presignedUrl = fileUploadRequest.url;
 
     // Read file as binary
     const arrayBuffer = await file.arrayBuffer();
-    const uploadUrl = presignedUrl.replace('travel-nugget.duckdns.org/',
-        'travel-nugget.duckdns.org/minio/');
+    // Workaround because caddy strips minio prefix leading to incorrect bucket resolution
+    const uploadUrl = presignedUrl.replace(S3_URL, `${S3_URL}/minio/`);
 
     const response = await fetch(uploadUrl, {
         method: "PUT",
@@ -64,23 +60,31 @@ export async function uploadToPresignedUrl(presignedUrl: string, file: File): Pr
  * Upload an avatar directly to S3/MinIO
  * Combines getPresignedUrl and uploadToPresignedUrl
  * @param file - Avatar file to upload
- * @param userId - User ID (used for the filename)
+ * @param _userId unused for now as userid is already part of the presignedUrl
  * @returns The public URL of the uploaded avatar
  */
-export async function uploadAvatar(file: File, userId: string): Promise<string> {
+export async function uploadAvatar(file: File, _userId: string): Promise<string> {
     // Get presigned URL
     console.log("[uploadAvatar] Getting presigned URL...");
-    const {presignedUrl, expiresIn} = await getPresignedUrl(file.name, "avatar");
-    console.log("[uploadAvatar] Got presigned URL, expires in", expiresIn, "seconds");
+    const req: PresignedURLRequest = {
+        fileName: file.name,
+        mediaType: "avatar"
+    };
+    const response = await getPresignedUrl(req);
+    console.log("[uploadAvatar] Got presigned URL, expires in", response.expiresIn, "seconds");
 
     // Upload to S3/MinIO directly
     console.log("[uploadAvatar] Uploading to S3/MinIO...");
-    await uploadToPresignedUrl(presignedUrl, file);
+    const fileUploadRequest: FileUploadRequest = {
+        url: response.presignedUrl,
+        file: file,
+    };
+    await uploadToPresignedUrl(fileUploadRequest);
 
     // Extract the public URL from the presigned URL by removing query parameters
     // Presigned URL format: https://domain/minio/trip-manager/avatars/userId.ext?X-Amz-Algorithm=...
     // Public URL format:    https://domain/minio/trip-manager/avatars/userId.ext
-    const baseImageUrl = presignedUrl.split('?')[0];
+    const baseImageUrl = response.presignedUrl.split('?')[0];
     const correctAvatarUrl = baseImageUrl.replace('travel-nugget.duckdns.org/', 'travel-nugget.duckdns.org/minio/');
 
     console.log("[uploadAvatar] Avatar uploaded successfully:", correctAvatarUrl);

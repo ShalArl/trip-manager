@@ -134,6 +134,12 @@ func UpdateTripHandler(app *app.App) http.HandlerFunc {
 // DeleteTripHandler handles DELETE /api/trips/{tripId}
 func DeleteTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		tripId := r.PathValue("tripId")
 		if tripId == "" {
 			respondError(w, http.StatusBadRequest, "Trip ID is required")
@@ -142,7 +148,7 @@ func DeleteTripHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("DeleteTrip: id=%s", tripId)
 
-		err := app.Services.Trip.DeleteTrip(r.Context(), tripId, "user-id-placeholder")
+		err = app.Services.Trip.DeleteTrip(r.Context(), tripId, userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

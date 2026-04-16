@@ -7,6 +7,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/app"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
 // ListLocationsHandler handles GET /api/trips/{tripId}/locations with pagination
@@ -61,6 +62,12 @@ func GetLocationHandler(app *app.App) http.HandlerFunc {
 // CreateLocationHandler handles POST /api/trips/{tripId}/locations
 func CreateLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		tripId := r.PathValue("tripId")
 		if tripId == "" {
 			respondError(w, http.StatusBadRequest, "Trip ID is required")
@@ -76,7 +83,7 @@ func CreateLocationHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("CreateLocation: tripId=%s, name=%s", tripId, req.Name)
 
-		location, err := app.Services.Location.CreateLocation(r.Context(), &req, tripId, "user-id-placeholder")
+		location, err := app.Services.Location.CreateLocation(r.Context(), &req, tripId, userID)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -91,6 +98,12 @@ func CreateLocationHandler(app *app.App) http.HandlerFunc {
 // UpdateLocationHandler handles PUT /api/locations/{locationId}
 func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		locationId := r.PathValue("locationId")
 		if locationId == "" {
 			respondError(w, http.StatusBadRequest, "Location ID is required")
@@ -106,7 +119,7 @@ func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("UpdateLocation: id=%s", locationId)
 
-		location, err := app.Services.Location.UpdateLocation(r.Context(), &req, locationId, "user-id-placeholder")
+		location, err := app.Services.Location.UpdateLocation(r.Context(), &req, locationId, userID)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -121,6 +134,12 @@ func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 // DeleteLocationHandler handles DELETE /api/locations/{locationId}
 func DeleteLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, _, err := middleware.GetUserInfoFromContext(r)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		locationId := r.PathValue("locationId")
 		if locationId == "" {
 			respondError(w, http.StatusBadRequest, "Location ID is required")
@@ -129,7 +148,7 @@ func DeleteLocationHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("DeleteLocation: id=%s", locationId)
 
-		err := app.Services.Location.DeleteLocation(r.Context(), locationId, "user-id-placeholder")
+		err = app.Services.Location.DeleteLocation(r.Context(), locationId, userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

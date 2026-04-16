@@ -6,21 +6,10 @@ import (
 	"net/http"
 
 	"github.com/ShalArl/trip-manager/internal/app"
+	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/middleware"
 )
-
-// PresignedURLRequest contains the request for a presigned URL
-type PresignedURLRequest struct {
-	FileName  string `json:"fileName"`
-	MediaType string `json:"mediaType"` // "avatar", "trip", "location", "activity"
-}
-
-// PresignedURLResponse contains the presigned URL and expiration
-type PresignedURLResponse struct {
-	PresignedURL string `json:"presignedUrl"`
-	ExpiresIn    int    `json:"expiresIn"` // in seconds
-}
 
 // GetPresignedURLHandler handles POST /api/uploads/presigned
 // Returns a presigned URL for direct uploads to MinIO/S3
@@ -29,11 +18,11 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		// Extract userId from JWT token in context
 		userId, _, _, err := middleware.GetUserInfoFromContext(r)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
-		var req PresignedURLRequest
+		var req generated.PresignedURLRequest
 
 		// Parse JSON request body
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -79,8 +68,8 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("[Handler] GetPresignedURL: Successfully generated presigned URL for userId=%s", userId)
 
-		response := PresignedURLResponse{
-			PresignedURL: presignedURL,
+		response := generated.PresignedURLResponse{
+			PresignedUrl: presignedURL,
 			ExpiresIn:    15 * 60, // 15 minutes in seconds
 		}
 
