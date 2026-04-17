@@ -53,11 +53,17 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
   console.log("Token vorhanden:", !!token);
   console.log("API_URL:", API_URL);
 
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
     method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
+    headers,
   });
 
   if (!response.ok) {

@@ -31,7 +31,8 @@ export default function SearchPage() {
             if (trimmedQuery.length === 0) {
                 setIsLoading(true);
                 try {
-                    const results = await getRecentPublicTrips(5);
+                    const numberOfRecentTrips = 5
+                    const results = await getRecentPublicTrips(numberOfRecentTrips);
                     setTrips(results);
                 } catch (error) {
                     console.error(error);
