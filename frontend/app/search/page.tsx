@@ -25,28 +25,27 @@ export default function SearchPage() {
     };
 
     useEffect(() => {
-        const loadPublicTrips = async () => {
-            setIsLoading(true);
-            try {
-                const numberOfRecentTrips = 5
-                const results = await getRecentPublicTrips(numberOfRecentTrips);
-                setTrips(results);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadPublicTrips();
-    }, []);
-
-    useEffect(() => {
         const fetchTrips = async () => {
-            if (query.trim().length < 3) return;
+            const trimmedQuery = query.trim();
+
+            if (trimmedQuery.length === 0) {
+                setIsLoading(true);
+                try {
+                    const results = await getRecentPublicTrips(5);
+                    setTrips(results);
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            if (trimmedQuery.length < 3) return;
 
             setIsLoading(true);
             try {
-                const results = await searchTrips(query);
+                const results = await searchTrips(trimmedQuery);
                 setTrips(results);
             } catch (error) {
                 console.error(error);
@@ -57,7 +56,7 @@ export default function SearchPage() {
 
         const debounce = setTimeout(fetchTrips, 300);
         return () => clearTimeout(debounce);
-    }, [query]);;
+    }, [query]);
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
