@@ -66,7 +66,8 @@ func main() {
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
 		r.Post("/auth/register", handler.CreateUserHandler(application))
 		r.Post("/auth/login", handler.LoginHandler(application))
-		r.Get("/trips/search", handler.SearchTripsHandler(application)) // ← hier hinzufügen#
+		r.Get("/trips/search", handler.SearchTripsHandler(application))
+		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
 		// Protected routes - require JWT authentication
 		r.Group(func(r chi.Router) {

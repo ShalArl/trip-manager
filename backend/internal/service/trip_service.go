@@ -27,6 +27,9 @@ type TripService interface {
 
 	// SearchTrips searches for trips by query string
 	SearchTrips(ctx context.Context, query string, limit, offset int) ([]*domain.Trip, int, error)
+
+	// ListRecentTrips retrieves the most recent trips across all users
+	ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error)
 }
 
 type TripServiceImpl struct {
@@ -124,6 +127,14 @@ func (t *TripServiceImpl) SearchTrips(ctx context.Context, query string, limit, 
 		return nil, 0, fmt.Errorf("failed to search trips: %w", err)
 	}
 	return trips, totalCount, nil
+}
+
+func (t *TripServiceImpl) ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error) {
+	trips, err := t.tripRepository.ListRecentTrips(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list recent trips: %w", err)
+	}
+	return trips, nil
 }
 
 func NewTripService(tripRepository repository.TripRepository, locationRepository repository.LocationRepository, activityRepository repository.ActivityRepository) TripService {

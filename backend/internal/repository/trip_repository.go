@@ -29,6 +29,9 @@ type TripRepository interface {
 
 	// SearchTrips searches for trips by query string
 	SearchTrips(ctx context.Context, query string, limit int, offset int) ([]*domain.Trip, int, error)
+
+	// ListRecentTrips retrieves the most recent trips across all users
+	ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error)
 }
 
 type TripRepositoryImpl struct {
@@ -201,6 +204,30 @@ func (t *TripRepositoryImpl) SearchTrips(ctx context.Context, query string, limi
 	}
 
 	return trips, results[0].TotalCount, nil
+}
+
+func (t *TripRepositoryImpl) ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error) {
+	var results []tripRecord
+	query := `
+        SELECT 
+            t.*, 
+            u.id AS user_id, 
+            u.email AS user_email, 
+            u.name AS user_name
+        FROM trips t JOIN users u ON t.user_id = u.id 
+        ORDER BY t.created_at DESC
+        LIMIT $1`
+	if err := t.db.SelectContext(ctx, &results, query, limit); err != nil {
+		return nil, domain.ErrInternal
+	}
+	if len(results) == 0 {
+		return []*domain.Trip{}, nil
+	}
+	trips := make([]*domain.Trip, len(results))
+	for i, res := range results {
+		trips[i] = res.toTrip()
+	}
+	return trips, nil
 }
 
 func NewTripRepository(db *sqlx.DB) TripRepository {

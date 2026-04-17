@@ -24,7 +24,6 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		}
 		// Parse query parameters
 		limit, offset := handlePaginationParams(r)
-
 		app.Logger.Printf("ListTrips: limit=%d, offset=%d", limit, offset)
 
 		// Handler only parses parameters - Service does validation + coordination
@@ -36,9 +35,25 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 		}
 
 		tripsResponse := mapTripsToTripListResponse(trips, limit, offset, total)
-
 		app.Logger.Printf("ListTrips response: %+v", tripsResponse)
+
 		respondJSON(w, http.StatusOK, tripsResponse)
+	}
+}
+
+// ListRecentTripsHandler handles GET /api/trips/recent (public, no auth required)
+func ListRecentTripsHandler(app *app.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, _ := handlePaginationParams(r)
+
+		trips, err := app.Services.Trip.ListRecentTrips(r.Context(), limit)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			app.Logger.Printf("ListRecentTrips error: %v", err)
+			return
+		}
+
+		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, 0, len(trips)))
 	}
 }
 
