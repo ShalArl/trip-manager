@@ -24,6 +24,12 @@ type TripService interface {
 
 	// DeleteTrip removes a trip from the system by its ID.
 	DeleteTrip(ctx context.Context, id, userId string) error
+
+	// SearchTrips searches for trips by query string
+	SearchTrips(ctx context.Context, query string, limit, offset int) ([]*domain.Trip, int, error)
+
+	// ListRecentTrips retrieves the most recent trips across all users
+	ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error)
 }
 
 type TripServiceImpl struct {
@@ -113,6 +119,22 @@ func (t *TripServiceImpl) UpdateTrip(ctx context.Context, request *generated.Upd
 	}
 
 	return updatedTrip, nil
+}
+
+func (t *TripServiceImpl) SearchTrips(ctx context.Context, query string, limit, offset int) ([]*domain.Trip, int, error) {
+	trips, totalCount, err := t.tripRepository.SearchTrips(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search trips: %w", err)
+	}
+	return trips, totalCount, nil
+}
+
+func (t *TripServiceImpl) ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error) {
+	trips, err := t.tripRepository.ListRecentTrips(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list recent trips: %w", err)
+	}
+	return trips, nil
 }
 
 func NewTripService(tripRepository repository.TripRepository, locationRepository repository.LocationRepository, activityRepository repository.ActivityRepository) TripService {

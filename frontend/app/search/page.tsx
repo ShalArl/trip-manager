@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUserContext } from "@/lib/context/UserContext";
-import { searchTrips, getPublicTrips } from "@/lib/api/trips";
+import { searchTrips, getRecentPublicTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 import Navbar from "@/components/global/Navbar";
 import Link from "next/link";
@@ -26,11 +26,27 @@ export default function SearchPage() {
 
     useEffect(() => {
         const fetchTrips = async () => {
+            const trimmedQuery = query.trim();
+
+            if (trimmedQuery.length === 0) {
+                setIsLoading(true);
+                try {
+                    const numberOfRecentTrips = 5
+                    const results = await getRecentPublicTrips(numberOfRecentTrips);
+                    setTrips(results);
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            if (trimmedQuery.length < 3) return;
+
             setIsLoading(true);
             try {
-                const results = query
-                    ? await searchTrips(query)
-                    : await getPublicTrips();
+                const results = await searchTrips(trimmedQuery);
                 setTrips(results);
             } catch (error) {
                 console.error(error);
