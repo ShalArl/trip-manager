@@ -3,27 +3,29 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // Config holds application configuration
 type Config struct {
-	DatabaseURL string
-	ServerPort  string
-	Environment string
-	JWTSecret   string
+	CORSAllowedOrigins []string
+	DatabaseURL        string
+	ServerPort         string
+	Environment        string
+	JWTSecret          string
 
 	// Storage configuration
 	StorageType string
 	UploadDir   string // For local storage
 
 	// S3 configuration (for MinIO or AWS S3)
-	S3Endpoint   string
-	S3Bucket     string
-	S3Region     string
-	S3AccessKey  string
-	S3SecretKey  string
-	S3PublicURL  string
-	S3UseSSL     bool
+	S3Endpoint  string
+	S3Bucket    string
+	S3Region    string
+	S3AccessKey string
+	S3SecretKey string
+	S3PublicURL string
+	S3UseSSL    bool
 }
 
 // LoadConfig loads configuration from environment variables
@@ -32,10 +34,11 @@ func LoadConfig() (*Config, error) {
 	databaseURL := buildDatabaseURL()
 
 	cfg := &Config{
-		DatabaseURL: databaseURL,
-		ServerPort:  getEnv("SERVER_PORT", "8000"),
-		Environment: getEnv("ENVIRONMENT", "development"),
-		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		CORSAllowedOrigins: parseOrigins(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
+		DatabaseURL:        databaseURL,
+		ServerPort:         getEnv("SERVER_PORT", "8000"),
+		Environment:        getEnv("ENVIRONMENT", "development"),
+		JWTSecret:          getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 
 		// Storage configuration
 		StorageType: getEnv("STORAGE_TYPE", "local"),
@@ -90,6 +93,18 @@ func getEnvBool(key string, defaultValue bool) bool {
 		return value == "true" || value == "1" || value == "yes"
 	}
 	return defaultValue
+}
+
+// parseOrigins parses a comma-separated list of origins into a slice
+func parseOrigins(s string) []string {
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // String returns a string representation of the config (without sensitive data)
