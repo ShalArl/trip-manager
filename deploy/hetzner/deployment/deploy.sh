@@ -20,6 +20,15 @@ log() {
 
 log "📋 Deployment started"
 
+# Process .env file with envsubst to replace variables like {DOMAIN}
+if [ -f "$PROJECT_DIR/.env" ]; then
+    log "🔄 Processing .env file with environment variables..."
+    # Create a temporary .env.processed file
+    envsubst < "$PROJECT_DIR/.env" > "$PROJECT_DIR/.env.processed"
+    mv "$PROJECT_DIR/.env.processed" "$PROJECT_DIR/.env"
+    log "✅ .env file processed successfully"
+fi
+
 # Load environment variables from .env file
 if [ -f "$PROJECT_DIR/.env" ]; then
     log "📂 Loading environment variables from .env..."
@@ -70,11 +79,7 @@ else
     log "✅ Frontend is healthy"
 fi
 
-# 5. Reload Caddy configuration (Host Caddy)
-log "🔄 Reloading Caddy configuration..."
-sudo systemctl reload caddy 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Caddy reload warning"
-
-# 6. Cleanup old images
+# 5. Cleanup old images
 log "🧹 Cleaning up old images..."
 docker image prune -f 2>&1 | tee -a "$LOG_FILE"
 

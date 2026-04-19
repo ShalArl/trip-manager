@@ -1,0 +1,84 @@
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { UserResponse } from "@/types/user";
+import { getMe } from "@/lib/api/auth";
+
+type UserContextType = {
+  user: UserResponse | null;
+  isLoading: boolean;
+  error: Error | null;
+  updateUser: (user: UserResponse | null) => void;
+  refetchUser: () => Promise<void>;
+};
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Load user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const userData = await getMe();
+        setUser(userData);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Failed to load user"));
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  const updateUser = (userData: UserResponse | null) => {
+    console.log("[UserContext] updateUser called with:", userData);
+    if (userData) {
+      console.log("[UserContext] avatarUrl:", userData.avatarUrl);
+    }
+    setUser(userData);
+    // Optional: store in localStorage for persistence
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+    } else {
+      localStorage.removeItem("user");
+    }
+    console.log("[UserContext] User state updated");
+  };
+
+  const refetchUser = async () => {
+    try {
+      const userData = await getMe();
+      setUser(userData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Failed to fetch user"));
+    }
+  };
+
+  return (
+    <UserContext.Provider value={{ user, isLoading, error, updateUser, refetchUser }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+export function useUserContext() {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useUserContext must be used within a UserProvider");
+  }
+  return context;
+}
+

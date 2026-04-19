@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/repository"
-	"github.com/ShalArl/trip-manager/internal/storage"
 )
 
 type UserService interface {
@@ -32,7 +32,13 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	userRepository repository.UserRepository
-	s              *storage.Storage
+}
+
+// NewUserService creates a new UserService
+func NewUserService(userRepo repository.UserRepository) UserService {
+	return &UserServiceImpl{
+		userRepository: userRepo,
+	}
 }
 
 // CreateUser implements [UserService].
@@ -44,6 +50,8 @@ func (u *UserServiceImpl) CreateUser(ctx context.Context, request *generated.Cre
 
 	// 2. Convert from generated type to domain
 	user := mapCreateUserRequestToUser(request)
+
+	log.Default().Printf("Creating user with email: %s and password: %s", user.Email, user.PasswordHash)
 
 	// 3. Call repository to persist
 	createdUser, err := u.userRepository.CreateUser(ctx, user)
@@ -91,14 +99,20 @@ func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *ge
 		return nil, err
 	}
 
+	log.Printf("[Service] UpdateUser: Validating request - AvatarUrl=%v", request.AvatarUrl)
+
 	// 2. Fetch existing user
 	existingUser, err := u.userRepository.GetUser(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	log.Printf("[Service] UpdateUser: Existing user - ID=%s, AvatarURL=%s", existingUser.ID, existingUser.AvatarURL)
+
 	// 3. Convert from generated type to domain
 	user := mapUpdateUserRequestToUser(request, existingUser)
+
+	log.Printf("[Service] UpdateUser: Mapped user - ID=%s, AvatarURL=%s", user.ID, user.AvatarURL)
 
 	// 4. Call repository to update and get updated record
 	updatedUser, err := u.userRepository.UpdateUserProfile(ctx, user)
@@ -106,8 +120,11 @@ func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *ge
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
+	log.Printf("[Service] UpdateUser: Updated user from repo - ID=%s, AvatarURL=%s", updatedUser.ID, updatedUser.AvatarURL)
+
 	return updatedUser, nil
 }
+
 
 // UpdateUserPassword called only internally by AuthService therefore no validation
 func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {
@@ -116,11 +133,4 @@ func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.U
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 	return updatedUser, nil
-}
-
-func NewUserService(userRepository repository.UserRepository, s *storage.Storage) UserService {
-	return &UserServiceImpl{
-		userRepository: userRepository,
-		s:              s,
-	}
 }

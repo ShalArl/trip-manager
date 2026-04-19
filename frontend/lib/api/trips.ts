@@ -29,7 +29,7 @@ export async function getTrips(): Promise<TripResponse[]> {
   const token = localStorage.getItem("token");
   console.log("Token vorhanden:", !!token);
   console.log("API_URL:", API_URL);
-  
+
   const response = await fetch(`${API_URL}/api/trips`, {
     method: "GET",
     headers: {
@@ -52,12 +52,18 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
   const token = localStorage.getItem("token");
   console.log("Token vorhanden:", !!token);
   console.log("API_URL:", API_URL);
-  
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
     method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -68,4 +74,39 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
 
   const data = await response.json();
   return data as TripResponse;
+}
+
+export async function getRecentPublicTrips(limit: number): Promise<TripResponse[]> {
+  const response = await fetch(
+    `${API_URL}/api/trips/recent?limit=${limit}`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Fehler: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.data as TripResponse[];
+}
+
+export async function searchTrips(query: string): Promise<TripResponse[]> {
+  const response = await fetch(
+    `${API_URL}/api/trips/search?q=${encodeURIComponent(query)}`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`Fehler bei Suche (${response.status}):`, errorData);
+    throw new Error(`Fehler bei Suche: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  return data.data as TripResponse[];
 }

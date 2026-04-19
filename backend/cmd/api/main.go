@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -65,10 +66,18 @@ func main() {
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
 		r.Post("/auth/register", handler.CreateUserHandler(application))
 		r.Post("/auth/login", handler.LoginHandler(application))
+		r.Get("/trips/search", handler.SearchTripsHandler(application))
+		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
+
+		// ─── Optional Auth Routes (public but user context if available) ────────
+		r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/trips/{tripId}", handler.GetTripHandler(application))
 
 		// Protected routes - require JWT authentication
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.AuthMiddleware(authManager))
+
+			// ─── Upload Routes ──────────────────────────────────────────────────────
+			r.Post("/uploads/presigned", handler.GetPresignedURLHandler(application))
 
 			// ─── User Routes ────────────────────────────────────────────────────────
 			r.Get("/users/me", handler.GetMeHandler(application))
@@ -81,7 +90,7 @@ func main() {
 			// ─── Trip Routes ────────────────────────────────────────────────────────
 			r.Get("/trips", handler.ListTripsHandler(application))
 			r.Post("/trips", handler.CreateTripHandler(application))
-			r.Get("/trips/{tripId}", handler.GetTripHandler(application))
+			//r.Get("/trips/{tripId}", handler.GetTripHandler(application))
 			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
 			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
 
@@ -125,6 +134,15 @@ func main() {
 			log.Printf("Error writing health check response: %v", err)
 		}
 	})
+
+	// TODO: This is just for testing until gcloud storage is implemented. In production, these should be served by a CDN or object storage service.
+	// Serve uploaded files
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(http.Dir(uploadDir))))
+
 	// Start server
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
 	application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)

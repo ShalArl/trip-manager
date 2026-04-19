@@ -1,0 +1,161 @@
+import random
+from locust import task, between
+from tests.base import BaseUser
+from seeding.generators import generate_trip, generate_location, generate_activity
+
+
+class PowerUser(BaseUser):
+    weight = 20
+    wait_time = between(1, 3)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.trip_ids: list[str] = []
+        self.location_ids: dict[str, list[str]] = {}
+        self.activity_ids: dict[str, dict[str, list[str]]] = {}
+
+    def on_start(self):
+        super().on_start()
+
+    # -- Helpers --
+
+    def _random_trip_id(self) -> str | None:
+        return random.choice(self.trip_ids) if self.trip_ids else None
+
+    def _random_location_id(self, trip_id: str) -> str | None:
+        ids = self.location_ids.get(trip_id, [])
+        return random.choice(ids) if ids else None
+
+    def _random_activity_id(self, trip_id: str, location_id: str) -> str | None:
+        ids = self.activity_ids.get(trip_id, {}).get(location_id, [])
+        return random.choice(ids) if ids else None
+
+    # -- Tasks --
+
+    @task(3)
+    def create_full_trip(self):
+        # Trip
+        resp = self.client.post("/trips", json=generate_trip())
+        if resp.status_code != 201:
+            return
+        trip_id = resp.json()["id"]
+        self.trip_ids.append(trip_id)
+        self.location_ids[trip_id] = []
+        self.activity_ids[trip_id] = {}
+
+        # Location
+        loc_resp = self.client.post(f"/trips/{trip_id}/locations", json=generate_location())
+        if loc_resp.status_code != 201:
+            return
+        location_id = loc_resp.json()["id"]
+        self.location_ids[trip_id].append(location_id)
+        self.activity_ids[trip_id][location_id] = []
+
+        # Activity
+        act_resp = self.client.post(
+            f"/trips/{trip_id}/locations/{location_id}/activities",
+            json=generate_activity(location_id)
+        )
+        if act_resp.status_code == 201:
+            activity_id = act_resp.json()["id"]
+            self.activity_ids[trip_id][location_id].append(activity_id)
+
+    @task(2)
+    def add_location(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        resp = self.client.post(f"/trips/{trip_id}/locations", json=generate_location())
+        if resp.status_code == 201:
+            location_id = resp.json()["id"]
+            self.location_ids[trip_id].append(location_id)
+            self.activity_ids[trip_id][location_id] = []
+
+    @task(2)
+    def add_activity(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+        resp = self.client.post(
+            f"/trips/{trip_id}/locations/{location_id}/activities",
+            json=generate_activity(location_id)
+        )
+        if resp.status_code == 201:
+            self.activity_ids[trip_id][location_id].append(resp.json()["id"])
+
+    @task(1)
+    def update_trip(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        self.client.put(f"/trips/{trip_id}", json=generate_trip())
+
+    @task(1)
+    def update_location(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+        self.client.put(f"/trips/{trip_id}/locations/{location_id}", json=generate_location())
+
+    @task(1)
+    def update_activity(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+        activity_id = self._random_activity_id(trip_id, location_id)
+        if not activity_id:
+            return
+        self.client.put(
+            f"/trips/{trip_id}/locations/{location_id}/activities/{activity_id}",
+            json=generate_activity(location_id)
+        )
+
+    @task(1)
+    def delete_trip(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        resp = self.client.delete(f"/trips/{trip_id}")
+        if resp.status_code == 204:
+            self.trip_ids.remove(trip_id)
+            self.location_ids.pop(trip_id, None)
+            self.activity_ids.pop(trip_id, None)
+
+    @task(1)
+    def delete_location(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+        resp = self.client.delete(f"/trips/{trip_id}/locations/{location_id}")
+        if resp.status_code == 204:
+            self.location_ids[trip_id].remove(location_id)
+            self.activity_ids[trip_id].pop(location_id, None)
+
+    @task(1)
+    def delete_activity(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+        activity_id = self._random_activity_id(trip_id, location_id)
+        if not activity_id:
+            return
+        resp = self.client.delete(
+            f"/trips/{trip_id}/locations/{location_id}/activities/{activity_id}"
+        )
+        if resp.status_code == 204:
+            self.activity_ids[trip_id][location_id].remove(activity_id)

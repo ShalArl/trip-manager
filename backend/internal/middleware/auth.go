@@ -54,6 +54,40 @@ func AuthMiddleware(authManager *auth.AuthManager) func(http.Handler) http.Handl
 	}
 }
 
+// OptionalAuthMiddleware validates JWT tokens if present, but allows requests without tokens
+func OptionalAuthMiddleware(authManager *auth.AuthManager) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+
+			// Kein Token → einfach weitermachen ohne User-Kontext
+			if authHeader == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Token vorhanden → validieren
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			claims, err := authManager.VerifyToken(parts[1])
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// User-Kontext setzen
+			ctx := context.WithValue(r.Context(), UserIDContextKey, claims.UserID)
+			ctx = context.WithValue(ctx, UserEmailContextKey, claims.Email)
+			ctx = context.WithValue(ctx, UserNameContextKey, claims.Name)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // GetUserInfoFromContext extracts and returns user id, name and email from request context
 func GetUserInfoFromContext(r *http.Request) (string, string, string, error) {
 	userID, ok := r.Context().Value(UserIDContextKey).(string)

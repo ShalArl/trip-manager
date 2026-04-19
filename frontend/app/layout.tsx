@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import React from "react";
+import {Providers} from "@/app/providers";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -30,7 +31,9 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-roboto), sans-serif" }}
         suppressHydrationWarning
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

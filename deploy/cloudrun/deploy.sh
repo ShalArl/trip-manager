@@ -1,0 +1,105 @@
+#!/bin/bash
+set -euo pipefail
+
+source .env
+
+for f in scripts/lib.sh scripts/database.sh scripts/artifactory.sh \
+         scripts/storage.sh scripts/runtime_sa.sh scripts/cloudrun.sh; do
+    source "$f"
+done
+
+# gcloud auth login --quiet
+
+ENABLE_STORAGE="${ENABLE_STORAGE:-false}"
+
+
+# === Phase 1: Project & APIs ===
+ensure_project "$PROJECT_ID"
+ensure_services \
+    artifactregistry.googleapis.com \
+    run.googleapis.com \
+    sqladmin.googleapis.com \
+    storage.googleapis.com \
+    secretmanager.googleapis.com \
+    iam.googleapis.com \
+    iamcredentials.googleapis.com
+
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+
+# === Phase 2: WIF ===
+ensure_wif "$WIF_POOL" "$WIF_PROVIDER"
+
+# === Phase 3: Deploy Service Account ===
+ensure_service_account "$DEPLOY_SA_NAME" "Deploy Service Account"
+DEPLOY_SA_EMAIL="$DEPLOY_SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA_EMAIL" \
+    --project="$PROJECT_ID" \
+    --role="roles/iam.workloadIdentityUser" \
+    --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$WIF_POOL/attribute.repository/$GITHUB_REPO"
+
+add_iam_role "$DEPLOY_SA_NAME" "roles/artifactregistry.writer"
+add_iam_role "$DEPLOY_SA_NAME" "roles/run.admin"
+add_iam_role "$DEPLOY_SA_NAME" "roles/iam.serviceAccountUser"
+
+# === Phase 4: Artifact Registry ===
+setup_artifact_registry
+
+# === Phase 5: Cloud SQL + DB-Passwort ===
+SQL_INSTANCE="${APP_NAME}-db"
+SQL_DB_NAME="${DB_NAME:-tripmanager}"
+SQL_DB_USER="${DB_USER:-app}"
+SQL_REGION="${REGION:-europe-west3}"
+SQL_TIER="db-f1-micro"
+
+setup_db_password   # setzt $DB_PASSWORD aus Secret Manager
+setup_instance "$SQL_INSTANCE" "$SQL_DB_NAME" "$SQL_DB_USER" "$DB_PASSWORD" "$SQL_REGION" "$SQL_TIER"
+create_db_user "$SQL_INSTANCE" "$SQL_DB_USER" "$DB_PASSWORD"
+create_database "$SQL_INSTANCE" "$SQL_DB_NAME"
+
+SQL_CONNECTION_NAME="${PROJECT_ID}:${SQL_REGION}:${SQL_INSTANCE}"
+
+# === Phase 6: Secrets ===
+DATABASE_URL="postgres://${SQL_DB_USER}:${DB_PASSWORD}@/${SQL_DB_NAME}?host=/cloudsql/${SQL_CONNECTION_NAME}&sslmode=disable"
+create_secret_if_missing "database-url" "$DATABASE_URL"
+
+JWT_SECRET="${JWT_SECRET:-$(openssl rand -base64 48)}"
+create_secret_if_missing "jwt-secret" "$JWT_SECRET"
+
+# === Phase 7: GCS + HMAC ===
+if [ "$ENABLE_STORAGE" = "true" ]; then
+    GCS_BUCKET="${PROJECT_ID}-${APP_NAME}-media"
+    setup_gcs_bucket "$GCS_BUCKET" "$SQL_REGION"
+    setup_storage_sa_and_hmac "$GCS_BUCKET"
+else
+    echo "Skipping storage setup (ENABLE_STORAGE=false)."
+fi
+
+# === Phase 8: Runtime SA ===
+setup_runtime_sa   # exportiert $RUNTIME_SA_EMAIL
+
+# === Phase 9: Cloud Run Services ===
+BACKEND_SERVICE="${APP_NAME}-backend"
+FRONTEND_SERVICE="${APP_NAME}-frontend"
+
+deploy_backend_service "$BACKEND_SERVICE" "$SQL_REGION"
+BACKEND_URL=$(get_service_url "$BACKEND_SERVICE" "$SQL_REGION")
+
+deploy_frontend_service "$FRONTEND_SERVICE" "$SQL_REGION" "$BACKEND_URL"
+FRONTEND_URL=$(get_service_url "$FRONTEND_SERVICE" "$SQL_REGION")
+
+# === Output ===
+echo ""
+echo "========================================================"
+echo "Setup complete!"
+echo "========================================================"
+echo "WIF Provider:    projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$WIF_POOL/providers/$WIF_PROVIDER"
+echo "Deploy SA:       $DEPLOY_SA_EMAIL"
+echo "Runtime SA:      $RUNTIME_SA_EMAIL"
+echo "Backend URL:     $BACKEND_URL"
+echo "Frontend URL:    $FRONTEND_URL"
+echo "SQL Connection:  $SQL_CONNECTION_NAME"
+if [ "$ENABLE_STORAGE" = "true" ]; then
+    echo "Storage Bucket:  $GCS_BUCKET"
+fi
+echo "========================================================"

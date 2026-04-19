@@ -12,6 +12,7 @@ type userRecord struct {
 	Email        string    `db:"email"`
 	Name         string    `db:"name"`
 	Bio          *string   `db:"bio"`
+	AvatarURL    *string   `db:"avatar_url"`
 	PasswordHash string    `db:"password_hash"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`

@@ -9,6 +9,7 @@ import (
 	"github.com/ShalArl/trip-manager/internal/config"
 	"github.com/ShalArl/trip-manager/internal/container"
 	"github.com/ShalArl/trip-manager/internal/database"
+	"github.com/ShalArl/trip-manager/internal/storage"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -18,6 +19,7 @@ type App struct {
 	Logger   *log.Logger
 	Config   *config.Config
 	Services *container.ServiceContainer
+	Storage  storage.Storage
 }
 
 // New initializes and returns a new App instance
@@ -39,10 +41,18 @@ func New(cfg *config.Config) (*App, error) {
 	// Initialize logger
 	logger := log.New(os.Stdout, "[trip-manager] ", log.LstdFlags|log.Lshortfile)
 
+	// Initialize storage (using local storage for now, can be replaced with S3/GCS later)
+	stor, err := setupLocalStorage(cfg)
+	if err != nil {
+		logger.Printf("Warning: Failed to initialize storage: %v", err)
+		return nil, fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
 	svcs := container.NewServiceContainer(&container.ServiceConfig{
-		DB:     db,
-		Logger: logger,
-		Config: cfg,
+		DB:      db,
+		Logger:  logger,
+		Config:  cfg,
+		Storage: stor,
 	})
 	if svcs == nil {
 		if errors.Is(err, db.Close()) {
@@ -56,6 +66,7 @@ func New(cfg *config.Config) (*App, error) {
 		Logger:   logger,
 		Config:   cfg,
 		Services: svcs,
+		Storage:  stor,
 	}
 
 	logger.Println("Application initialized successfully")
@@ -68,4 +79,15 @@ func (a *App) Close() error {
 		return a.DB.Close()
 	}
 	return nil
+}
+
+func setupLocalStorage(cfg *config.Config) (storage.Storage, error) {
+	return storage.NewS3Storage(storage.S3Config{
+		Bucket:    cfg.S3Bucket,
+		Region:    cfg.S3Region,
+		Endpoint:  cfg.S3Endpoint,
+		AccessKey: cfg.S3AccessKey,
+		SecretKey: cfg.S3SecretKey,
+		PublicURL: cfg.S3PublicURL,
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/jmoiron/sqlx"
@@ -27,7 +28,7 @@ type UserRepositoryImpl struct {
 // GetUser implements [UserRepository].
 func (u *UserRepositoryImpl) GetUser(ctx context.Context, id string) (*domain.User, error) {
 	var rec userRecord
-	query := `SELECT id, email, name, bio, password_hash, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, email, name, bio, avatar_url, password_hash, created_at, updated_at FROM users WHERE id = $1`
 
 	if err := u.db.GetContext(ctx, &rec, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -41,7 +42,7 @@ func (u *UserRepositoryImpl) GetUser(ctx context.Context, id string) (*domain.Us
 // GetUserByEmail implements [UserRepository].
 func (u *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var rec userRecord
-	query := `SELECT id, email, name, bio, password_hash, created_at, updated_at FROM users WHERE email = $1`
+	query := `SELECT id, email, name, bio, avatar_url, password_hash, created_at, updated_at FROM users WHERE email = $1`
 	if err := u.db.GetContext(ctx, &rec, query, email); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
@@ -88,12 +89,16 @@ func (u *UserRepositoryImpl) UpdateUserProfile(ctx context.Context, user *domain
 		return nil, err
 	}
 
-	query := `UPDATE users SET email = $1, name = $2, bio = $3, updated_at = $4
-	         WHERE id = $5
-	         RETURNING id, email, name, bio, created_at, updated_at`
+	log.Printf("[Repository] UpdateUserProfile: User before DB update - ID=%s, AvatarURL=%s", rec.ID, *rec.AvatarURL)
 
-	err = u.db.QueryRowContext(ctx, query, rec.Email, rec.Name, rec.Bio, rec.UpdatedAt, rec.ID).
-		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.CreatedAt, &rec.UpdatedAt)
+	query := `UPDATE users SET email = $1, name = $2, bio = $3, avatar_url = $4, updated_at = $5
+	         WHERE id = $6
+	         RETURNING id, email, name, bio, avatar_url, created_at, updated_at`
+
+	err = u.db.QueryRowContext(ctx, query, rec.Email, rec.Name, rec.Bio, rec.AvatarURL, rec.UpdatedAt, rec.ID).
+		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.AvatarURL, &rec.CreatedAt, &rec.UpdatedAt)
+
+	log.Printf("[Repository] UpdateUserProfile: User after DB update - ID=%s, AvatarURL=%s", rec.ID, *rec.AvatarURL)
 
 	if err != nil {
 		var pgErr *pq.Error
@@ -116,7 +121,7 @@ func (u *UserRepositoryImpl) UpdateUserPassword(ctx context.Context, user *domai
 	if err != nil {
 		return nil, err
 	}
-	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3 RETURNING id, email, name, bio, created_at, updated_at`
+	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3 RETURNING id, email, name, bio, avatar_url, created_at, updated_at`
 	err = u.db.QueryRowContext(ctx, query, rec.PasswordHash, rec.UpdatedAt, rec.ID).
 		Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.CreatedAt, &rec.UpdatedAt)
 
