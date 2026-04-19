@@ -8,6 +8,7 @@ deploy_backend_service() {
 
     local env_vars="ENVIRONMENT=production"
     env_vars+=",SERVER_PORT=8081"
+    env_vars+=",CORS_ALLOWED_ORIGINS=https://trip-manager-frontend-rygwuplcya-ey.a.run.app"
 
     if [ "$ENABLE_STORAGE" = "true" ]; then
         env_vars+=",STORAGE_TYPE=s3"
