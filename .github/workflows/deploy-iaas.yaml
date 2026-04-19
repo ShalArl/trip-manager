@@ -68,14 +68,14 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
           token_format: access_token
 
       - name: Log in to Artifact Registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.GCP_AR_HOST }}
+          registry: ${{ vars.GCP_AR_HOST }}
           username: oauth2accesstoken
           password: ${{ steps.gcp-auth.outputs.access_token }}
 
@@ -85,7 +85,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend
-            ${{ env.GCP_AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/backend
+            ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend
           tags: |
             type=ref,event=branch
             type=sha
@@ -160,14 +160,14 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_WIF_PROVIDER }}
           token_format: access_token
 
       - name: Log in to Artifact Registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.GCP_AR_HOST }}
+          registry: ${{ vars.GCP_AR_HOST }}
           username: oauth2accesstoken
           password: ${{ steps.gcp-auth.outputs.access_token }}
 
@@ -175,7 +175,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.GCP_AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/frontend
+          images: ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend
           tags: |
             type=ref,event=branch
             type=sha
@@ -342,12 +342,3 @@ jobs:
             --image=${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend:sha-${{ github.sha }} \
             --region=${{ vars.GCP_REGION }} \
             --project=${{ vars.GCP_PROJECT_ID }}
-
-# Later: Deploy to cloud run
-#     - name: Deploy to Cloud Run
-#       uses: google-github-actions/deploy-cloudrun@v2
-#       with:
-#         service: trip-manager-api
-#         region: ${{ env.GCP_REGION }}
-#         image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-#
