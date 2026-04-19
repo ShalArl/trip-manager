@@ -198,17 +198,17 @@ jobs:
   # Summary job
   summary:
     runs-on: ubuntu-latest
-    needs: [ detect-changes, build-backend, build-frontend ]
+    needs: [ detect-changes, build-backend, build-frontend-gcp, build-frontend-hetzner ]
     if: always()
     steps:
       - name: Check build status
         run: |
-          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend.result }}" = "skipped" ]; then
+          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend-gcp.result }}" = "skipped" ] && [ "${{ needs.build-frontend-hetzner.result }}" = "skipped" ]; then
             echo "✓ No changes detected - skipping builds"
           else
             echo "✓ Build pipeline completed"
             echo "Backend build: ${{ needs.build-backend.result }}"
-            echo "Frontend build: ${{ needs.build-frontend.result }}"
+            echo "Frontend build: ${{ needs.build-frontend-gcp.result }}" || echo "Frontend build: ${{ needs.build-frontend-hetzner.result }}"
           fi
 
   # Deploy to Server (only after push to main/dev with successful builds)
@@ -304,7 +304,7 @@ jobs:
             "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"
 
   deploy-gcp:
-    needs: [detect-changes, build-backend, build-frontend-gcp]
+    needs: [detect-changes, summary]
     if: >
       always() &&
       github.event_name == 'push' &&
