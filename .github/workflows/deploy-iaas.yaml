@@ -216,9 +216,10 @@ jobs:
     needs: [ detect-changes, summary ]
     if: >
       github.event_name == 'push' && (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/dev') && (needs.detect-changes.outputs.backend
-      == 'true' ||
-       needs.detect-changes.outputs.frontend == 'true')
+      github.ref == 'refs/heads/dev') &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.build-frontend-hetzner.result == 'success' || needs.build-frontend-hetzner.result == 'skipped') &&
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -308,11 +309,10 @@ jobs:
     if: >
       always() &&
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
       (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
       (needs.build-frontend-gcp.result == 'success' || needs.build-frontend-gcp.result == 'skipped') &&
-      (needs.detect-changes.outputs.backend == 'true' ||
-       needs.detect-changes.outputs.frontend == 'true')
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
