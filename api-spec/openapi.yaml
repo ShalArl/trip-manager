@@ -17,7 +17,7 @@ security:
 
 paths:
 
-  # ─── Authentication ────────────────────────────────────────────────────────
+ # ─── Authentication ────────────────────────────────────────────────────────
 
   /auth/register:
     post:
@@ -67,7 +67,7 @@ paths:
         '401':
           description: Invalid credentials
 
-  # ─── Uploads ────────────────────────────────────────────────────────────────
+ # ─── Uploads ────────────────────────────────────────────────────────────────
 
   /uploads/presigned:
     post:
@@ -98,7 +98,7 @@ paths:
          '500':
            description: Failed to generate presigned URL
 
-   # ─── User Profile ──────────────────────────────────────────────────────────
+ # ─── User Profile ──────────────────────────────────────────────────────────
 
   /users/me:
     get:
@@ -163,7 +163,7 @@ paths:
         '401':
           description: Unauthorized or wrong current password
 
-  # ─── Trips ────────────────────────────────────────────────────────────────
+ # ─── Trips ────────────────────────────────────────────────────────────────
 
   /trips:
     get:
@@ -293,7 +293,7 @@ paths:
         '404':
           description: Trip not found
 
-  # ─── Locations ────────────────────────────────────────────────────────────
+ # ─── Locations ────────────────────────────────────────────────────────────
 
   /trips/{tripId}/locations:
     get:
@@ -421,7 +421,7 @@ paths:
         '404':
           description: Location not found
 
-  # ─── Activities ───────────────────────────────────────────────────────────
+ # ─── Activities ───────────────────────────────────────────────────────────
 
   /trips/{tripId}/activities:
     get:
@@ -1247,9 +1247,12 @@ components:
         toLocationId:
           type: string
           format: uuid
-        date:
+        departureTime:
           type: string
-          format: date
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
         type:
           type: string
           enum: [flight, train, car, bus]
@@ -1265,9 +1268,12 @@ components:
         toLocationId:
           type: string
           format: uuid
-        date:
+        departureTime:
           type: string
-          format: date
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
         type:
           type: string
           enum: [flight, train, car, bus]
@@ -1291,9 +1297,12 @@ components:
             toLocationId:
               type: string
               format: uuid
-            date:
+            departureTime:
               type: string
-              format: date
+              format: date-time
+            arrivalTime:
+              type: string
+              format: date-time
             type:
               type: string
               enum: [flight, train, car, bus]

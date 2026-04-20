@@ -16,7 +16,8 @@ type Transport struct {
 	TripID         string
 	FromLocationID string
 	ToLocationID   string
-	Date           time.Time
+	DepartureTime  *time.Time
+	ArrivalTime    *time.Time
 	Type           TransportType
 	Notes          string
 }

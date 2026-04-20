@@ -48,21 +48,21 @@ func (t *TransportRepositoryImpl) CreateTransport(ctx context.Context, transport
 
 	query := `
         INSERT INTO transports
-            (trip_id, user_id, from_location_id, to_location_id, date, type, notes)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+            (trip_id, user_id, from_location_id, to_location_id, departure_time, arrival_time, type, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, created_at, updated_at`
 
 	err = t.db.QueryRowContext(ctx, query,
-		rec.TripID, rec.UserID, rec.FromLocationID, rec.ToLocationID, rec.Date, rec.Type, rec.Notes,
+		rec.TripID, rec.UserID, rec.FromLocationID, rec.ToLocationID, rec.DepartureTime, rec.ArrivalTime, rec.Type, rec.Notes,
 	).Scan(&transport.ResourceMeta.ID, &transport.ResourceMeta.CreatedAt, &transport.ResourceMeta.UpdatedAt)
 
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
-			case "23503": // foreign_key_violation
+			case "23503":
 				return nil, fmt.Errorf("%w: referenced trip or location not found", domain.ErrInvalidInput)
-			case "23505": // unique_violation
+			case "23505":
 				return nil, domain.ErrConflict
 			}
 		}
@@ -80,13 +80,13 @@ func (t *TransportRepositoryImpl) UpdateTransport(ctx context.Context, transport
 
 	query := `
         UPDATE transports
-        SET from_location_id = $1, to_location_id = $2, date = $3, type = $4, notes = $5,
+        SET from_location_id = $1, to_location_id = $2, departure_time = $3, arrival_time = $4, type = $5, notes = $6,
             updated_at = NOW()
-        WHERE id = $6 AND user_id = $7
+        WHERE id = $7 AND user_id = $8
         RETURNING updated_at`
 
 	err = t.db.QueryRowContext(ctx, query,
-		rec.FromLocationID, rec.ToLocationID, rec.Date, rec.Type, rec.Notes,
+		rec.FromLocationID, rec.ToLocationID, rec.DepartureTime, rec.ArrivalTime, rec.Type, rec.Notes,
 		rec.ID, rec.UserID,
 	).Scan(&transport.ResourceMeta.UpdatedAt)
 

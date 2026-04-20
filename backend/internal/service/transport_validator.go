@@ -12,9 +12,6 @@ func validateCreateTransportRequest(req generated.CreateTransportRequest) error 
 	if req.FromLocationId == uuid.Nil || req.ToLocationId == uuid.Nil {
 		return fmt.Errorf("%w: from_location_id and to_location_id are required", domain.ErrInvalidInput)
 	}
-	if req.Date.IsZero() {
-		return fmt.Errorf("%w: date is required", domain.ErrInvalidInput)
-	}
 	return nil
 }
 
