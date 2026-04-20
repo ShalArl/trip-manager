@@ -21,12 +21,13 @@ type ServiceConfig struct {
 }
 
 type ServiceContainer struct {
-	Trip     service.TripService
-	Location service.LocationService
-	User     service.UserService
-	Activity service.ActivityService
-	Auth     service.AuthService
-	Media    *infrastructure.MediaService
+	Trip      service.TripService
+	Location  service.LocationService
+	User      service.UserService
+	Activity  service.ActivityService
+	Auth      service.AuthService
+	Media     *infrastructure.MediaService
+	Transport service.TransportService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
@@ -34,12 +35,14 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	var locationRepo repository.LocationRepository
 	var userRepo repository.UserRepository
 	var activityRepo repository.ActivityRepository
+	var transportRepo repository.TransportRepository
 
 	// Initialize repositories with the database connection
 	tripRepo = repository.NewTripRepository(cfg.DB)
 	locationRepo = repository.NewLocationRepository(cfg.DB)
 	userRepo = repository.NewUserRepository(cfg.DB)
 	activityRepo = repository.NewActivityRepository(cfg.DB)
+	transportRepo = repository.NewTransportRepository(cfg.DB)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
@@ -58,12 +61,15 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	// Initialize auth service
 	authService := service.NewAuthService(authManager, userService)
 
+	transportService := service.NewTransportService(transportRepo)
+
 	return &ServiceContainer{
-		Trip:     tripService,
-		Location: locationService,
-		User:     userService,
-		Activity: activityService,
-		Auth:     authService,
-		Media:    mediaService,
+		Trip:      tripService,
+		Location:  locationService,
+		User:      userService,
+		Activity:  activityService,
+		Auth:      authService,
+		Media:     mediaService,
+		Transport: transportService,
 	}
 }

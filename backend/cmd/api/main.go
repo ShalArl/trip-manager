@@ -118,6 +118,18 @@ func main() {
 				})
 			})
 
+			// ─── Transport Routes ────────────────────────────────────────────────────
+
+			r.Route("/trips/{tripId}/transports", func(r chi.Router) {
+				r.Get("/", handler.ListTransportsHandler(application))
+				r.Post("/", handler.CreateTransportHandler(application))
+				r.Route("/{transportId}", func(r chi.Router) {
+					r.Get("/", handler.GetTransportHandler(application))
+					r.Put("/", handler.UpdateTransportHandler(application))
+					r.Delete("/", handler.DeleteTransportHandler(application))
+				})
+			})
+
 			// ─── Activity by Location Route ──────────────────────────────────────────
 			r.Get("/locations/{locationId}/activities", handler.ListActivitiesForLocationHandler(application))
 

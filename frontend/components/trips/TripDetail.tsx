@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { components } from "@/generated/types";
+import { TransportResponse, CreateTransportRequest } from "@/types/transport";
+import { createTransport } from "@/lib/api/transport";
 import AddLocationModal from "./modals/AddLocationModal";
 import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
 import AddTransportModal from "./modals/AddTransportModal";
+
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -23,7 +26,7 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
     const [showAddTransportModal, setShowAddTransportModal] = useState(false);
     const [showAddAccommodationModal, setShowAddAccommodationModal] = useState(false);
 
-    const [transports, setTransports] = useState<any[]>([]);
+    const [transports, setTransports] = useState<TransportResponse[]>([]);
     const [accommodations, setAccommodations] = useState([]);
 
     // TODO: Mock locations and activities - replace with API calls
@@ -85,13 +88,14 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
         setActivities([...activities, activity]);
     };
 
-    const handleAddTransport = (newTransport: any) => {
-        const transport = {
-            id: `transport-${Date.now()}`,
-            ...newTransport,
-        };
-        setTransports([...transports, transport])
-    }
+    const handleAddTransport = async (newTransport: CreateTransportRequest) => {
+        try {
+            const created = await createTransport(trip.id, newTransport);
+            setTransports([...transports, created]);
+        } catch (error) {
+            console.error("Fehler beim Erstellen des Transports:", error);
+        }
+    };
 
     const handleEditTrip = (updatedTrip: any) => {
         // TODO: Call API to update trip
@@ -309,6 +313,7 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
             />
             <AddTransportModal
                 isOpen={showAddTransportModal}
+                locations={locations}
                 onCloseAction={() => setShowAddTransportModal(false)}
                 onAddAction={handleAddTransport}
             />
