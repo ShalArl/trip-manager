@@ -31,7 +31,7 @@ func (l *LocationRepositoryImpl) GetLocation(ctx context.Context, id string) (*d
 		SELECT l.*, u.id AS user_id, u.name AS user_name, u.email AS user_email
 		FROM locations l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.trip_id = $1`
+		WHERE l.id = $1`
 
 	if err := l.db.GetContext(ctx, &rec, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -51,12 +51,13 @@ func (l *LocationRepositoryImpl) CreateLocation(ctx context.Context, location *d
 	}
 
 	query := `
-   INSERT INTO locations (trip_id, user_id, name, city, country, latitude, longitude, notes, sequence)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-   RETURNING id, created_at, updated_at`
+	INSERT INTO locations (trip_id, user_id, name, city, country, short_description, date_from, date_to, latitude, longitude, notes, sequence)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	RETURNING id, created_at, updated_at`
 
 	err = l.db.QueryRowContext(ctx, query,
 		rec.TripID, rec.UserID, rec.Name, rec.City, rec.Country,
+		rec.ShortDescription, rec.DateFrom, rec.DateTo,
 		rec.Latitude, rec.Longitude, rec.Notes, rec.Sequence,
 	).Scan(&location.ResourceMeta.ID, &location.ResourceMeta.CreatedAt, &location.ResourceMeta.UpdatedAt)
 
@@ -84,13 +85,16 @@ func (l *LocationRepositoryImpl) UpdateLocation(ctx context.Context, location *d
 	}
 
 	query := `
-	   UPDATE locations 
-	   SET name = $1, latitude = $2, longitude = $3, updated_at = NOW() 
-	   WHERE id = $4 AND user_id = $5 
-	   RETURNING updated_at`
+	UPDATE locations 
+	SET name = $1, city = $2, country = $3, short_description = $4, date_from = $5, date_to = $6,
+		latitude = $7, longitude = $8, notes = $9, sequence = $10, updated_at = NOW() 
+	WHERE id = $11 AND user_id = $12
+	RETURNING updated_at`
 
 	err = l.db.QueryRowContext(ctx, query,
-		rec.Name, rec.Latitude, rec.Longitude, rec.ID, rec.UserID,
+		rec.Name, rec.City, rec.Country, rec.ShortDescription, rec.DateFrom, rec.DateTo,
+		rec.Latitude, rec.Longitude, rec.Notes, rec.Sequence,
+		rec.ID, rec.UserID,
 	).Scan(&location.ResourceMeta.UpdatedAt)
 
 	if err != nil {
@@ -116,7 +120,7 @@ func (l *LocationRepositoryImpl) ListLocations(ctx context.Context, tripID strin
 		    u.id AS user_id, 
             u.name AS user_name, 
             u.email AS user_email, 
-            COUNT(*) OVER () as totalCount 
+            COUNT(*) OVER () as total_count 
 		FROM locations l JOIN users u ON u.id = l.user_id
 		WHERE trip_id = $1 AND user_id = $2
 		ORDER BY sequence ASC, created_at ASC
