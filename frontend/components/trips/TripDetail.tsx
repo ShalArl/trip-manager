@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { components } from "@/generated/types";
 import { TransportResponse, CreateTransportRequest } from "@/types/transport";
-import { createTransport } from "@/lib/api/transport";
+import { createTransport, getTransports } from "@/lib/api/transports";
+import { LocationResponse, CreateLocationRequest } from "@/types/location";
+import { getLocations, createLocation } from "@/lib/api/locations";
 import AddLocationModal from "./modals/AddLocationModal";
 import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
@@ -29,25 +31,9 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
     const [transports, setTransports] = useState<TransportResponse[]>([]);
     const [accommodations, setAccommodations] = useState([]);
 
-    // TODO: Mock locations and activities - replace with API calls
-    const [locations, setLocations] = useState([
-        {
-            id: "loc-1",
-            name: "Paris",
-            city: "Paris",
-            country: "France",
-            sequence: 1,
-        },
-        {
-            id: "loc-2",
-            name: "Lyon",
-            city: "Lyon",
-            country: "France",
-            sequence: 2,
-        },
-    ]);
+    const [locations, setLocations] = useState<LocationResponse[]>([]);
 
-    const [activities, setActivities] = useState([
+    /*const [activities, setActivities] = useState([
         {
             id: "act-1",
             name: "Eiffelturm",
@@ -62,21 +48,31 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
             date: trip.startDate,
             category: "dining",
         },
-    ]);
+    ]);*/
+
+    const [activities, setActivities] = useState<any[]>([]);
 
     const selectedLocation = locations.find((l) => l.id === selectedLocationId);
     const selectedLocationActivities = activities.filter(
         (a) => a.locationId === selectedLocationId
     );
 
+    useEffect(() => {
+        getLocations(trip.id).then(setLocations).catch(console.error);
+    }, [trip.id]);
+
+    useEffect(() => {
+        getTransports(trip.id).then(setTransports).catch(console.error);
+    }, [trip.id]);
+
     // Modal handlers
-    const handleAddLocation = (newLocation: any) => {
-        const location = {
-            id: `loc-${Date.now()}`,
-            ...newLocation,
-            sequence: locations.length + 1,
-        };
-        setLocations([...locations, location]);
+    const handleAddLocation = async (newLocation: CreateLocationRequest) => {
+        try {
+            const created = await createLocation(trip.id, newLocation);
+            setLocations([...locations, created]);
+        } catch (error) {
+            console.error("Fehler beim Erstellen der Location:", error);
+        }
     };
 
     const handleAddActivity = (newActivity: any) => {
@@ -232,12 +228,20 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                             </p>
                         ) : (
                             <div className="space-y-2">
-                                {transports.map((t: any) => (
-                                    <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                                        <p className="font-medium text-zinc-900 dark:text-white">{t.from} → {t.to}</p>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.type} · {t.date}</p>
-                                    </div>
-                                ))}
+                                {transports.map((t) => {
+                                    const fromLocation = locations.find((l) => l.id === t.fromLocationId);
+                                    const toLocation = locations.find((l) => l.id === t.toLocationId);
+                                    return (
+                                        <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                            <p className="font-medium text-zinc-900 dark:text-white">
+                                                {fromLocation?.name ?? t.fromLocationId} → {toLocation?.name ?? t.toLocationId}
+                                            </p>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                {t.type} · {t.departureTime ?? "Keine Abfahrtszeit"}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -294,16 +298,16 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
             {/* Modals */}
             <AddLocationModal
                 isOpen={showAddLocationModal}
-                onClose={() => setShowAddLocationModal(false)}
-                onAdd={handleAddLocation}
+                onCloseAction={() => setShowAddLocationModal(false)}
+                onAddAction={handleAddLocation}
             />
             <AddActivityModal
                 isOpen={showAddActivityModal}
                 locationId={selectedLocationId}
                 locationName={selectedLocation?.name || ""}
                 tripStartDate={trip.startDate}
-                onClose={() => setShowAddActivityModal(false)}
-                onAdd={handleAddActivity}
+                onCloseAction={() => setShowAddActivityModal(false)}
+                onAddAction={handleAddActivity}
             />
             <EditTripModal
                 isOpen={isEditingTrip}

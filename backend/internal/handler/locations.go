@@ -89,6 +89,8 @@ func CreateLocationHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
+		fmt.Printf("CreatedBy Email: %q\n", location.CreatedBy.Email) // ← hier
+
 		locationResp := mapLocationToLocationResponse(location)
 
 		respondJSON(w, http.StatusCreated, locationResp)

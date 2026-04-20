@@ -15,7 +15,7 @@ type LocationRepository interface {
 	GetLocation(context context.Context, id string) (*domain.Location, error)
 	CreateLocation(context context.Context, location *domain.Location) (*domain.Location, error)
 	UpdateLocation(context context.Context, location *domain.Location) (*domain.Location, error)
-	ListLocations(context context.Context, tripId string, userId string, limit int, offset int) ([]*domain.Location, int, error)
+	ListLocations(context context.Context, tripId string, limit int, offset int) ([]*domain.Location, int, error)
 	DeleteLocation(context context.Context, id string, userId string) error
 }
 
@@ -74,7 +74,7 @@ func (l *LocationRepositoryImpl) CreateLocation(ctx context.Context, location *d
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return rec.toLocation(), nil
+	return l.GetLocation(ctx, location.ResourceMeta.ID)
 }
 
 // UpdateLocation implements [LocationRepository].
@@ -108,7 +108,7 @@ func (l *LocationRepositoryImpl) UpdateLocation(ctx context.Context, location *d
 }
 
 // ListLocations implements [LocationRepository].
-func (l *LocationRepositoryImpl) ListLocations(ctx context.Context, tripID string, userID string, limit int, offset int) ([]*domain.Location, int, error) {
+func (l *LocationRepositoryImpl) ListLocations(ctx context.Context, tripID string, limit int, offset int) ([]*domain.Location, int, error) {
 	var results []struct {
 		locationRecord
 		TotalCount int `db:"total_count"`
@@ -122,11 +122,12 @@ func (l *LocationRepositoryImpl) ListLocations(ctx context.Context, tripID strin
             u.email AS user_email, 
             COUNT(*) OVER () as total_count 
 		FROM locations l JOIN users u ON u.id = l.user_id
-		WHERE trip_id = $1 AND user_id = $2
+		WHERE trip_id = $1
 		ORDER BY sequence ASC, created_at ASC
-		LIMIT $3 OFFSET $4`
+		LIMIT $2 OFFSET $3`
 
-	if err := l.db.SelectContext(ctx, &results, query, tripID, userID, limit, offset); err != nil {
+	if err := l.db.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
+		fmt.Printf("ListLocations DB error: %v\n", err)
 		return nil, 0, domain.ErrInternal
 	}
 

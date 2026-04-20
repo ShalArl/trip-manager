@@ -69,7 +69,7 @@ func (t *TransportRepositoryImpl) CreateTransport(ctx context.Context, transport
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
-	return transport, nil
+	return t.GetTransport(ctx, transport.ResourceMeta.ID)
 }
 
 func (t *TransportRepositoryImpl) UpdateTransport(ctx context.Context, transport *domain.Transport) (*domain.Transport, error) {
@@ -108,7 +108,7 @@ func (t *TransportRepositoryImpl) ListTransportsForTrip(ctx context.Context, tri
         FROM transports t
         JOIN users u ON t.user_id = u.id
         WHERE t.trip_id = $1
-        ORDER BY t.date ASC
+        ORDER BY t.departure_time ASC
         LIMIT $2 OFFSET $3`
 
 	return t.listTransportsByField(ctx, query, tripID, limit, offset)
