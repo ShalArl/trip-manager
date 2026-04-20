@@ -33,6 +33,8 @@ export async function createTransport(tripId: string, req: CreateTransportReques
     });
 
     if (!response.ok) {
+        const errorData = await response.text()
+        console.error(`Fehler Backend Response:`, errorData)
         throw new Error(`Fehler beim Erstellen des Transports: ${response.status}`);
     }
 
