@@ -39,13 +39,15 @@ CREATE TABLE IF NOT EXISTS locations (
     name VARCHAR(255) NOT NULL,
     city VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
+    short_description VARCHAR(255) NOT NULL,
+    date_from DATE NOT NULL,
+    date_to DATE NOT NULL,
     latitude NUMERIC(10, 8),
     longitude NUMERIC(11, 8),
     notes TEXT,
     sequence INTEGER,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-
     FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

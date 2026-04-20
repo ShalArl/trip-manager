@@ -1040,6 +1040,9 @@ components:
         - name
         - city
         - country
+        - shortDescription
+        - dateFrom
+        - dateTo
       properties:
         name:
           type: string
@@ -1047,6 +1050,14 @@ components:
           type: string
         country:
           type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
         latitude:
           type: number
           format: float
@@ -1068,6 +1079,14 @@ components:
           type: string
         country:
           type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
         latitude:
           type: number
           format: float
@@ -1078,8 +1097,7 @@ components:
           type: string
         sequence:
           type: integer
-          description: Visit sequence number
-
+    
     LocationResponse:
       description: Full location object returned by all location endpoints.
       allOf:
@@ -1089,6 +1107,9 @@ components:
             - name
             - city
             - country
+            - shortDescription
+            - dateFrom
+            - dateTo
           properties:
             name:
               type: string
@@ -1096,6 +1117,14 @@ components:
               type: string
             country:
               type: string
+            shortDescription:
+              type: string
+            dateFrom:
+              type: string
+              format: date
+            dateTo:
+              type: string
+              format: date
             latitude:
               type: number
               format: float
