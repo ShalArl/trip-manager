@@ -10,18 +10,20 @@ import (
 
 func mapLocationToLocationResponse(l *domain.Location) *generated.LocationResponse {
 	id, _ := uuid.Parse(l.ID)
-
 	return &generated.LocationResponse{
-		Id:        ptr.ToPtr(id),
-		Name:      l.Name,
-		City:      l.City,
-		Country:   l.Country,
-		Latitude:  ptr.ToPtr(float32(l.Coordinates.Lat)),
-		Longitude: ptr.ToPtr(float32(l.Coordinates.Lon)),
-		Notes:     ptr.ToPtr(l.Notes),
-		Sequence:  ptr.ToPtr(l.Sequence),
-		CreatedAt: &l.CreatedAt,
-		UpdatedAt: &l.UpdatedAt,
+		Id:               ptr.ToPtr(id),
+		Name:             l.Name,
+		City:             l.City,
+		Country:          l.Country,
+		ShortDescription: l.ShortDescription,
+		DateFrom:         openapitypes.Date{Time: l.DateFrom},
+		DateTo:           openapitypes.Date{Time: l.DateTo},
+		Latitude:         ptr.ToPtr(float32(l.Coordinates.Lat)),
+		Longitude:        ptr.ToPtr(float32(l.Coordinates.Lon)),
+		Notes:            ptr.ToPtr(l.Notes),
+		Sequence:         ptr.ToPtr(l.Sequence),
+		CreatedAt:        &l.CreatedAt,
+		UpdatedAt:        &l.UpdatedAt,
 		CreatedBy: &generated.UserSummary{
 			Id:    uuid.MustParse(l.CreatedBy.ID),
 			Name:  l.CreatedBy.Name,
