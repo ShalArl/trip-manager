@@ -1,6 +1,6 @@
 #!/bin/bash
 
-setup_db_password() {
+sql_setup_db_password() {
     if ! gcloud secrets describe "db-password" --project="$PROJECT_ID" &>/dev/null; then
         echo "Generating DB password..."
         DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | cut -c1-32)
@@ -12,7 +12,7 @@ setup_db_password() {
     export DB_PASSWORD
 }
 
-setup_instance() {
+sql_setup_instance() {
     local sql_instance=$1
     local db_name=$2
     local db_user=$3
@@ -67,7 +67,7 @@ setup_instance() {
     echo "Cloud SQL connection name: $SQL_CONNECTION_NAME"
 }
 
-create_db_user() {
+sql_create_db_user() {
     local instance_name=$1
     local db_user=$2
     local db_password=$3
@@ -79,7 +79,7 @@ create_db_user() {
         --project="$PROJECT_ID" 2>/dev/null || echo "DB user $db_user already exists."
 }
 
-create_database() {
+sql_create_database() {
     local instance_name=$1
     local db_name=$2
 

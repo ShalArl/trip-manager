@@ -9,27 +9,15 @@ deploy_backend_service() {
     local env_vars="^@@^"
     env_vars+="ENVIRONMENT=production"
     env_vars+="@@SERVER_PORT=8081"
-    env_vars+="@@CORS_ALLOWED_ORIGINS=https://trip-manager-frontend-271566791555.europe-west3.run.app,https://trip-manager-frontend-rygwuplcya-ey.a.run.app,"
-
-    if [ "$ENABLE_STORAGE" = "true" ]; then
-        env_vars+="@@STORAGE_TYPE=s3"
-        env_vars+="@@S3_ENDPOINT=https://storage.googleapis.com"
-        env_vars+="@@S3_BUCKET=${GCS_BUCKET}"
-        env_vars+="@@S3_REGION=auto"
-        env_vars+="@@S3_USE_SSL=true"
-        env_vars+="@@S3_PUBLIC_URL=https://storage.googleapis.com/${GCS_BUCKET}"
-    else
-        env_vars+="@@STORAGE_TYPE=local"
-        env_vars+="@@UPLOAD_DIR=/tmp/uploads"
-    fi
+    env_vars+="@@CORS_ALLOWED_ORIGINS=https://trip-manager-frontend-271566791555.europe-west3.run.app,https://trip-manager-frontend-rygwuplcya-ey.a.run.app"
+    env_vars+="@@STORAGE_TYPE=gcs"
+    env_vars+="@@GCS_BUCKET=${GCS_BUCKET}"
+    env_vars+="@@GCS_SIGNER_SA=${SIGNED_URL_SA_EMAIL}"
+    env_vars+="@@GCS_SIGNED_URL_TTL_SECONDS=900"
 
     local secrets="DATABASE_URL=database-url:latest"
     secrets+=",JWT_SECRET=jwt-secret:latest"
 
-    if [ "$ENABLE_STORAGE" = "true" ]; then
-        secrets+=",S3_ACCESS_KEY=s3-access-key:latest"
-        secrets+=",S3_SECRET_KEY=s3-secret-key:latest"
-    fi
 
     if gcloud run services describe "$service_name" \
          --region="$region" --project="$PROJECT_ID" &>/dev/null; then
