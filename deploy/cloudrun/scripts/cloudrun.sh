@@ -6,20 +6,21 @@ deploy_backend_service() {
     local service_name=$1
     local region=$2
 
-    local env_vars="ENVIRONMENT=production"
-    env_vars+=",SERVER_PORT=8081"
-    env_vars+=",CORS_ALLOWED_ORIGINS=https://trip-manager-frontend-rygwuplcya-ey.a.run.app"
+    local env_vars="^@@^"
+    env_vars+="ENVIRONMENT=production"
+    env_vars+="@@SERVER_PORT=8081"
+    env_vars+="@@CORS_ALLOWED_ORIGINS=https://trip-manager-frontend-271566791555.europe-west3.run.app,https://trip-manager-frontend-rygwuplcya-ey.a.run.app,"
 
     if [ "$ENABLE_STORAGE" = "true" ]; then
-        env_vars+=",STORAGE_TYPE=s3"
-        env_vars+=",S3_ENDPOINT=https://storage.googleapis.com"
-        env_vars+=",S3_BUCKET=${GCS_BUCKET}"
-        env_vars+=",S3_REGION=auto"
-        env_vars+=",S3_USE_SSL=true"
-        env_vars+=",S3_PUBLIC_URL=https://storage.googleapis.com/${GCS_BUCKET}"
+        env_vars+="@@STORAGE_TYPE=s3"
+        env_vars+="@@S3_ENDPOINT=https://storage.googleapis.com"
+        env_vars+="@@S3_BUCKET=${GCS_BUCKET}"
+        env_vars+="@@S3_REGION=auto"
+        env_vars+="@@S3_USE_SSL=true"
+        env_vars+="@@S3_PUBLIC_URL=https://storage.googleapis.com/${GCS_BUCKET}"
     else
-        env_vars+=",STORAGE_TYPE=local"
-        env_vars+=",UPLOAD_DIR=/tmp/uploads"
+        env_vars+="@@STORAGE_TYPE=local"
+        env_vars+="@@UPLOAD_DIR=/tmp/uploads"
     fi
 
     local secrets="DATABASE_URL=database-url:latest"
