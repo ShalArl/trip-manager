@@ -28,7 +28,7 @@ func LoginHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 
 		authResp := generated.AuthResponse{
 			ExpiresIn: exp,
@@ -57,7 +57,7 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 
 		respondJSON(w, http.StatusOK, userResponse)
 	}
@@ -82,14 +82,14 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%s, email=%s", userId, req.Name, req.Email)
+		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%v, email=%v", userId, req.Name, req.Email)
 
 		user, err := app.Services.User.UpdateUser(r.Context(), userId, &req)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 
 		respondJSON(w, http.StatusOK, userResponse)
 	}
@@ -140,7 +140,7 @@ func GetUserHandler(app *app.App) http.HandlerFunc {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 
 		respondJSON(w, http.StatusOK, userResponse)
 	}
@@ -164,7 +164,7 @@ func CreateUserHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 		authResp := generated.AuthResponse{
 			ExpiresIn: exp,
 			Token:     token,
@@ -199,7 +199,7 @@ func UpdateUserHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		userResponse := mapUserToUserResponse(user, nil)
+		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
 
 		respondJSON(w, http.StatusOK, userResponse)
 	}

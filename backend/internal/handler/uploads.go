@@ -12,7 +12,7 @@ import (
 )
 
 // GetPresignedURLHandler handles POST /api/uploads/presigned
-// Returns a presigned URL for direct uploads to MinIO/S3
+// Returns a presigned URL for direct uploads to MinIO/S3 or GCS depending on config
 func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
@@ -59,7 +59,7 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		}
 
 		// Generate presigned URL via MediaService
-		presignedURL, err := app.Services.Media.GeneratePresignedURL(r.Context(), userId, mediaType, req.FileName)
+		ticket, err := app.Services.Media.PrepareUpload(r.Context(), userId, mediaType, req.FileName)
 		if err != nil {
 			app.Logger.Printf("[Handler] GetPresignedURL: Failed to generate presigned URL: %v", err)
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate presigned URL: %v", err))
@@ -69,8 +69,9 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		app.Logger.Printf("[Handler] GetPresignedURL: Successfully generated presigned URL for userId=%s", userId)
 
 		response := generated.PresignedURLResponse{
-			PresignedUrl: presignedURL,
-			ExpiresIn:    15 * 60, // 15 minutes in seconds
+			PresignedUrl: ticket.UploadURL,
+			ExpiresIn:    int(ticket.ExpiresIn.Seconds()),
+			Key:          ticket.Key,
 		}
 
 		respondJSON(w, http.StatusOK, response)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // Config holds application configuration
@@ -13,25 +14,40 @@ type Config struct {
 	ServerPort         string
 	Environment        string
 	JWTSecret          string
+	TokenExpiration    time.Duration
 
-	// Storage configuration
-	StorageType string
-	UploadDir   string // For local storage
+	Storage StorageConfig
+}
 
-	// S3 configuration (for MinIO or AWS S3)
-	S3Endpoint  string
-	S3Bucket    string
-	S3Region    string
-	S3AccessKey string
-	S3SecretKey string
-	S3PublicURL string
-	S3UseSSL    bool
+type StorageConfig struct {
+	Type         string // "gcs", "s3", "local"
+	SignedURLTTL time.Duration
+	// S3 / MinIO
+	S3 S3Settings
+	// GCS
+	GCS GCSSettings
+}
+
+type S3Settings struct {
+	Endpoint  string
+	Bucket    string
+	Region    string
+	AccessKey string
+	SecretKey string
+	PublicURL string
+	UseSSL    bool
+}
+
+type GCSSettings struct {
+	Bucket   string
+	SignerSA string
 }
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	// Build database URL from individual components
 	databaseURL := buildDatabaseURL()
+	tokenExp := getEnvDuration("TOKEN_EXPIRATION", 7*24*time.Hour)
 
 	cfg := &Config{
 		CORSAllowedOrigins: parseOrigins(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
@@ -39,22 +55,40 @@ func LoadConfig() (*Config, error) {
 		ServerPort:         getEnv("SERVER_PORT", "8000"),
 		Environment:        getEnv("ENVIRONMENT", "development"),
 		JWTSecret:          getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		TokenExpiration:    tokenExp,
 
-		// Storage configuration
-		StorageType: getEnv("STORAGE_TYPE", "local"),
-		UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
-
-		// S3 configuration (defaults for local MinIO development)
-		S3Endpoint:  getEnv("S3_ENDPOINT", "http://localhost:9000"),
-		S3Bucket:    getEnv("S3_BUCKET", "trip-manager"),
-		S3Region:    getEnv("S3_REGION", "us-east-1"),
-		S3AccessKey: getEnv("S3_ACCESS_KEY", "minioadmin"),
-		S3SecretKey: getEnv("S3_SECRET_KEY", "minioadmin"),
-		S3PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000/trip-manager"),
-		S3UseSSL:    getEnvBool("S3_USE_SSL", false),
+		Storage: loadStorageConfig(),
 	}
 
 	return cfg, nil
+}
+
+func loadStorageConfig() StorageConfig {
+	return StorageConfig{
+		Type:         getEnv("STORAGE_TYPE", ""),
+		SignedURLTTL: getEnvDuration("SIGNED_URL_TTL", 15*time.Minute),
+		S3:           loadS3Config(),
+		GCS:          loadGCSConfig(),
+	}
+}
+
+func loadGCSConfig() GCSSettings {
+	return GCSSettings{
+		Bucket:   getEnv("GCS_BUCKET", "trip-manager"),
+		SignerSA: getEnv("GCS_SIGNER_SA", "minioadmin"),
+	}
+}
+
+func loadS3Config() S3Settings {
+	return S3Settings{
+		Endpoint:  getEnv("S3_ENDPOINT", "http://localhost:9000"),
+		Bucket:    getEnv("S3_BUCKET", "trip-manager"),
+		Region:    getEnv("S3_REGION", "us-east-1"),
+		AccessKey: getEnv("S3_ACCESS_KEY", "minioadmin"),
+		SecretKey: getEnv("S3_SECRET_KEY", "minioadmin"),
+		PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000/trip-manager"),
+		UseSSL:    getEnvBool("S3_USE_SSL", false),
+	}
 }
 
 // buildDatabaseURL constructs the database URL from environment variables or defaults
@@ -95,6 +129,17 @@ func getEnvBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	if value, exists := os.LookupEnv(key); exists {
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			return defaultValue
+		}
+		return duration
+	}
+	return defaultValue
+}
+
 // parseOrigins parses a comma-separated list of origins into a slice
 func parseOrigins(s string) []string {
 	parts := strings.Split(s, ",")
@@ -113,6 +158,6 @@ func (c Config) String() string {
 		"Config{Port: %s, Environment: %s, StorageType: %s}",
 		c.ServerPort,
 		c.Environment,
-		c.StorageType,
+		c.Storage.Type,
 	)
 }

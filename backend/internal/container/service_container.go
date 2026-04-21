@@ -2,7 +2,6 @@ package container
 
 import (
 	"log"
-	"time"
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
@@ -26,34 +25,29 @@ type ServiceContainer struct {
 	User     service.UserService
 	Activity service.ActivityService
 	Auth     service.AuthService
-	Media    *infrastructure.MediaService
+	Media    infrastructure.MediaService
 }
 
-func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
-	var tripRepo repository.TripRepository
-	var locationRepo repository.LocationRepository
-	var userRepo repository.UserRepository
-	var activityRepo repository.ActivityRepository
+func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
+	// Initialize media service (needed by handlers for presigned URLs)
+	mediaService := infrastructure.NewMediaService(cfg.Storage, cfg.Config.Storage.SignedURLTTL)
 
 	// Initialize repositories with the database connection
-	tripRepo = repository.NewTripRepository(cfg.DB)
-	locationRepo = repository.NewLocationRepository(cfg.DB)
-	userRepo = repository.NewUserRepository(cfg.DB)
-	activityRepo = repository.NewActivityRepository(cfg.DB)
+	tripRepo := repository.NewTripRepository(cfg.DB)
+	locationRepo := repository.NewLocationRepository(cfg.DB)
+	userRepo := repository.NewUserRepository(cfg.DB)
+	activityRepo := repository.NewActivityRepository(cfg.DB)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
 	locationService := service.NewLocationService(locationRepo)
 
 	// Initialize user service
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize media service (needed by handlers for presigned URLs)
-	mediaService := infrastructure.NewMediaService(cfg.Storage)
-
 	// Initialize auth manager (7 day token expiration)
-	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)
+	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, cfg.Config.TokenExpiration)
 
 	// Initialize auth service
 	authService := service.NewAuthService(authManager, userService)
@@ -65,5 +59,5 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 		Activity: activityService,
 		Auth:     authService,
 		Media:    mediaService,
-	}
+	}, nil
 }

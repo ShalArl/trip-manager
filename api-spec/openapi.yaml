@@ -120,8 +120,7 @@ paths:
        description: >
          Update user profile with profile information.
          To upload a profile avatar: (1) Request a presigned URL via POST /uploads/presigned,
-         (2) upload the file directly to the presigned URL, (3) update the user profile
-         with the avatarUrl returned by the upload.
+         (2) upload the file directly to the presigned URL,
        operationId: updateMe
        tags:
          - Users
@@ -609,10 +608,10 @@ components:
         email:
           type: string
           format: email
-        avatarUrl:
-          type: string
-          format: uri
-          readOnly: true
+        avatarKey:
+           type: string
+           description: Optional S3/MinIO/GCP object key for user's avatar image
+           readOnly: true
 
 
     PaginationMeta:
@@ -707,6 +706,7 @@ components:
        required:
          - presignedUrl
          - expiresIn
+         - key
        properties:
          presignedUrl:
            type: string
@@ -717,6 +717,9 @@ components:
            type: integer
            description: Presigned URL expiration time in seconds (typically 900 = 15 minutes)
            example: 900
+         key:
+           type: string
+           description: Object key to reference this upload in subsequent requests
 
      # ── User ──────────────────────────────────────────────────────────────────
 
@@ -752,8 +755,8 @@ components:
           description: Optional user bio or profile description
         avatarUrl:
           type: string
-          format: uri
-          description: Optional URL to user's avatar image
+          nullable: true
+          description: Short-lived signed URL for avatar download
           readOnly: true
 
 
@@ -769,10 +772,10 @@ components:
         bio:
           type: string
           description: Optional user bio or profile description
-        avatarUrl:
+        avatarKey:
           type: string
-          format: uri
-          description: Optional URL to user's avatar image
+          nullable: true
+          description: Optional S3/MinIO/GCP object key for user's avatar image
 
     ChangePasswordRequest:
       type: object
