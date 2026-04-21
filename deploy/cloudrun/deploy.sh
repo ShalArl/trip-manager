@@ -72,8 +72,14 @@ gcloud storage buckets add-iam-policy-binding "gs://${GCS_BUCKET}" \
     --member="serviceAccount:${SIGNED_URL_SA_EMAIL}" \
     --role="roles/storage.objectAdmin"
 
+setup_cors "$GCS_BUCKET"
+
 # === Phase 8: Runtime SA ===
 setup_runtime_sa   # exportiert $RUNTIME_SA_EMAIL
+
+gcloud storage buckets add-iam-policy-binding "gs://${GCS_BUCKET}" \
+    --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+    --role="roles/storage.objectAdmin"
 
 gcloud iam service-accounts add-iam-policy-binding "$SIGNED_URL_SA_EMAIL" \
     --project="$PROJECT_ID" \
