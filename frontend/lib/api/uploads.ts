@@ -1,15 +1,13 @@
-import {getAuthHeaders} from "./auth";
-import {FileUploadRequest, PresignedURLRequest, PresignedURLResponse} from "@/types/upload";
+import { getAuthHeaders } from "./auth";
+import { FileUploadRequest, PresignedURLRequest, PresignedURLResponse } from "@/types/upload";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const S3_URL = process.env.NEXT_PUBLIC_S3_PUBLIC_URL || "http://localhost:9000";
+
 /**
- * Get a presigned URL for direct file upload to S3/MinIO
- * @returns Presigned URL that can be used for PUT requests
- * @param req PresignedURLRequest
+ * Get a presigned URL for direct file upload to the storage backend.
+ * The storage backend (GCS in prod, MinIO locally) is opaque to the client.
  */
 export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
-
     const response = await fetch(`${API_URL}/api/uploads/presigned`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -26,68 +24,40 @@ export async function getPresignedUrl(req: PresignedURLRequest): Promise<Presign
 }
 
 /**
- * Upload a file directly to S3/MinIO using a presigned URL
- * @param fileUploadRequest of type FileUploadRequest
+ * Upload a file directly to the storage backend using a presigned PUT URL.
+ * The URL is used verbatim — no rewriting.
  */
-export async function uploadToPresignedUrl(fileUploadRequest: FileUploadRequest): Promise<void> {
-    console.log("[uploadToPresignedUrl] Starting upload to presigned URL...");
-
-    const file = fileUploadRequest.file;
-    const presignedUrl = fileUploadRequest.url;
-
-    // Read file as binary
-    const arrayBuffer = await file.arrayBuffer();
-    // Workaround because caddy strips minio prefix leading to incorrect bucket resolution
-    const uploadUrl = presignedUrl.replace(S3_URL, `${S3_URL}/minio/`);
-
-    const response = await fetch(uploadUrl, {
+export async function uploadToPresignedUrl(req: FileUploadRequest): Promise<void> {
+    const response = await fetch(req.url, {
         method: "PUT",
         headers: {
-            "Content-Type": file.type || "application/octet-stream",
+            "Content-Type": req.file.type || "application/octet-stream",
         },
-        body: arrayBuffer,
+        body: req.file,
     });
 
     if (!response.ok) {
-        console.error(`Upload failed (${response.status}):`, await response.text());
+        const errorText = await response.text();
+        console.error(`Upload failed (${response.status}):`, errorText);
         throw new Error(`Failed to upload file: ${response.status}`);
     }
-
-    console.log("[uploadToPresignedUrl] File uploaded successfully");
 }
 
 /**
- * Upload an avatar directly to S3/MinIO
- * Combines getPresignedUrl and uploadToPresignedUrl
- * @param file - Avatar file to upload
- * @param _userId unused for now as userid is already part of the presignedUrl
- * @returns The public URL of the uploaded avatar
+ * Upload an avatar and return the storage key.
+ * The caller is responsible for associating the key with a user via
+ * PUT /api/users/me with { avatarKey }.
  */
-export async function uploadAvatar(file: File, _userId: string): Promise<string> {
-    // Get presigned URL
-    console.log("[uploadAvatar] Getting presigned URL...");
-    const req: PresignedURLRequest = {
+export async function uploadAvatar(file: File): Promise<string> {
+    const ticket = await getPresignedUrl({
         fileName: file.name,
-        mediaType: "avatar"
-    };
-    const response = await getPresignedUrl(req);
-    console.log("[uploadAvatar] Got presigned URL, expires in", response.expiresIn, "seconds");
+        mediaType: "avatar",
+    });
 
-    // Upload to S3/MinIO directly
-    console.log("[uploadAvatar] Uploading to S3/MinIO...");
-    const fileUploadRequest: FileUploadRequest = {
-        url: response.presignedUrl,
-        file: file,
-    };
-    await uploadToPresignedUrl(fileUploadRequest);
+    await uploadToPresignedUrl({
+        url: ticket.presignedUrl,
+        file,
+    });
 
-    // Extract the public URL from the presigned URL by removing query parameters
-    // Presigned URL format: https://domain/minio/trip-manager/avatars/userId.ext?X-Amz-Algorithm=...
-    // Public URL format:    https://domain/minio/trip-manager/avatars/userId.ext
-    const baseImageUrl = response.presignedUrl.split('?')[0];
-    const correctAvatarUrl = baseImageUrl.replace('travel-nugget.duckdns.org/', 'travel-nugget.duckdns.org/minio/');
-
-    console.log("[uploadAvatar] Avatar uploaded successfully:", correctAvatarUrl);
-    return correctAvatarUrl;
+    return ticket.key;
 }
-
