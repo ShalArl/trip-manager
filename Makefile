@@ -1,10 +1,11 @@
 
-# Variables
+# LOCAL DEV Variables
 BINARY_NAME=api
 BACKEND_DIR=backend
 CMD_DIR=$(BACKEND_DIR)/cmd/api
 BIN_DIR=$(BACKEND_DIR)/bin
 BINARY_NAME_WIN=$(BINARY_NAME).exe
+STORAGE_TYPE?=s3
 
 # Default target
 help:
@@ -58,13 +59,13 @@ build:
 # Run the compiled binary
 run: build
 	@echo "Starting server..."
-	@./$(BIN_DIR)/$(BINARY_NAME)
+	@STORAGE_TYPE=$(STORAGE_TYPE) ./$(BIN_DIR)/$(BINARY_NAME)
 
 # Run with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev:
 	@echo "Starting server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) air
 
 # Build the backend binary for Windows
 build-windows:
@@ -76,13 +77,13 @@ build-windows:
 # Run the compiled Windows binary (requires WSL2 or Windows environment)
 run-windows: build-windows
 	@echo "Starting Windows server..."
-	@./$(BIN_DIR)/$(BINARY_NAME_WIN)
+	@STORAGE_TYPE=$(STORAGE_TYPE) ./$(BIN_DIR)/$(BINARY_NAME_WIN)
 
 # Run Windows build with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev-win:
 	@echo "Starting Windows server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && GOOS=windows GOARCH=amd64 air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) GOOS=windows GOARCH=amd64 air
 
 # Run all tests
 test:
@@ -266,6 +267,7 @@ info: version help
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager (required)"
+	@echo "  STORAGE_TYPE=s3 (default: s3, options: s3, local)"
 	@echo "  SERVER_PORT=8000 (default)"
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"
