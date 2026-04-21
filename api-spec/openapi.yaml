@@ -707,6 +707,7 @@ components:
        required:
          - presignedUrl
          - expiresIn
+         - key
        properties:
          presignedUrl:
            type: string
@@ -717,6 +718,9 @@ components:
            type: integer
            description: Presigned URL expiration time in seconds (typically 900 = 15 minutes)
            example: 900
+         key:
+           type: string
+           description: Object key to reference this upload in subsequent requests
 
      # ── User ──────────────────────────────────────────────────────────────────
 

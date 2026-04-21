@@ -3,10 +3,10 @@ package infrastructure
 import (
 	"context"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
-	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/ShalArl/trip-manager/internal/storage"
 )
@@ -20,6 +20,21 @@ const (
 	MediaTypeActivity MediaType = "activity"
 )
 
+func ParseMediaType(s string) (MediaType, error) {
+	switch s {
+	case "avatar":
+		return MediaTypeAvatar, nil
+	case "trip":
+		return MediaTypeTrip, nil
+	case "location":
+		return MediaTypeLocation, nil
+	case "activity":
+		return MediaTypeActivity, nil
+	default:
+		return "", fmt.Errorf("invalid media type: %q", s)
+	}
+}
+
 type MediaService struct {
 	storage storage.Storage
 }
@@ -28,60 +43,57 @@ func NewMediaService(stor storage.Storage) *MediaService {
 	return &MediaService{storage: stor}
 }
 
-func (ms *MediaService) UploadImage(ctx context.Context, file io.Reader, userID string, mediaType MediaType, fileName string) (string, error) {
-	storagePath, err := ms.generateStoragePath(mediaType, userID, fileName)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = ms.storage.Upload(ctx, storagePath, file)
-	if err != nil {
-		return "", err
-	}
-
-	return ms.storage.GetUrl(ctx, storagePath)
+type UploadTicket struct {
+	UploadURL string // Short-lived PUT-URL
+	Key       string // Object-Key for DB
 }
 
-func (ms *MediaService) GeneratePresignedURL(ctx context.Context, userID string, mediaType MediaType, fileName string) (string, error) {
-	storagePath, err := ms.generateStoragePath(mediaType, userID, fileName)
+// PrepareUpload generates Object-Key + Upload-URL.
+func (ms *MediaService) PrepareUpload(ctx context.Context, userID string, mediaType MediaType, fileName string) (UploadTicket, error) {
+	key := buildKey(mediaType, userID, fileName)
+
+	url, err := ms.storage.GetUploadURL(ctx, key)
 	if err != nil {
-		return "", err
+		return UploadTicket{}, fmt.Errorf("upload url: %w", err)
 	}
 
-	s3Storage, ok := ms.storage.(*storage.S3Storage)
-	if !ok {
-		return "", fmt.Errorf("storage does not support presigned URLs")
-	}
-
-	return s3Storage.GeneratePresignedURL(ctx, storagePath, 15*time.Minute)
+	return UploadTicket{UploadURL: url, Key: key}, nil
 }
 
-func (ms *MediaService) generateStoragePath(mType MediaType, userID string, fileName string) (string, error) {
-	// Nutze jetzt die Hilfsfunktion konsequent
-	ext := getFileExtension(fileName)
+// GetDownloadURL returns short-lived GET-URL.
+func (ms *MediaService) GetDownloadURL(ctx context.Context, key string) (string, error) {
+	return ms.storage.GetDownloadURL(ctx, key)
+}
+
+// ConfirmUpload verifies successful upload.
+func (ms *MediaService) ConfirmUpload(ctx context.Context, key string) (bool, error) {
+	return ms.storage.Exists(ctx, key)
+}
+
+// Delete removes an object.
+func (ms *MediaService) Delete(ctx context.Context, key string) error {
+	return ms.storage.Delete(ctx, key)
+}
+
+// buildKey collision free object-key.
+func buildKey(mType MediaType, userID string, originalFileName string) string {
+	ext := getFileExtension(originalFileName)
 
 	if mType == MediaTypeAvatar {
-		// avatars/USER_ID.png
-		return fmt.Sprintf("avatars/%s%s", userID, ext), nil
+		// Avatar pro User ist singulär — User-ID als Key reicht.
+		return fmt.Sprintf("avatars/%s%s", userID, ext)
 	}
 
-	// trips/USER_ID/safe_name.png
-	return fmt.Sprintf("%s/%s/%s", mType, userID, sanitizeFileName(fileName)), nil
-}
-
-func sanitizeFileName(filename string) string {
-	return strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.' {
-			return r
-		}
-		return '_'
-	}, filename)
+	// Alle anderen Media-Types: UUID pro Upload, verhindert Kollisionen.
+	return fmt.Sprintf("%s/%s/%s%s", mType, userID, uuid.NewString(), ext)
 }
 
 func getFileExtension(fileName string) string {
-	ext := filepath.Ext(fileName)
-	if ext == "" {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic":
+		return ext
+	default:
 		return ".jpg"
 	}
-	return ext
 }

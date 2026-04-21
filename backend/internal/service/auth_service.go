@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/aws/smithy-go/logging"
 )
 
 // AuthService handles authentication operations
@@ -25,6 +27,7 @@ type AuthService interface {
 type AuthServiceImpl struct {
 	authManager *auth.AuthManager
 	userService UserService
+	logger      log.Logger
 }
 
 // NewAuthService creates a new auth service
