@@ -8,7 +8,6 @@ import (
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
-	"github.com/aws/smithy-go/logging"
 )
 
 // AuthService handles authentication operations
