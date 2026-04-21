@@ -35,12 +35,19 @@ func ParseMediaType(s string) (MediaType, error) {
 	}
 }
 
-type MediaService struct {
+type MediaService interface {
+	PrepareUpload(ctx context.Context, userId string, mediaType MediaType, fileName string) (UploadTicket, error)
+	GetDownloadURL(ctx context.Context, key string) (string, error)
+	ConfirmUpload(ctx context.Context, key string) (bool, error)
+	Delete(ctx context.Context, key string) error
+}
+
+type MediaServiceImpl struct {
 	storage storage.Storage
 }
 
-func NewMediaService(stor storage.Storage) *MediaService {
-	return &MediaService{storage: stor}
+func NewMediaService(stor storage.Storage) *MediaServiceImpl {
+	return &MediaServiceImpl{storage: stor}
 }
 
 type UploadTicket struct {
@@ -49,7 +56,7 @@ type UploadTicket struct {
 }
 
 // PrepareUpload generates Object-Key + Upload-URL.
-func (ms *MediaService) PrepareUpload(ctx context.Context, userID string, mediaType MediaType, fileName string) (UploadTicket, error) {
+func (ms *MediaServiceImpl) PrepareUpload(ctx context.Context, userID string, mediaType MediaType, fileName string) (UploadTicket, error) {
 	key := buildKey(mediaType, userID, fileName)
 
 	url, err := ms.storage.GetUploadURL(ctx, key)
@@ -61,17 +68,17 @@ func (ms *MediaService) PrepareUpload(ctx context.Context, userID string, mediaT
 }
 
 // GetDownloadURL returns short-lived GET-URL.
-func (ms *MediaService) GetDownloadURL(ctx context.Context, key string) (string, error) {
+func (ms *MediaServiceImpl) GetDownloadURL(ctx context.Context, key string) (string, error) {
 	return ms.storage.GetDownloadURL(ctx, key)
 }
 
 // ConfirmUpload verifies successful upload.
-func (ms *MediaService) ConfirmUpload(ctx context.Context, key string) (bool, error) {
+func (ms *MediaServiceImpl) ConfirmUpload(ctx context.Context, key string) (bool, error) {
 	return ms.storage.Exists(ctx, key)
 }
 
 // Delete removes an object.
-func (ms *MediaService) Delete(ctx context.Context, key string) error {
+func (ms *MediaServiceImpl) Delete(ctx context.Context, key string) error {
 	return ms.storage.Delete(ctx, key)
 }
 
