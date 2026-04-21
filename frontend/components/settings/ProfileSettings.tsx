@@ -61,36 +61,33 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
         }
     };
 
-    const handleSubmit = async (e: React.SubmitEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setSuccess(false);
         setLoading(true);
 
         try {
-            let avatarUrl: string | undefined = avatarPreview || undefined;
+            let avatarKey: string | undefined;
 
-            // If avatar file was selected, upload it directly to S3/MinIO using presigned URL
             if (avatarFile) {
                 console.log("[ProfileSettings] Starting presigned avatar upload...");
-                avatarUrl = await uploadAvatar(avatarFile);
-                console.log("[ProfileSettings] Avatar uploaded successfully:", avatarUrl);
+                avatarKey = await uploadAvatar(avatarFile);
+                console.log("[ProfileSettings] Avatar uploaded, key:", avatarKey);
                 setAvatarFile(null);
             }
 
-            // Prepare data for profile update (no file, just metadata + avatar URL)
             const updateData: UpdateUserRequest = {
                 name,
                 email,
                 bio,
-                ...(avatarUrl && { avatarUrl }),
+                ...(avatarKey && { avatarKey }),
             };
 
             console.log("[ProfileSettings] Updating user profile...");
             const data = await updateMe(updateData);
             console.log("[ProfileSettings] Profile updated:", data);
 
-            // Update user context - broadcasts to all components using UserContext
             updateUserContext(data);
             setSuccess(true);
             setAvatarPreview(data.avatarUrl || null);
@@ -108,8 +105,8 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
         name !== user.name ||
         email !== user.email ||
         bio !== (user.bio || "") ||
-        avatarPreview !== (user.avatarUrl || null) ||
-        avatarFile !== null;
+        avatarFile !== null ||
+        (avatarPreview === null && user.avatarUrl);
 
     return (
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg p-8">
