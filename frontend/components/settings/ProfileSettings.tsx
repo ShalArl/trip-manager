@@ -1,6 +1,6 @@
 "use client";
 
-import {useRef, useState} from "react";
+import React, {useRef, useState} from "react";
 import {UserResponse, UpdateUserRequest} from "@/types/user";
 import {updateMe} from "@/lib/api/auth";
 import {uploadAvatar} from "@/lib/api/uploads";
@@ -61,7 +61,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
         setError(null);
         setSuccess(false);
@@ -73,8 +73,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
             // If avatar file was selected, upload it directly to S3/MinIO using presigned URL
             if (avatarFile) {
                 console.log("[ProfileSettings] Starting presigned avatar upload...");
-                const userId = user.id;
-                avatarUrl = await uploadAvatar(avatarFile, userId);
+                avatarUrl = await uploadAvatar(avatarFile);
                 console.log("[ProfileSettings] Avatar uploaded successfully:", avatarUrl);
                 setAvatarFile(null);
             }
