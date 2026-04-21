@@ -40,7 +40,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	// Initialize logger
 	logger := log.New(os.Stdout, "[trip-manager] ", log.LstdFlags|log.Lshortfile)
-	stor, err := storage.NewFromEnv(ctx)
+	stor, err := storage.NewFromEnv(ctx, cfg.Storage)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to setup storage: %w", err),

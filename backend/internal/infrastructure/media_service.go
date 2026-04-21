@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -20,6 +21,7 @@ const (
 	MediaTypeActivity MediaType = "activity"
 )
 
+// ParseMediaType Saved for later if more image types are required
 func ParseMediaType(s string) (MediaType, error) {
 	switch s {
 	case "avatar":
@@ -44,15 +46,22 @@ type MediaService interface {
 
 type MediaServiceImpl struct {
 	storage storage.Storage
+	ttl     time.Duration
+	cache   *URLCache
 }
 
-func NewMediaService(stor storage.Storage) *MediaServiceImpl {
-	return &MediaServiceImpl{storage: stor}
+func NewMediaService(stor storage.Storage, ttl time.Duration) *MediaServiceImpl {
+	return &MediaServiceImpl{
+		storage: stor,
+		ttl:     ttl,
+		cache:   NewURLCache(ttl / 2), // Cache TTL is half of the URL TTL
+	}
 }
 
 type UploadTicket struct {
-	UploadURL string // Short-lived PUT-URL
-	Key       string // Object-Key for DB
+	UploadURL string        // Short-lived PUT-URL
+	Key       string        // Object-Key for DB
+	ExpiresIn time.Duration // Expiration time
 }
 
 // PrepareUpload generates Object-Key + Upload-URL.
@@ -64,12 +73,26 @@ func (ms *MediaServiceImpl) PrepareUpload(ctx context.Context, userID string, me
 		return UploadTicket{}, fmt.Errorf("upload url: %w", err)
 	}
 
-	return UploadTicket{UploadURL: url, Key: key}, nil
+	return UploadTicket{UploadURL: url, Key: key, ExpiresIn: ms.ttl}, nil
 }
 
-// GetDownloadURL returns short-lived GET-URL.
+// GetDownloadURL returns short-lived GET-URL with caching.
 func (ms *MediaServiceImpl) GetDownloadURL(ctx context.Context, key string) (string, error) {
-	return ms.storage.GetDownloadURL(ctx, key)
+	// Check cache first
+	if url, ok := ms.cache.Get(key); ok {
+		return url, nil
+	}
+
+	// Cache miss: regenerate
+	url, err := ms.storage.GetDownloadURL(ctx, key)
+	if err != nil {
+		return "", fmt.Errorf("download url: %w", err)
+	}
+
+	// Store in cache
+	ms.cache.Set(key, url)
+
+	return url, nil
 }
 
 // ConfirmUpload verifies successful upload.

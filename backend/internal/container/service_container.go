@@ -29,6 +29,9 @@ type ServiceContainer struct {
 }
 
 func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
+	// Initialize media service (needed by handlers for presigned URLs)
+	mediaService := infrastructure.NewMediaService(cfg.Storage, cfg.Config.Storage.SignedURLTTL)
+
 	// Initialize repositories with the database connection
 	tripRepo := repository.NewTripRepository(cfg.DB)
 	locationRepo := repository.NewLocationRepository(cfg.DB)
@@ -40,11 +43,8 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	locationService := service.NewLocationService(locationRepo)
 
 	// Initialize user service
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
-
-	// Initialize media service (needed by handlers for presigned URLs)
-	mediaService := infrastructure.NewMediaService(cfg.Storage)
 
 	// Initialize auth manager (7 day token expiration)
 	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, cfg.Config.TokenExpiration)

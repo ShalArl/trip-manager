@@ -1,32 +1,36 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
-	"github.com/ShalArl/trip-manager/internal/storage"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/pkg/ptr"
 	"github.com/google/uuid"
 	openapitypes "github.com/oapi-codegen/runtime/types"
 )
 
-func mapUserToUserResponse(user *domain.User, storage *storage.Storage) *generated.UserResponse {
+func mapUserToUserResponse(ctx context.Context, media infrastructure.MediaService, user *domain.User) *generated.UserResponse {
 	id, _ := uuid.Parse(user.ID)
 
-	// Set avatarUrl from domain, convert to pointer if not empty
-	var avatarUrl *string
-	if user.AvatarURL != "" {
-		avatarUrl = ptr.ToPtr(user.AvatarURL)
+	var avatarURL *string
+	if user.AvatarKey != "" {
+		if url, err := media.GetDownloadURL(ctx, user.AvatarKey); err == nil {
+			avatarURL = &url
+		}
 	}
 
-	return &generated.UserResponse{
-		AvatarUrl: avatarUrl,
-		Bio:       &user.Bio,
-		CreatedAt: &user.CreatedAt,
-		Email:     openapitypes.Email(user.Email),
+	resp := &generated.UserResponse{
 		Id:        ptr.ToPtr(id),
+		Email:     openapitypes.Email(user.Email),
 		Name:      user.Name,
+		Bio:       &user.Bio,
+		AvatarUrl: avatarURL,
+		CreatedAt: &user.CreatedAt,
 		UpdatedAt: &user.UpdatedAt,
 	}
+	return resp
 }
 
 func mapUserToUserSummary(user *domain.User) *generated.UserSummary {
