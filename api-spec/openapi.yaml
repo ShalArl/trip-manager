@@ -548,6 +548,523 @@ paths:
         '404':
           description: Activity not found
 
+  # ─── Likes ────────────────────────────────────────────────────────────────
+
+  /trips/{tripId}/activities/{activityId}/likes:
+    post:
+      summary: Like an activity
+      operationId: likeActivity
+      tags:
+        - Likes
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Activity liked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeResponse'
+        '400':
+          description: Already liked
+        '401':
+          description: Unauthorized
+        '404':
+          description: Activity not found
+
+    delete:
+      summary: Unlike an activity
+      operationId: unlikeActivity
+      tags:
+        - Likes
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Like removed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Like not found
+
+  # ─── Comments ─────────────────────────────────────────────────────────────
+
+  /trips/{tripId}/activities/{activityId}/comments:
+    get:
+      summary: List activity comments
+      operationId: listComments
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated list of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentListResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Activity not found
+
+    post:
+      summary: Add comment to activity
+      operationId: addComment
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Activity not found
+
+  /trips/{tripId}/activities/{activityId}/comments/{commentId}:
+    put:
+      summary: Update comment
+      operationId: updateComment
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden – only comment author can update
+        '404':
+          description: Comment not found
+
+    delete:
+      summary: Delete comment
+      operationId: deleteComment
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden – only comment author can delete
+        '404':
+          description: Comment not found
+
+  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments:
+    get:
+      summary: List comment replies
+      operationId: listReplies
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated list of replies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentReplyListResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Comment not found
+
+    post:
+      summary: Add reply to comment
+      operationId: addReply
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentReplyRequest'
+      responses:
+        '201':
+          description: Reply added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentReplyResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Comment not found
+
+  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments/{replyId}:
+    put:
+      summary: Update reply
+      operationId: updateReply
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: replyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentReplyRequest'
+      responses:
+        '200':
+          description: Reply updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentReplyResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden – only reply author can update
+        '404':
+          description: Reply not found
+
+    delete:
+      summary: Delete reply
+      operationId: deleteReply
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: replyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Reply deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden – only reply author can delete
+        '404':
+          description: Reply not found
+
+  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments/{replyId}/likes:
+    post:
+      summary: Like a reply
+      operationId: likeReply
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: replyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Reply liked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplyLikeResponse'
+        '400':
+          description: Already liked
+        '401':
+          description: Unauthorized
+        '404':
+          description: Reply not found
+
+    delete:
+      summary: Unlike a reply
+      operationId: unlikeReply
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: replyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Like removed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Like not found
+    post:
+      summary: Like a comment
+      operationId: likeComment
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Comment liked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentLikeResponse'
+        '400':
+          description: Already liked
+        '401':
+          description: Unauthorized
+        '404':
+          description: Comment not found
+
+    delete:
+      summary: Unlike a comment
+      operationId: unlikeComment
+      tags:
+        - Comments
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Like removed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Like not found
+
 # ─── Components ───────────────────────────────────────────────────────────────
 
 components:
@@ -1062,6 +1579,14 @@ components:
               format: float
             currency:
               type: string
+            likeCount:
+              type: integer
+              description: Number of likes on this activity
+              readOnly: true
+            commentCount:
+              type: integer
+              description: Number of comments on this activity
+              readOnly: true
 
     ActivityListResponse:
       description: Paginated list of activities.
@@ -1075,3 +1600,247 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/ActivityResponse'
+
+    # ── Like ──────────────────────────────────────────────────────────────────
+
+    LikeResponse:
+      description: Like object returned when liking an activity.
+      type: object
+      required:
+        - id
+        - activityId
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        activityId:
+          type: string
+          format: uuid
+          description: ID of the liked activity
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user who liked
+        user:
+          $ref: '#/components/schemas/UserSummary'
+          description: User who liked this activity
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    # ── Comment ───────────────────────────────────────────────────────────────
+
+    CreateCommentRequest:
+      description: Request to create a new comment on an activity.
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Comment text
+        imageKey:
+          type: string
+          nullable: true
+          description: Optional S3/MinIO/GCP object key for comment image
+
+    UpdateCommentRequest:
+      description: Request to update a comment.
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Updated comment text
+        imageKey:
+          type: string
+          nullable: true
+          description: Optional S3/MinIO/GCP object key for comment image
+
+    CommentResponse:
+      description: Full comment object returned by all comment endpoints.
+      allOf:
+        - $ref: '#/components/schemas/ResourceMeta'
+        - type: object
+          required:
+            - text
+            - activityId
+          properties:
+            text:
+              type: string
+              description: Comment content
+            activityId:
+              type: string
+              format: uuid
+              description: ID of the activity this comment belongs to
+            imageUrl:
+              type: string
+              nullable: true
+              description: Short-lived signed URL for comment image
+              readOnly: true
+            likeCount:
+              type: integer
+              description: Number of likes on this comment
+              readOnly: true
+            replyCount:
+              type: integer
+              description: Number of replies to this comment
+              readOnly: true
+
+    CommentListResponse:
+      description: Paginated list of comments.
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CommentResponse'
+
+    # ── Comment Reply ──────────────────────────────────────────────────────────
+
+    CreateCommentReplyRequest:
+      description: Request to create a reply to a comment.
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Reply text
+        imageKey:
+          type: string
+          nullable: true
+          description: Optional S3/MinIO/GCP object key for reply image
+
+    UpdateCommentReplyRequest:
+      description: Request to update a comment reply.
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Updated reply text
+        imageKey:
+          type: string
+          nullable: true
+          description: Optional S3/MinIO/GCP object key for reply image
+
+    CommentReplyResponse:
+      description: Full comment reply object returned by all reply endpoints.
+      allOf:
+        - $ref: '#/components/schemas/ResourceMeta'
+        - type: object
+          required:
+            - text
+            - commentId
+          properties:
+            text:
+              type: string
+              description: Reply content
+            commentId:
+              type: string
+              format: uuid
+              description: ID of the parent comment
+            imageUrl:
+              type: string
+              nullable: true
+              description: Short-lived signed URL for reply image
+              readOnly: true
+            likeCount:
+              type: integer
+              description: Number of likes on this reply
+              readOnly: true
+
+    CommentReplyListResponse:
+      description: Paginated list of comment replies.
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CommentReplyResponse'
+
+    # ── Reply Like ────────────────────────────────────────────────────────────
+
+    ReplyLikeResponse:
+      description: Like object returned when liking a reply.
+      type: object
+      required:
+        - id
+        - replyId
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        replyId:
+          type: string
+          format: uuid
+          description: ID of the liked reply
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user who liked
+        user:
+          $ref: '#/components/schemas/UserSummary'
+          description: User who liked this reply
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    # ── Comment Like ──────────────────────────────────────────────────────────
+
+    CommentLikeResponse:
+      description: Like object returned when liking a comment.
+      type: object
+      required:
+        - id
+        - commentId
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        commentId:
+          type: string
+          format: uuid
+          description: ID of the liked comment
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user who liked
+        user:
+          $ref: '#/components/schemas/UserSummary'
+          description: User who liked this comment
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+

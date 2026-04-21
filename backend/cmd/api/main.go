@@ -130,6 +130,38 @@ func main() {
 				r.Route("/{activityId}", func(r chi.Router) {
 					r.Put("/", handler.UpdateActivityHandler(application))
 					r.Delete("/", handler.DeleteActivityHandler(application))
+
+					// ─── Activity Likes Routes ──────────────────────────────────────────
+					r.Post("/likes", handler.LikeActivityHandler(application))
+					r.Delete("/likes", handler.UnlikeActivityHandler(application))
+
+					// ─── Comments Routes ────────────────────────────────────────────────
+					r.Route("/comments", func(r chi.Router) {
+						r.Get("/", handler.ListCommentsHandler(application))
+						r.Post("/", handler.CreateCommentHandler(application))
+						r.Route("/{commentId}", func(r chi.Router) {
+							r.Put("/", handler.UpdateCommentHandler(application))
+							r.Delete("/", handler.DeleteCommentHandler(application))
+
+							// ─── Comment Likes Routes ──────────────────────────────────────
+							r.Post("/likes", handler.LikeCommentHandler(application))
+							r.Delete("/likes", handler.UnlikeCommentHandler(application))
+
+							// ─── Nested Comments (Replies) Routes ───────────────────────────
+							r.Route("/comments", func(r chi.Router) {
+								r.Get("/", handler.ListRepliesHandler(application))
+								r.Post("/", handler.CreateReplyHandler(application))
+								r.Route("/{replyId}", func(r chi.Router) {
+									r.Put("/", handler.UpdateReplyHandler(application))
+									r.Delete("/", handler.DeleteReplyHandler(application))
+
+									// ─── Reply Likes Routes ─────────────────────────────────────
+									r.Post("/likes", handler.LikeReplyHandler(application))
+									r.Delete("/likes", handler.UnlikeReplyHandler(application))
+								})
+							})
+						})
+					})
 				})
 			})
 

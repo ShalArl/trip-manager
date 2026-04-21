@@ -3,6 +3,7 @@ package container
 import (
 	"log"
 
+	"cloud.google.com/go/firestore"
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
 	"github.com/ShalArl/trip-manager/internal/infrastructure"
@@ -13,10 +14,11 @@ import (
 )
 
 type ServiceConfig struct {
-	DB      *sqlx.DB
-	Logger  *log.Logger
-	Config  *config.Config
-	Storage storage.Storage
+	SQLDb           *sqlx.DB
+	FirestoreClient *firestore.Client
+	Logger          *log.Logger
+	Config          *config.Config
+	Storage         storage.Storage
 }
 
 type ServiceContainer struct {
@@ -33,10 +35,10 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	mediaService := infrastructure.NewMediaService(cfg.Storage, cfg.Config.Storage.SignedURLTTL)
 
 	// Initialize repositories with the database connection
-	tripRepo := repository.NewTripRepository(cfg.DB)
-	locationRepo := repository.NewLocationRepository(cfg.DB)
-	userRepo := repository.NewUserRepository(cfg.DB)
-	activityRepo := repository.NewActivityRepository(cfg.DB)
+	tripRepo := repository.NewTripRepository(cfg.SQLDb)
+	locationRepo := repository.NewLocationRepository(cfg.SQLDb)
+	userRepo := repository.NewUserRepository(cfg.SQLDb)
+	activityRepo := repository.NewActivityRepository(cfg.SQLDb)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)

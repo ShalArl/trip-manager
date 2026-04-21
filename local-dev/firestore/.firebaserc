@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "trip-manager-dev"
+  },
+  "targets": {},
+  "etags": {},
+  "version": "1.0"
+}
+

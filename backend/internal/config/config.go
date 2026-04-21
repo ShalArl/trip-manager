@@ -16,7 +16,8 @@ type Config struct {
 	JWTSecret          string
 	TokenExpiration    time.Duration
 
-	Storage StorageConfig
+	Storage   StorageConfig
+	Firestore FirestoreConfig
 }
 
 type StorageConfig struct {
@@ -26,6 +27,12 @@ type StorageConfig struct {
 	S3 S3Settings
 	// GCS
 	GCS GCSSettings
+}
+
+type FirestoreConfig struct {
+	ProjectID string
+	IsLocal   bool
+	Endpoint  string // only relevant if IsLocal is true
 }
 
 type S3Settings struct {
@@ -57,7 +64,8 @@ func LoadConfig() (*Config, error) {
 		JWTSecret:          getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		TokenExpiration:    tokenExp,
 
-		Storage: loadStorageConfig(),
+		Storage:   loadStorageConfig(),
+		Firestore: loadFirestoreConfig(),
 	}
 
 	return cfg, nil
@@ -88,6 +96,14 @@ func loadS3Config() S3Settings {
 		SecretKey: getEnv("S3_SECRET_KEY", "minioadmin"),
 		PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000/trip-manager"),
 		UseSSL:    getEnvBool("S3_USE_SSL", false),
+	}
+}
+
+func loadFirestoreConfig() FirestoreConfig {
+	return FirestoreConfig{
+		ProjectID: getEnv("FIRESTORE_PROJECT_ID", ""),
+		IsLocal:   getEnvBool("FIRESTORE_IS_LOCAL", false),
+		Endpoint:  getEnv("FIRESTORE_ENDPOINT", "http://localhost:8080"),
 	}
 }
 
