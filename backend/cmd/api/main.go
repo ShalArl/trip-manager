@@ -157,6 +157,7 @@ func main() {
 		}
 	})
 
+	// Start server
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
 	srv := &http.Server{
 		Addr:    addr,
