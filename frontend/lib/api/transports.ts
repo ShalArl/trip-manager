@@ -4,18 +4,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getTransports(tripId: string): Promise<TransportResponse[]> {
     const token = localStorage.getItem("token");
-
+    const headers: HeadersInit = {};
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
     const response = await fetch(`${API_URL}/api/trips/${tripId}/transports`, {
         method: "GET",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-        },
+        headers,
     });
-
     if (!response.ok) {
         throw new Error(`Fehler beim Laden der Transporte: ${response.status}`);
     }
-
     const data = await response.json();
     return data.data as TransportResponse[];
 }
