@@ -11,7 +11,15 @@ func validateCreateLocationRequest(req generated.CreateLocationRequest) error {
 	if req.Name == "" || req.City == "" || req.Country == "" {
 		return fmt.Errorf("%w: name, city, and country are required", domain.ErrInvalidInput)
 	}
-
+	if req.ShortDescription == "" {
+		return fmt.Errorf("%w: short description is required", domain.ErrInvalidInput)
+	}
+	if req.DateFrom.IsZero() || req.DateTo.IsZero() {
+		return fmt.Errorf("%w: date_from and date_to are required", domain.ErrInvalidInput)
+	}
+	if req.DateTo.Before(req.DateFrom.Time) {
+		return fmt.Errorf("%w: date_to must be after date_from", domain.ErrInvalidInput)
+	}
 	return validateCoordinates(req.Latitude, req.Longitude)
 }
 
@@ -19,7 +27,12 @@ func validateUpdateLocationRequest(req generated.UpdateLocationRequest) error {
 	if req.Name != nil && *req.Name == "" {
 		return fmt.Errorf("%w: name cannot be empty", domain.ErrInvalidInput)
 	}
-
+	if req.ShortDescription != nil && *req.ShortDescription == "" {
+		return fmt.Errorf("%w: short description cannot be empty", domain.ErrInvalidInput)
+	}
+	if req.DateFrom != nil && req.DateTo != nil && req.DateTo.Before(req.DateFrom.Time) {
+		return fmt.Errorf("%w: date_to must be after date_from", domain.ErrInvalidInput)
+	}
 	return validateCoordinates(req.Latitude, req.Longitude)
 }
 
@@ -34,4 +47,3 @@ func validateCoordinates(latitude, longitude *float32) error {
 
 	return nil
 }
-

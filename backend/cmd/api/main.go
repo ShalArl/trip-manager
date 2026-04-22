@@ -38,7 +38,6 @@ func startUp() (*app.App, error) {
 }
 
 func main() {
-	// Load configuration and initialize application
 	application, err := startUp()
 	if err != nil {
 		log.Fatalf("Application startup failed: %v", err)
@@ -62,7 +61,6 @@ func main() {
 	// Setup router
 	r := chi.NewRouter()
 
-	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -73,28 +71,50 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// Routes
 	r.Route("/api", func(r chi.Router) {
-		// Initialize auth manager for middleware (7 day token expiration)
 		authManager := auth.NewAuthManager(application.Config.JWTSecret, 7*24*time.Hour)
 
-		// ─── Auth Routes (no auth required) ────────────────────────────────────
+		// ─── Public Routes (no auth required) ──────────────────────────────────
 		r.Post("/auth/register", handler.CreateUserHandler(application))
 		r.Post("/auth/login", handler.LoginHandler(application))
 		r.Get("/trips/search", handler.SearchTripsHandler(application))
 		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
-		// ─── Optional Auth Routes (public but user context if available) ────────
+		// ─── Trip Routes (GET public, rest protected) ───────────────────────────
 		r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/trips/{tripId}", handler.GetTripHandler(application))
 
-		// Protected routes - require JWT authentication
+		// ─── Location Routes ────────────────────────────────────────────────────
+		r.Route("/trips/{tripId}/locations", func(r chi.Router) {
+			r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/", handler.ListLocationsHandler(application))
+			r.With(chimiddleware.AuthMiddleware(authManager)).Post("/", handler.CreateLocationHandler(application))
+			r.Route("/{locationId}", func(r chi.Router) {
+				r.Use(chimiddleware.AuthMiddleware(authManager))
+				r.Get("/", handler.GetLocationHandler(application))
+				r.Put("/", handler.UpdateLocationHandler(application))
+				r.Delete("/", handler.DeleteLocationHandler(application))
+			})
+		})
+
+		// ─── Transport Routes ────────────────────────────────────────────────────
+		r.Route("/trips/{tripId}/transports", func(r chi.Router) {
+			r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/", handler.ListTransportsHandler(application))
+			r.With(chimiddleware.AuthMiddleware(authManager)).Post("/", handler.CreateTransportHandler(application))
+			r.Route("/{transportId}", func(r chi.Router) {
+				r.Use(chimiddleware.AuthMiddleware(authManager))
+				r.Get("/", handler.GetTransportHandler(application))
+				r.Put("/", handler.UpdateTransportHandler(application))
+				r.Delete("/", handler.DeleteTransportHandler(application))
+			})
+		})
+
+		// ─── Protected Routes ───────────────────────────────────────────────────
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.AuthMiddleware(authManager))
 
-			// ─── Upload Routes ──────────────────────────────────────────────────────
+			// Upload
 			r.Post("/uploads/presigned", handler.GetPresignedURLHandler(application))
 
-			// ─── User Routes ────────────────────────────────────────────────────────
+			// Users
 			r.Get("/users/me", handler.GetMeHandler(application))
 			r.Put("/users/me", handler.UpdateMeHandler(application))
 			r.Put("/users/me/password", handler.ChangePasswordHandler(application))
@@ -102,28 +122,16 @@ func main() {
 			r.Put("/users/{userId}", handler.UpdateUserHandler(application))
 			r.Delete("/users/{userId}", handler.DeleteUserHandler(application))
 
-			// ─── Trip Routes ────────────────────────────────────────────────────────
+			// Trips
 			r.Get("/trips", handler.ListTripsHandler(application))
 			r.Post("/trips", handler.CreateTripHandler(application))
-			//r.Get("/trips/{tripId}", handler.GetTripHandler(application))
 			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
 			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
 
-			// ─── Location Routes ────────────────────────────────────────────────────
-			r.Route("/trips/{tripId}/locations", func(r chi.Router) {
-				r.Get("/", handler.ListLocationsHandler(application))
-				r.Post("/", handler.CreateLocationHandler(application))
-				r.Route("/{locationId}", func(r chi.Router) {
-					r.Get("/", handler.GetLocationHandler(application))
-					r.Put("/", handler.UpdateLocationHandler(application))
-					r.Delete("/", handler.DeleteLocationHandler(application))
-				})
-			})
-
-			// ─── Direct Location Routes (for individual location access) ────────────
+			// Direct Location Routes
 			r.Get("/locations/{locationId}", handler.GetLocationHandler(application))
 
-			// ─── Activity Routes ────────────────────────────────────────────────────
+			// Activity Routes
 			r.Route("/trips/{tripId}/activities", func(r chi.Router) {
 				r.Get("/", handler.ListActivitiesForTripHandler(application))
 				r.Post("/", handler.CreateActivityHandler(application))
@@ -133,15 +141,14 @@ func main() {
 				})
 			})
 
-			// ─── Activity by Location Route ──────────────────────────────────────────
+			// Activity by Location
 			r.Get("/locations/{locationId}/activities", handler.ListActivitiesForLocationHandler(application))
 
-			// ─── Direct Activity Routes (for individual activity access) ──────────────
+			// Direct Activity Routes
 			r.Get("/activities/{activityId}", handler.GetActivityHandler(application))
 		})
 	})
 
-	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

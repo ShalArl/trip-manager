@@ -1,71 +1,91 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { updateTrip } from "@/lib/api/trips";
 import { components } from "@/generated/types";
+import { TransportResponse, CreateTransportRequest, UpdateTransportRequest } from "@/types/transport";
+import { createTransport, getTransports } from "@/lib/api/transports";
+import { LocationResponse, CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
+import { getLocations, createLocation, updateLocation, deleteLocation } from "@/lib/api/locations";
+import EditTransportModal from "./modals/EditTransportModal";
+import { updateTransport, deleteTransport } from "@/lib/api/transports";
 import AddLocationModal from "./modals/AddLocationModal";
 import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
+import AddTransportModal from "./modals/AddTransportModal";
+import LocationDetailModal from "./modals/LocationDetailModal";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
 type Props = {
     trip: TripResponse;
     isEditable?: boolean;
+    onTripUpdate: (trip: TripResponse) => void;
 };
 
-export default function TripDetail({ trip, isEditable = false }: Props) {
+export default function TripDetail({ trip, isEditable = false, onTripUpdate }: Props) {
     const [isEditingTrip, setIsEditingTrip] = useState(false);
+    const [currentTrip, setCurrentTrip] = useState<TripResponse>(trip);
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+
     const [showAddLocationModal, setShowAddLocationModal] = useState(false);
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+    const [showAddTransportModal, setShowAddTransportModal] = useState(false);
+    const [showLocationDetailModal, setShowLocationDetailModal] = useState(false);
 
-    // TODO: Mock locations and activities - replace with API calls
-    const [locations, setLocations] = useState([
-        {
-            id: "loc-1",
-            name: "Paris",
-            city: "Paris",
-            country: "France",
-            sequence: 1,
-        },
-        {
-            id: "loc-2",
-            name: "Lyon",
-            city: "Lyon",
-            country: "France",
-            sequence: 2,
-        },
-    ]);
+    const [transports, setTransports] = useState<TransportResponse[]>([]);
+    const [detailTransport, setDetailTransport] = useState<TransportResponse | null>(null);
+    const [showEditTransportModal, setShowEditTransportModal] = useState(false);
+    const [locations, setLocations] = useState<LocationResponse[]>([]);
+    const [activities, setActivities] = useState<any[]>([]);
+    const [detailLocation, setDetailLocation] = useState<LocationResponse | null>(null);
 
-    const [activities, setActivities] = useState([
-        {
-            id: "act-1",
-            name: "Eiffelturm",
-            locationId: "loc-1",
-            date: trip.startDate,
-            category: "sightseeing",
-        },
-        {
-            id: "act-2",
-            name: "Restaurant",
-            locationId: "loc-1",
-            date: trip.startDate,
-            category: "dining",
-        },
-    ]);
-
-    const selectedLocation = locations.find((l) => l.id === selectedLocationId);
+    const activeLocation = locations.find((l) => l.id === selectedLocationId);
     const selectedLocationActivities = activities.filter(
         (a) => a.locationId === selectedLocationId
     );
 
-    // Modal handlers
-    const handleAddLocation = (newLocation: any) => {
-        const location = {
-            id: `loc-${Date.now()}`,
-            ...newLocation,
-            sequence: locations.length + 1,
-        };
-        setLocations([...locations, location]);
+    useEffect(() => {
+        getLocations(trip.id).then(setLocations).catch(console.error);
+    }, [trip.id]);
+
+    useEffect(() => {
+        getTransports(trip.id).then(setTransports).catch(console.error);
+    }, [trip.id]);
+
+    const handleAddLocation = async (newLocation: CreateLocationRequest) => {
+        try {
+            const created = await createLocation(trip.id, newLocation);
+            setLocations([...locations, created]);
+        } catch (error) {
+            console.error("Fehler beim Erstellen der Location:", error);
+        }
+    };
+
+    const handleLocationClick = (location: LocationResponse) => {
+        setDetailLocation(location);
+        setShowLocationDetailModal(true);
+    };
+
+    const handleUpdateLocation = async (req: UpdateLocationRequest) => {
+        if (!detailLocation) return;
+        try {
+            const updated = await updateLocation(trip.id, detailLocation.id!, req);
+            setLocations(locations.map((l) => l.id === updated.id ? updated : l));
+            setShowLocationDetailModal(false);
+        } catch (error) {
+            console.error("Fehler beim Aktualisieren der Location:", error);
+        }
+    };
+
+    const handleDeleteLocation = async () => {
+        if (!detailLocation) return;
+        try {
+            await deleteLocation(trip.id, detailLocation.id!);
+            setLocations(locations.filter((l) => l.id !== detailLocation.id));
+            setShowLocationDetailModal(false);
+        } catch (error) {
+            console.error("Fehler beim Löschen der Location:", error);
+        }
     };
 
     const handleAddActivity = (newActivity: any) => {
@@ -77,10 +97,46 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
         setActivities([...activities, activity]);
     };
 
-    const handleEditTrip = (updatedTrip: any) => {
-        // TODO: Call API to update trip
-        console.log("Updated trip:", updatedTrip);
-        setIsEditingTrip(false);
+    const handleAddTransport = async (newTransport: CreateTransportRequest) => {
+        try {
+            const created = await createTransport(trip.id, newTransport);
+            setTransports([...transports, created]);
+        } catch (error) {
+            console.error("Fehler beim Erstellen des Transports:", error);
+        }
+    };
+
+    const handleUpdateTransport = async (req: UpdateTransportRequest) => {
+        if (!detailTransport) return;
+        try {
+            const updated = await updateTransport(trip.id, detailTransport.id!, req);
+            setTransports(transports.map((t) => t.id === updated.id ? updated : t));
+            setShowEditTransportModal(false);
+        } catch (error) {
+            console.error("Fehler beim Aktualisieren des Transports:", error);
+        }
+    };
+
+    const handleDeleteTransport = async () => {
+        if (!detailTransport) return;
+        try {
+            await deleteTransport(trip.id, detailTransport.id!);
+            setTransports(transports.filter((t) => t.id !== detailTransport.id));
+            setShowEditTransportModal(false);
+        } catch (error) {
+            console.error("Fehler beim Löschen des Transports:", error);
+        }
+    };
+
+    const handleEditTrip = async (updatedTrip: Partial<TripResponse>) => {
+        try {
+            const updated = await updateTrip(trip.id, updatedTrip);
+            setCurrentTrip(updated);   // ← lokaler State
+            onTripUpdate(updated);     // ← Parent informieren
+            setIsEditingTrip(false);
+        } catch (error) {
+            console.error("Fehler beim Bearbeiten der Reise:", error);
+        }
     };
 
     return (
@@ -93,7 +149,6 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
             </Link>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left: Trip Info & Locations */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Trip Header */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
@@ -104,10 +159,10 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                                        {trip.title}
+                                        {currentTrip.title}
                                     </h1>
                                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                        {trip.startDate} · {trip.endDate}
+                                        {currentTrip.startDate} · {currentTrip.endDate}
                                     </p>
                                 </div>
                             </div>
@@ -120,25 +175,18 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                 </button>
                             )}
                         </div>
-
-                        {/* Trip Description */}
                         <div className="border-t border-zinc-100 dark:border-zinc-800 pt-6 space-y-4">
                             <div>
                                 <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
                                     Kurzbeschreibung
                                 </p>
-                                <p className="text-zinc-700 dark:text-zinc-300">
-                                    {trip.shortDescription}
-                                </p>
-                            </div>
-                            {trip.description && (
+                                <p className="text-zinc-700 dark:text-zinc-300">{currentTrip.shortDescription}</p>                            </div>
+                            {currentTrip.description && (
                                 <div>
                                     <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
                                         Details
                                     </p>
-                                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                                        {trip.description}
-                                    </p>
+                                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">{currentTrip.description}</p>
                                 </div>
                             )}
                         </div>
@@ -159,7 +207,6 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                 </button>
                             )}
                         </div>
-
                         {locations.length === 0 ? (
                             <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">
                                 Keine Orte hinzugefügt
@@ -167,34 +214,103 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                         ) : (
                             <div className="space-y-2">
                                 {locations.map((location) => (
-                                    <button
+                                    <div
                                         key={location.id}
-                                        onClick={() =>
-                                            setSelectedLocationId(
-                                                selectedLocationId === location.id ? null : location.id
-                                            )
-                                        }
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
-                                            selectedLocationId === location.id
-                                                ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
-                                                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
-                                        }`}
+                                        onClick={() => setSelectedLocationId(
+                                            selectedLocationId === location.id ? null : location.id!
+                                        )}
+                                        className={`w-full text-left p-4 rounded-xl border-2 transition-colors cursor-pointer ${selectedLocationId === location.id
+                                            ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
+                                            : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
+                                            }`}
                                     >
-                                        <p className="font-medium text-zinc-900 dark:text-white">
-                                            {location.name}
-                                        </p>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {location.city}, {location.country}
-                                        </p>
-                                    </button>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-zinc-900 dark:text-white">{location.name}</p>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                    {location.city}, {location.country} · {location.dateFrom} – {location.dateTo}
+                                                </p>
+                                            </div>
+                                            {isEditable && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleLocationClick(location);
+                                                    }}
+                                                    className="p-2 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                >
+                                                    ✏️
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 ))}
+
+                            </div>
+                        )}
+                    </div>
+
+
+
+                    {/* Travel Plan */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Travel Plan</h2>
+                            {isEditable && (
+                                <button
+                                    onClick={() => setShowAddTransportModal(true)}
+                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                                >
+                                    + Transport
+                                </button>
+                            )}
+                        </div>
+                        {transports.length === 0 ? (
+                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">
+                                Kein Transport hinzugefügt
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {transports.map((t) => {
+                                    const fromLocation = locations.find((l) => l.id === t.fromLocationId);
+                                    const toLocation = locations.find((l) => l.id === t.toLocationId);
+                                    const typeEmoji = { flight: "✈️", train: "🚂", car: "🚗", bus: "🚌" }[t.type ?? "flight"] ?? "🚗";
+                                    return (
+                                        <div
+                                            key={t.id}
+                                            className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">{typeEmoji}</span>
+                                                    <div>
+                                                        <p className="font-medium text-zinc-900 dark:text-white">
+                                                            {fromLocation?.name ?? t.fromLocationId} → {toLocation?.name ?? t.toLocationId}
+                                                        </p>
+                                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                            {t.departureTime ?? "Keine Abfahrtszeit"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {isEditable && (
+                                                    <button
+                                                        onClick={() => { setDetailTransport(t); setShowEditTransportModal(true); }}
+                                                        className="p-2 text-zinc-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right: Activities (for selected location) */}
-                {selectedLocation && (
+                {/* Right: Activities */}
+                {activeLocation && (
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 h-fit">
                         <div className="flex items-center justify-between mb-4">
                             <div>
@@ -202,20 +318,18 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                                     Aktivitäten in
                                 </p>
                                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-                                    {selectedLocation.name}
+                                    {activeLocation.name}
                                 </h3>
                             </div>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddActivityModal(true)}
                                     className="p-2 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
-                                    title="Aktivität hinzufügen"
                                 >
                                     +
                                 </button>
                             )}
                         </div>
-
                         {selectedLocationActivities.length === 0 ? (
                             <p className="text-zinc-500 dark:text-zinc-400 text-sm text-center py-4">
                                 Keine Aktivitäten
@@ -223,16 +337,9 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
                         ) : (
                             <div className="space-y-3">
                                 {selectedLocationActivities.map((activity) => (
-                                    <div
-                                        key={activity.id}
-                                        className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
-                                    >
-                                        <p className="font-medium text-sm text-zinc-900 dark:text-white">
-                                            {activity.name}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                            {activity.category}
-                                        </p>
+                                    <div key={activity.id} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                        <p className="font-medium text-sm text-zinc-900 dark:text-white">{activity.name}</p>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{activity.category}</p>
                                     </div>
                                 ))}
                             </div>
@@ -244,23 +351,48 @@ export default function TripDetail({ trip, isEditable = false }: Props) {
             {/* Modals */}
             <AddLocationModal
                 isOpen={showAddLocationModal}
-                onClose={() => setShowAddLocationModal(false)}
-                onAdd={handleAddLocation}
+                onCloseAction={() => setShowAddLocationModal(false)}
+                onAddAction={handleAddLocation}
             />
             <AddActivityModal
                 isOpen={showAddActivityModal}
                 locationId={selectedLocationId}
-                locationName={selectedLocation?.name || ""}
+                locationName={activeLocation?.name || ""}
                 tripStartDate={trip.startDate}
-                onClose={() => setShowAddActivityModal(false)}
-                onAdd={handleAddActivity}
+                onCloseAction={() => setShowAddActivityModal(false)}
+                onAddAction={handleAddActivity}
             />
             <EditTripModal
                 isOpen={isEditingTrip}
-                trip={trip}
-                onClose={() => setIsEditingTrip(false)}
-                onSave={handleEditTrip}
+                trip={currentTrip}
+                onCloseAction={() => setIsEditingTrip(false)}
+                onSaveAction={handleEditTrip}
             />
+            <AddTransportModal
+                isOpen={showAddTransportModal}
+                locations={locations}
+                onCloseAction={() => setShowAddTransportModal(false)}
+                onAddAction={handleAddTransport}
+            />
+            {detailLocation && (
+                <LocationDetailModal
+                    isOpen={showLocationDetailModal}
+                    location={detailLocation}
+                    onCloseAction={() => setShowLocationDetailModal(false)}
+                    onSaveAction={handleUpdateLocation}
+                    onDeleteAction={handleDeleteLocation}
+                />
+            )}
+            {detailTransport && (
+                <EditTransportModal
+                    isOpen={showEditTransportModal}
+                    transport={detailTransport}
+                    locations={locations}
+                    onCloseAction={() => setShowEditTransportModal(false)}
+                    onSaveAction={handleUpdateTransport}
+                    onDeleteAction={handleDeleteTransport}
+                />
+            )}
         </div>
     );
 }

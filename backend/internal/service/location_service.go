@@ -66,7 +66,7 @@ func (l *LocationServiceImpl) GetLocation(ctx context.Context, id string) (*doma
 }
 
 func (l *LocationServiceImpl) ListLocations(ctx context.Context, tripId string, limit int, offset int) ([]*domain.Location, int, error) {
-	locations, totalCount, err := l.locationRepository.ListLocations(ctx, tripId, "", limit, offset)
+	locations, totalCount, err := l.locationRepository.ListLocations(ctx, tripId, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list locations: %w", err)
 	}
