@@ -2,7 +2,6 @@ package container
 
 import (
 	"log"
-	"time"
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
@@ -49,14 +48,11 @@ func NewServiceContainer(cfg *ServiceConfig) *ServiceContainer {
 	locationService := service.NewLocationService(locationRepo)
 
 	// Initialize user service
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize media service (needed by handlers for presigned URLs)
-	mediaService := infrastructure.NewMediaService(cfg.Storage)
-
 	// Initialize auth manager (7 day token expiration)
-	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, 7*24*time.Hour)
+	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, cfg.Config.TokenExpiration)
 
 	// Initialize auth service
 	authService := service.NewAuthService(authManager, userService)

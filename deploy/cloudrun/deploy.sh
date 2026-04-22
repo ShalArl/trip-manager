@@ -3,15 +3,12 @@ set -euo pipefail
 
 source .env
 
-for f in scripts/lib.sh scripts/database.sh scripts/artifactory.sh \
+for f in scripts/lib.sh scripts/cloudsql.sh scripts/artifactory.sh \
          scripts/storage.sh scripts/runtime_sa.sh scripts/cloudrun.sh; do
     source "$f"
 done
 
 # gcloud auth login --quiet
-
-ENABLE_STORAGE="${ENABLE_STORAGE:-false}"
-
 
 # === Phase 1: Project & APIs ===
 ensure_project "$PROJECT_ID"
@@ -52,10 +49,10 @@ SQL_DB_USER="${DB_USER:-app}"
 SQL_REGION="${REGION:-europe-west3}"
 SQL_TIER="db-f1-micro"
 
-setup_db_password   # setzt $DB_PASSWORD aus Secret Manager
-setup_instance "$SQL_INSTANCE" "$SQL_DB_NAME" "$SQL_DB_USER" "$DB_PASSWORD" "$SQL_REGION" "$SQL_TIER"
-create_db_user "$SQL_INSTANCE" "$SQL_DB_USER" "$DB_PASSWORD"
-create_database "$SQL_INSTANCE" "$SQL_DB_NAME"
+sql_setup_db_password   # setzt $DB_PASSWORD aus Secret Manager
+sql_setup_instance "$SQL_INSTANCE" "$SQL_DB_NAME" "$SQL_DB_USER" "$DB_PASSWORD" "$SQL_REGION" "$SQL_TIER"
+sql_create_db_user "$SQL_INSTANCE" "$SQL_DB_USER" "$DB_PASSWORD"
+sql_create_database "$SQL_INSTANCE" "$SQL_DB_NAME"
 
 SQL_CONNECTION_NAME="${PROJECT_ID}:${SQL_REGION}:${SQL_INSTANCE}"
 
@@ -66,17 +63,28 @@ create_secret_if_missing "database-url" "$DATABASE_URL"
 JWT_SECRET="${JWT_SECRET:-$(openssl rand -base64 48)}"
 create_secret_if_missing "jwt-secret" "$JWT_SECRET"
 
-# === Phase 7: GCS + HMAC ===
-if [ "$ENABLE_STORAGE" = "true" ]; then
-    GCS_BUCKET="${PROJECT_ID}-${APP_NAME}-media"
-    setup_gcs_bucket "$GCS_BUCKET" "$SQL_REGION"
-    setup_storage_sa_and_hmac "$GCS_BUCKET"
-else
-    echo "Skipping storage setup (ENABLE_STORAGE=false)."
-fi
+# === Phase 7: GCS Bucket ===
+setup_gcs_bucket "$GCS_BUCKET" "$REGION"
+ensure_service_account "signed-url-signer" "Service Account for signing GCS URLs"
+SIGNED_URL_SA_EMAIL="signed-url-signer@$PROJECT_ID.iam.gserviceaccount.com"
+
+gcloud storage buckets add-iam-policy-binding "gs://${GCS_BUCKET}" \
+    --member="serviceAccount:${SIGNED_URL_SA_EMAIL}" \
+    --role="roles/storage.objectAdmin"
+
+setup_cors "$GCS_BUCKET"
 
 # === Phase 8: Runtime SA ===
 setup_runtime_sa   # exportiert $RUNTIME_SA_EMAIL
+
+gcloud storage buckets add-iam-policy-binding "gs://${GCS_BUCKET}" \
+    --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+    --role="roles/storage.objectAdmin"
+
+gcloud iam service-accounts add-iam-policy-binding "$SIGNED_URL_SA_EMAIL" \
+    --project="$PROJECT_ID" \
+    --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+    --role="roles/iam.serviceAccountTokenCreator"
 
 # === Phase 9: Cloud Run Services ===
 BACKEND_SERVICE="${APP_NAME}-backend"
@@ -99,7 +107,6 @@ echo "Runtime SA:      $RUNTIME_SA_EMAIL"
 echo "Backend URL:     $BACKEND_URL"
 echo "Frontend URL:    $FRONTEND_URL"
 echo "SQL Connection:  $SQL_CONNECTION_NAME"
-if [ "$ENABLE_STORAGE" = "true" ]; then
-    echo "Storage Bucket:  $GCS_BUCKET"
-fi
+echo "Storage Bucket:  $GCS_BUCKET"
+echo "Signed URL SA:   $SIGNED_URL_SA_EMAIL"
 echo "========================================================"

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
 )
 
@@ -32,12 +34,14 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	userRepository repository.UserRepository
+	mediaService   infrastructure.MediaService
 }
 
 // NewUserService creates a new UserService
-func NewUserService(userRepo repository.UserRepository) UserService {
+func NewUserService(userRepo repository.UserRepository, mediaService infrastructure.MediaService) UserService {
 	return &UserServiceImpl{
 		userRepository: userRepo,
+		mediaService:   mediaService,
 	}
 }
 
@@ -94,37 +98,42 @@ func (u *UserServiceImpl) GetUserByEmail(ctx context.Context, email string) (*do
 
 // UpdateUser implements [UserService].
 func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error) {
-	// 1. Validate input (business logic validation)
 	if err := validateUpdateUserRequest(*request); err != nil {
 		return nil, err
 	}
 
-	log.Printf("[Service] UpdateUser: Validating request - AvatarUrl=%v", request.AvatarUrl)
+	// Verify AvatarKey if set
+	if request.AvatarKey != nil && *request.AvatarKey != "" {
+		// Sanity-Check: Does it belong to the current User?
+		expectedPrefix := fmt.Sprintf("avatars/%s", id)
+		if !strings.HasPrefix(*request.AvatarKey, expectedPrefix) {
+			return nil, fmt.Errorf("%w: avatar key does not belong to user", domain.ErrInvalidInput)
+		}
 
-	// 2. Fetch existing user
+		// Does the file exist?
+		exists, err := u.mediaService.ConfirmUpload(ctx, *request.AvatarKey)
+		if err != nil {
+			return nil, fmt.Errorf("verify avatar upload: %w", err)
+		}
+		if !exists {
+			return nil, fmt.Errorf("%w: avatar not uploaded", domain.ErrInvalidInput)
+		}
+	}
+
 	existingUser, err := u.userRepository.GetUser(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	log.Printf("[Service] UpdateUser: Existing user - ID=%s, AvatarURL=%s", existingUser.ID, existingUser.AvatarURL)
-
-	// 3. Convert from generated type to domain
 	user := mapUpdateUserRequestToUser(request, existingUser)
 
-	log.Printf("[Service] UpdateUser: Mapped user - ID=%s, AvatarURL=%s", user.ID, user.AvatarURL)
-
-	// 4. Call repository to update and get updated record
 	updatedUser, err := u.userRepository.UpdateUserProfile(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
-	log.Printf("[Service] UpdateUser: Updated user from repo - ID=%s, AvatarURL=%s", updatedUser.ID, updatedUser.AvatarURL)
-
 	return updatedUser, nil
 }
-
 
 // UpdateUserPassword called only internally by AuthService therefore no validation
 func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {

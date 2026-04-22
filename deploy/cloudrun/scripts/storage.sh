@@ -9,38 +9,41 @@ setup_gcs_bucket() {
         gcloud storage buckets create "gs://${bucket}" \
             --project="$PROJECT_ID" \
             --location="$region" \
-            --uniform-bucket-level-access
+            --uniform-bucket-level-access \
+            --public-access-prevention
     else
         echo "GCS bucket $bucket already exists."
     fi
 }
 
-setup_storage_sa_and_hmac() {
-    local sa_name="storage-app"
-    local sa_email="${sa_name}@${PROJECT_ID}.iam.gserviceaccount.com"
-    local bucket=$1
+setup_cors() {
+  local GCS_BUCKET=$1
 
-    ensure_service_account "$sa_name" "App Storage Access (S3-compat)"
-    wait_for_service_account "$sa_email"
+  if [[ -z "$GCS_BUCKET" ]]; then
+    echo "Error: GCS_BUCKET parameter is required" >&2
+    return 1
+  fi
 
-    gcloud storage buckets add-iam-policy-binding "gs://${bucket}" \
-        --member="serviceAccount:${sa_email}" \
-        --role="roles/storage.objectAdmin"
+  local cors_file
+  cors_file=$(mktemp) || return 1
+  trap "rm -f '$cors_file'" RETURN
 
-    if ! gcloud secrets describe "s3-access-key" --project="$PROJECT_ID" &>/dev/null; then
-        echo "Creating HMAC key for ${sa_email}..."
-        local hmac_output
-        hmac_output=$(gcloud storage hmac create "$sa_email" \
-            --project="$PROJECT_ID" --format=json)
+  cat >"$cors_file" <<EOF
+  [
+    {
+      "origin": [
+        "https://trip-manager-frontend-271566791555.europe-west3.run.app",
+        "https://trip-manager-frontend-rygwuplcya-ey.a.run.app"
+      ],
+      "method": ["PUT", "GET"],
+      "responseHeader": ["Content-Type"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+EOF
 
-        local hmac_access_id hmac_secret
-        hmac_access_id=$(echo "$hmac_output" | jq -r '.metadata.accessId')
-        hmac_secret=$(echo "$hmac_output" | jq -r '.secret')
-
-        create_secret_if_missing "s3-access-key" "$hmac_access_id"
-        create_secret_if_missing "s3-secret-key" "$hmac_secret"
-        echo "HMAC credentials stored in Secret Manager."
-    else
-        echo "HMAC secrets already exist, skipping key creation."
-    fi
+  if ! gcloud storage buckets update "gs://${GCS_BUCKET}" --cors-file="$cors_file"; then
+    echo "Error: Failed to update CORS configuration for bucket $GCS_BUCKET" >&2
+    return 1
+  fi
 }

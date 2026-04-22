@@ -68,14 +68,14 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
           token_format: access_token
 
       - name: Log in to Artifact Registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.GCP_AR_HOST }}
+          registry: ${{ vars.GCP_AR_HOST }}
           username: oauth2accesstoken
           password: ${{ steps.gcp-auth.outputs.access_token }}
 
@@ -85,10 +85,10 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend
-            ${{ env.GCP_AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/backend
+            ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend
           tags: |
             type=ref,event=branch
-            type=sha
+            type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
@@ -128,7 +128,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/frontend
           tags: |
             type=ref,event=branch
-            type=sha
+            type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
@@ -160,14 +160,14 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
           token_format: access_token
 
       - name: Log in to Artifact Registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.GCP_AR_HOST }}
+          registry: ${{ vars.GCP_AR_HOST }}
           username: oauth2accesstoken
           password: ${{ steps.gcp-auth.outputs.access_token }}
 
@@ -175,10 +175,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.GCP_AR_HOST }}/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/frontend
+          images: ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend
           tags: |
             type=ref,event=branch
-            type=sha
+            type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
@@ -198,17 +198,17 @@ jobs:
   # Summary job
   summary:
     runs-on: ubuntu-latest
-    needs: [ detect-changes, build-backend, build-frontend ]
+    needs: [ detect-changes, build-backend, build-frontend-gcp, build-frontend-hetzner ]
     if: always()
     steps:
       - name: Check build status
         run: |
-          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend.result }}" = "skipped" ]; then
+          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend-gcp.result }}" = "skipped" ] && [ "${{ needs.build-frontend-hetzner.result }}" = "skipped" ]; then
             echo "✓ No changes detected - skipping builds"
           else
             echo "✓ Build pipeline completed"
             echo "Backend build: ${{ needs.build-backend.result }}"
-            echo "Frontend build: ${{ needs.build-frontend.result }}"
+            echo "Frontend build: ${{ needs.build-frontend-gcp.result }}" || echo "Frontend build: ${{ needs.build-frontend-hetzner.result }}"
           fi
 
   # Deploy to Server (only after push to main/dev with successful builds)
@@ -216,9 +216,10 @@ jobs:
     needs: [ detect-changes, summary ]
     if: >
       github.event_name == 'push' && (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/dev') && (needs.detect-changes.outputs.backend
-      == 'true' ||
-       needs.detect-changes.outputs.frontend == 'true')
+      github.ref == 'refs/heads/dev') &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.build-frontend-hetzner.result == 'success' || needs.build-frontend-hetzner.result == 'skipped') &&
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -304,15 +305,14 @@ jobs:
             "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"
 
   deploy-gcp:
-    needs: [detect-changes, build-backend, build-frontend-gcp]
+    needs: [detect-changes, summary]
     if: >
       always() &&
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
       (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
       (needs.build-frontend-gcp.result == 'success' || needs.build-frontend-gcp.result == 'skipped') &&
-      (needs.detect-changes.outputs.backend == 'true' ||
-       needs.detect-changes.outputs.frontend == 'true')
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -342,12 +342,3 @@ jobs:
             --image=${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend:sha-${{ github.sha }} \
             --region=${{ vars.GCP_REGION }} \
             --project=${{ vars.GCP_PROJECT_ID }}
-
-# Later: Deploy to cloud run
-#     - name: Deploy to Cloud Run
-#       uses: google-github-actions/deploy-cloudrun@v2
-#       with:
-#         service: trip-manager-api
-#         region: ${{ env.GCP_REGION }}
-#         image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-#

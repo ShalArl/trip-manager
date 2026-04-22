@@ -8,7 +8,7 @@ type User struct {
 	Name         string
 	Bio          string
 	PasswordHash string
-	AvatarURL    string
+	AvatarKey    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

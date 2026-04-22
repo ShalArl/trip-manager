@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -17,56 +18,51 @@ import (
 type App struct {
 	DB       *sqlx.DB
 	Logger   *log.Logger
-	Config   *config.Config
 	Services *container.ServiceContainer
-	Storage  storage.Storage
+	Config   *config.Config
 }
 
 // New initializes and returns a new App instance
-func New(cfg *config.Config) (*App, error) {
+func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	// Initialize database with config database URL
-	db, err := database.Connect(cfg.DatabaseURL)
+	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Run migrations automatically
 	if err := database.RunEmbeddedMigrations(db); err != nil {
-		if errors.Is(err, db.Close()) {
-			return nil, fmt.Errorf("failed to run migrations - FATAL could not close DB connection: %w", err)
-		}
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
+		return nil, errors.Join(
+			fmt.Errorf("failed to run migrations: %w", err),
+			db.Close(),
+		)
 	}
 
 	// Initialize logger
 	logger := log.New(os.Stdout, "[trip-manager] ", log.LstdFlags|log.Lshortfile)
-
-	// Initialize storage (using local storage for now, can be replaced with S3/GCS later)
-	stor, err := setupLocalStorage(cfg)
+	stor, err := storage.NewFromEnv(ctx, cfg.Storage)
 	if err != nil {
-		logger.Printf("Warning: Failed to initialize storage: %v", err)
-		return nil, fmt.Errorf("failed to initialize storage: %w", err)
+		return nil, errors.Join(
+			fmt.Errorf("failed to setup storage: %w", err),
+			db.Close())
 	}
-
-	svcs := container.NewServiceContainer(&container.ServiceConfig{
+	svcs, err := container.NewServiceContainer(&container.ServiceConfig{
 		DB:      db,
 		Logger:  logger,
 		Config:  cfg,
 		Storage: stor,
 	})
-	if svcs == nil {
-		if errors.Is(err, db.Close()) {
-			return nil, fmt.Errorf("failed to create service container - FATAL could not close DB connection: %w", err)
-		} // Ensure DB is closed if service container creation fails
-		return nil, fmt.Errorf("failed to create service container")
+
+	if err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("failed to setup service container: %w", err), db.Close())
 	}
 
 	app := &App{
 		DB:       db,
+		Services: svcs,
 		Logger:   logger,
 		Config:   cfg,
-		Services: svcs,
-		Storage:  stor,
 	}
 
 	logger.Println("Application initialized successfully")
@@ -79,15 +75,4 @@ func (a *App) Close() error {
 		return a.DB.Close()
 	}
 	return nil
-}
-
-func setupLocalStorage(cfg *config.Config) (storage.Storage, error) {
-	return storage.NewS3Storage(storage.S3Config{
-		Bucket:    cfg.S3Bucket,
-		Region:    cfg.S3Region,
-		Endpoint:  cfg.S3Endpoint,
-		AccessKey: cfg.S3AccessKey,
-		SecretKey: cfg.S3SecretKey,
-		PublicURL: cfg.S3PublicURL,
-	})
 }

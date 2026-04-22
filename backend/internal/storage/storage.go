@@ -6,10 +6,16 @@ import (
 )
 
 type Storage interface {
-	// Upload saves a file and returns a URL
-	Upload(ctx context.Context, fileName string, file io.Reader) (string, error)
-	// ReadFile retrieves a file by name
+	// GetUploadURL Generate a signed URL for uploading a file. fileName is the Object-Key in the storage.
+	GetUploadURL(ctx context.Context, fileName string) (string, error)
+	// GetDownloadURL Generate a signed URL for downloading a file. fileName is the Object-Key in the storage.
+	GetDownloadURL(ctx context.Context, fileName string) (string, error)
+	// ReadFile INTERNAL
 	ReadFile(ctx context.Context, fileName string) (io.ReadCloser, error)
-	// GetUrl returns the public URL for a file
-	GetUrl(ctx context.Context, fileName string) (string, error)
+	// WriteFile Optional
+	WriteFile(ctx context.Context, fileName string, file io.Reader) error
+	// Delete Optional: Delete
+	Delete(ctx context.Context, fileName string) error
+	// Exists Optional: Check if file exists
+	Exists(ctx context.Context, fileName string) (bool, error)
 }

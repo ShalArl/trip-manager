@@ -2,9 +2,9 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 )
 
 type S3Storage struct {
@@ -19,7 +21,8 @@ type S3Storage struct {
 	presigner *s3.PresignClient
 	bucket    string
 	region    string
-	publicURL string // Wichtig für GetUrl
+	publicURL string
+	ttl       time.Duration
 }
 
 type S3Config struct {
@@ -29,6 +32,7 @@ type S3Config struct {
 	PublicURL string // Extern: https://travel-nugget.duckdns.org/minio
 	AccessKey string
 	SecretKey string
+	TTL       time.Duration // Lifetime für Upload/Download URLs, default 15min
 }
 
 func NewS3Storage(cfg S3Config) (*S3Storage, error) {
@@ -37,6 +41,9 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 	}
 	if cfg.Region == "" {
 		cfg.Region = "us-east-1"
+	}
+	if cfg.TTL == 0 {
+		cfg.TTL = 15 * time.Minute
 	}
 
 	var opts []func(*config.LoadOptions) error
@@ -52,73 +59,114 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	// 1. Interner Client (für Server-Side Upload/Read)
+	// Internal Client for Server-Side Ops (Read, Write, Delete)
 	internalClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(cfg.Endpoint)
 		o.UsePathStyle = true
 	})
 
-	// 2. Presign Client (für Browser-Upload-URLs)
-	// Nutzt die PublicURL, damit die Signatur für die Domain + /minio Pfad passt
-	presignClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+	// Presign-Client uses PublicURL for generating URLs that are accessible from outside the cluster
+	presignSourceClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(cfg.PublicURL)
 		o.UsePathStyle = true
 	})
 
 	return &S3Storage{
 		client:    internalClient,
-		presigner: s3.NewPresignClient(presignClient),
+		presigner: s3.NewPresignClient(presignSourceClient),
 		bucket:    cfg.Bucket,
 		region:    cfg.Region,
 		publicURL: cfg.PublicURL,
+		ttl:       cfg.TTL,
 	}, nil
 }
 
-func (s *S3Storage) Upload(ctx context.Context, fileName string, file io.Reader) (string, error) {
-	log.Printf("Uploading file %s to internal endpoint", fileName)
-
-	// manager.Uploader ist der Standard für S3 v2
-	uploader := transfermanager.New(s.client)
-
-	_, err := uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
+// GetUploadURL return short-lived upload url.
+func (s *S3Storage) GetUploadURL(ctx context.Context, fileName string) (string, error) {
+	result, err := s.presigner.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
-		Body:   file,
-	})
-
+	}, s3.WithPresignExpires(s.ttl))
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file: %w", err)
+		return "", fmt.Errorf("presign put %q: %w", fileName, err)
 	}
-
-	return s.GetUrl(ctx, fileName)
+	return result.URL, nil
 }
 
+// GetDownloadURL return short-lived download url.
+func (s *S3Storage) GetDownloadURL(ctx context.Context, fileName string) (string, error) {
+	result, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fileName),
+	}, s3.WithPresignExpires(s.ttl))
+	if err != nil {
+		return "", fmt.Errorf("presign get %q: %w", fileName, err)
+	}
+	return result.URL, nil
+}
+
+// ReadFile read file from backend
 func (s *S3Storage) ReadFile(ctx context.Context, fileName string) (io.ReadCloser, error) {
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+		return nil, fmt.Errorf("get object %q: %w", fileName, err)
 	}
 	return result.Body, nil
 }
 
-func (s *S3Storage) GetUrl(ctx context.Context, fileName string) (string, error) {
-	return fmt.Sprintf("%s/minio/%s/%s", s.publicURL, s.bucket, fileName), nil
-}
-
-func (s *S3Storage) GeneratePresignedURL(ctx context.Context, fileName string, expiresIn time.Duration) (string, error) {
-	req := &s3.PutObjectInput{
+// WriteFile write a file from backend
+func (s *S3Storage) WriteFile(ctx context.Context, fileName string, file io.Reader) error {
+	uploader := transfermanager.New(s.client)
+	_, err := uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
-	}
-
-	result, err := s.presigner.PresignPutObject(ctx, req, s3.WithPresignExpires(expiresIn))
+		Body:   file,
+	})
 	if err != nil {
-		return "", err
+		return fmt.Errorf("upload %q: %w", fileName, err)
 	}
+	return nil
+}
 
-	log.Printf("Presigned URL ready for browser: %s", result.URL)
-	return result.URL, nil
+// Delete removes object
+func (s *S3Storage) Delete(ctx context.Context, fileName string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fileName),
+	})
+	if err != nil {
+		var nsk *types.NoSuchKey
+		if errors.As(err, &nsk) {
+			return nil
+		}
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NoSuchKey" {
+			return nil
+		}
+		return fmt.Errorf("delete %q: %w", fileName, err)
+	}
+	return nil
+}
+
+// Exists check if file exists
+func (s *S3Storage) Exists(ctx context.Context, fileName string) (bool, error) {
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fileName),
+	})
+	if err != nil {
+		var nsk *types.NotFound
+		if errors.As(err, &nsk) {
+			return false, nil
+		}
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotFound" {
+			return false, nil
+		}
+		return false, fmt.Errorf("head object %q: %w", fileName, err)
+	}
+	return true, nil
 }

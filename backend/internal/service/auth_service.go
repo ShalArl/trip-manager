@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/domain"
@@ -25,6 +26,7 @@ type AuthService interface {
 type AuthServiceImpl struct {
 	authManager *auth.AuthManager
 	userService UserService
+	logger      log.Logger
 }
 
 // NewAuthService creates a new auth service
