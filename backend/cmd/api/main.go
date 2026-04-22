@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,11 +24,12 @@ import (
 
 func startUp() (*app.App, error) {
 	cfg, err := config.LoadConfig()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-
-	application, err := app.New(cfg)
+	application, err := app.New(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize app: %v", err)
 	}
@@ -43,12 +48,23 @@ func main() {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	// Setup router
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:*"},
+		AllowedOrigins:   application.Config.CORSAllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
@@ -141,15 +157,41 @@ func main() {
 		}
 	})
 
-	uploadDir := os.Getenv("UPLOAD_DIR")
-	if uploadDir == "" {
-		uploadDir = "./uploads"
-	}
-	r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(http.Dir(uploadDir))))
-
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
-	application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
+		// Timeouts Production
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	// Run in Goroutine
+	serverErr := make(chan error, 1)
+	go func() {
+		application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+		close(serverErr)
+	}()
+
+	select {
+	case err := <-serverErr:
 		application.Logger.Fatalf("Server error: %v", err)
+	case <-ctx.Done():
+		application.Logger.Println("shutting down gracefully")
+	}
+
+	// Graceful Shutdown with Timeout (10 seconds)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		application.Logger.Printf("graceful shutdown failed: %v", err)
+	} else {
+		application.Logger.Println("server shut down cleanly")
 	}
 }

@@ -36,11 +36,11 @@ func mapUpdateUserRequestToUser(request *generated.UpdateUserRequest, existing *
 		updated.Bio = *request.Bio
 	}
 
-	if request.AvatarUrl != nil {
-		updated.AvatarURL = *request.AvatarUrl
-		log.Printf("[Mapper] mapUpdateUserRequestToUser: Set AvatarURL from request: %s", *request.AvatarUrl)
+	if request.AvatarKey != nil {
+		updated.AvatarKey = *request.AvatarKey
+		log.Printf("[Mapper] mapUpdateUserRequestToUser: Set AvatarKey from request: %s", *request.AvatarKey)
 	} else {
-		log.Printf("[Mapper] mapUpdateUserRequestToUser: No AvatarUrl in request")
+		log.Printf("[Mapper] mapUpdateUserRequestToUser: No AvatarKey in request")
 	}
 
 	updated.UpdatedAt = time.Now()
