@@ -6,16 +6,18 @@ import { searchTrips, getRecentPublicTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 import Navbar from "@/components/global/Navbar";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type TripResponse = components["schemas"]["TripResponse"];
+
+const PAGE_SIZE = 5;
 
 export default function SearchPage() {
     const { user, updateUser } = useUserContext();
     const [query, setQuery] = useState("");
     const [trips, setTrips] = useState<TripResponse[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -25,15 +27,21 @@ export default function SearchPage() {
     };
 
     useEffect(() => {
+        setPage(0);
+    }, [query]);
+
+    useEffect(() => {
         const fetchTrips = async () => {
             const trimmedQuery = query.trim();
+            const offset = page * PAGE_SIZE;
 
             if (trimmedQuery.length === 0) {
                 setIsLoading(true);
                 try {
-                    const numberOfRecentTrips = 5
-                    const results = await getRecentPublicTrips(numberOfRecentTrips);
-                    setTrips(results);
+                    const result = await getRecentPublicTrips(PAGE_SIZE, offset);
+                    console.log("total:", result.total, "data:", result.data.length);  // ← hier
+                    setTrips(result.data);
+                    setTotal(result.total);
                 } catch (error) {
                     console.error(error);
                 } finally {
@@ -46,8 +54,9 @@ export default function SearchPage() {
 
             setIsLoading(true);
             try {
-                const results = await searchTrips(trimmedQuery);
-                setTrips(results);
+                const result = await searchTrips(trimmedQuery, PAGE_SIZE, offset);
+                setTrips(result.data);
+                setTotal(result.total);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -57,7 +66,9 @@ export default function SearchPage() {
 
         const debounce = setTimeout(fetchTrips, 300);
         return () => clearTimeout(debounce);
-    }, [query]);
+    }, [query, page]);
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
@@ -71,7 +82,6 @@ export default function SearchPage() {
                     Entdecke Reisen von anderen Reisenden
                 </p>
 
-                {/* Suchleiste */}
                 <input
                     type="text"
                     value={query}
@@ -80,7 +90,6 @@ export default function SearchPage() {
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-8"
                 />
 
-                {/* Ergebnisse */}
                 {isLoading ? (
                     <p className="text-zinc-500 text-center">Suche...</p>
                 ) : trips.length === 0 ? (
@@ -88,32 +97,67 @@ export default function SearchPage() {
                         {query ? "Keine Reisen gefunden" : "Gib etwas ein um zu suchen"}
                     </p>
                 ) : (
-                    <div className="flex flex-col gap-4">
-                        {trips.map((trip) => (
-                            <Link
-                                key={trip.id}
-                                href={`/trips/${encodeURIComponent(trip.id)}`}
-                                className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-md transition-all"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-xl">
-                                        ✈️
+                    <>
+                        <div className="flex flex-col gap-4">
+                            {trips.map((trip) => (
+                                <Link
+                                    key={trip.id}
+                                    href={`/trips/${encodeURIComponent(trip.id)}`}
+                                    className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-md transition-all"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-xl">
+                                            ✈️
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-zinc-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                                {trip.title}
+                                            </p>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                {trip.startDate} · {trip.endDate}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-semibold text-zinc-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                                            {trip.title}
-                                        </p>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {trip.startDate} · {trip.endDate}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span className="text-zinc-400 dark:text-zinc-600 group-hover:text-sky-500 transition-colors text-lg">
+                                    <span className="text-zinc-400 dark:text-zinc-600 group-hover:text-sky-500 transition-colors text-lg">
+                                        →
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-8">
+                                <button
+                                    onClick={() => setPage(page - 1)}
+                                    disabled={page === 0}
+                                    className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    ←
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setPage(i)}
+                                        className={`px-4 py-2 rounded-lg border transition-colors ${
+                                            page === i
+                                                ? "bg-sky-600 text-white border-sky-600"
+                                                : "border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setPage(page + 1)}
+                                    disabled={page >= totalPages - 1}
+                                    className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
                                     →
-                                </span>
-                            </Link>
-                        ))}
-                    </div>
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

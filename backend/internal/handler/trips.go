@@ -41,19 +41,16 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 	}
 }
 
-// ListRecentTripsHandler handles GET /api/trips/recent (public, no auth required)
 func ListRecentTripsHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := handlePaginationParams(r)
-
-		trips, err := app.Services.Trip.ListRecentTrips(r.Context(), limit)
+		limit, offset := handlePaginationParams(r)
+		trips, total, err := app.Services.Trip.ListRecentTrips(r.Context(), limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			app.Logger.Printf("ListRecentTrips error: %v", err)
 			return
 		}
-
-		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, 0, len(trips)))
+		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, offset, total))
 	}
 }
 

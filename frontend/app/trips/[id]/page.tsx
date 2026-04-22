@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getTrip } from "@/lib/api/trips";
 import TripDetail from "@/components/trips/TripDetail";
-import {TripResponse} from "@/types/trip";
+import { TripResponse } from "@/types/trip";
 
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,7 +15,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         // Load user ID from localStorage once on mount
         const userJson = localStorage.getItem("user");
         let currentUserId: string | null = null;
-        
+
         if (userJson) {
             try {
                 const user = JSON.parse(userJson);
@@ -30,11 +30,11 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             try {
                 const data = await getTrip(id);
                 setTrip(data);
-                
+
                 // Calculate isEditable after trip is loaded
                 const canEdit = data.createdBy?.id === currentUserId;
                 setIsEditable(canEdit);
-                
+
                 console.log("Trip Daten:", data);
                 console.log("IsEditable:", canEdit, "CurrentUserId:", currentUserId, "TripOwner:", data.createdBy?.id);
             } catch (err) {
@@ -53,5 +53,5 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
     }
 
 
-    return <TripDetail trip={trip} isEditable={isEditable} />;
+    return <TripDetail trip={trip} isEditable={isEditable} onTripUpdate={setTrip} />;
 }
