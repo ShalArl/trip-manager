@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { CreateUserRequest } from "@/types/user";
 import { validatePassword, getPasswordStrengthLabel, getPasswordStrengthColor, getPasswordStrengthBarColor } from "@/lib/validators/passwordValidator";
 import { Eye, EyeOff, Check, X } from "lucide-react";
@@ -21,7 +21,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
 
   const passwordValidation = validatePassword(password);
 
-  async function handleSubmit(e: React.SyntheticEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -39,10 +39,11 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
     }
 
     try {
-      // Registrieren
       await onRegisterAction({ name, email, password });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registrierung fehlgeschlagen. Bitte versuche es erneut.");
+      setIsLoading(false);
+    } finally {
       setIsLoading(false);
     }
   }

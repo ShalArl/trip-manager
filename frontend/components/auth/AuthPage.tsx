@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { components } from "@/generated/types";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
+import {CreateUserRequest, LoginRequest} from "@/types/user";
 
 
 type AuthMode = "login" | "register";
-type CreateUserRequest = components["schemas"]["CreateUserRequest"];
-type LoginRequest = components["schemas"]["LoginRequest"];
 
 
 type Props = {

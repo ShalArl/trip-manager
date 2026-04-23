@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	firebase "firebase.google.com/go/v4"
 )
 
 // Config holds application configuration
@@ -16,7 +18,8 @@ type Config struct {
 	JWTSecret          string
 	TokenExpiration    time.Duration
 
-	Storage StorageConfig
+	Storage        StorageConfig
+	FirebaseConfig *firebase.Config
 }
 
 type StorageConfig struct {
@@ -49,6 +52,11 @@ func LoadConfig() (*Config, error) {
 	databaseURL := buildDatabaseURL()
 	tokenExp := getEnvDuration("TOKEN_EXPIRATION", 7*24*time.Hour)
 
+	firebaseCfg := loadFirebaseConfig()
+	if firebaseCfg.ProjectID == "" {
+		return nil, fmt.Errorf("FIREBASE_PROJECT_ID is required")
+	}
+
 	cfg := &Config{
 		CORSAllowedOrigins: parseOrigins(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
 		DatabaseURL:        databaseURL,
@@ -57,7 +65,8 @@ func LoadConfig() (*Config, error) {
 		JWTSecret:          getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		TokenExpiration:    tokenExp,
 
-		Storage: loadStorageConfig(),
+		Storage:        loadStorageConfig(),
+		FirebaseConfig: firebaseCfg,
 	}
 
 	return cfg, nil
@@ -69,6 +78,12 @@ func loadStorageConfig() StorageConfig {
 		SignedURLTTL: getEnvDuration("SIGNED_URL_TTL", 15*time.Minute),
 		S3:           loadS3Config(),
 		GCS:          loadGCSConfig(),
+	}
+}
+
+func loadFirebaseConfig() *firebase.Config {
+	return &firebase.Config{
+		ProjectID: getEnv("FIREBASE_PROJECT_ID", ""),
 	}
 }
 

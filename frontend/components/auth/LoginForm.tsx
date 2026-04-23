@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { components } from "@/generated/types";
+import React, {useState} from "react";
+import {LoginRequest} from "@/types/user";
 
-type LoginRequest = components["schemas"]["LoginRequest"];
 
 type Props = {
   onLoginAction: (loginRequest: LoginRequest) => void;
@@ -28,10 +27,11 @@ export default function LoginForm({ onLoginAction, onSwitchToRegisterAction }: P
     }
 
     try {
-      // Kein Passwort, keine Überprüfung — einfach einloggen
-      onLoginAction({ email, password });
+      await onLoginAction({ email, password });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login fehlgeschlagen. Bitte versuche es erneut.");
+      setIsLoading(false);
+    } finally {
       setIsLoading(false);
     }
   }

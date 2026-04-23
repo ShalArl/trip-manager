@@ -3,7 +3,6 @@ package container
 import (
 	"log"
 
-	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
 	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
@@ -24,7 +23,6 @@ type ServiceContainer struct {
 	Location service.LocationService
 	User     service.UserService
 	Activity service.ActivityService
-	Auth     service.AuthService
 	Media    infrastructure.MediaService
 }
 
@@ -46,18 +44,11 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize auth manager (7 day token expiration)
-	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, cfg.Config.TokenExpiration)
-
-	// Initialize auth service
-	authService := service.NewAuthService(authManager, userService)
-
 	return &ServiceContainer{
 		Trip:     tripService,
 		Location: locationService,
 		User:     userService,
 		Activity: activityService,
-		Auth:     authService,
 		Media:    mediaService,
 	}, nil
 }

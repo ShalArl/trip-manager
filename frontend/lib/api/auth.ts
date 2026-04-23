@@ -1,112 +1,157 @@
-import {AuthResponse, CreateUserRequest, LoginRequest, UserResponse, UpdateUserRequest, ChangePasswordRequest} from "@/types/user";
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut as firebaseSignOut,
+    updatePassword as firebaseUpdatePassword,
+    updateProfile,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+} from "firebase/auth";
+import { firebaseAuth } from "@/lib/api/firebase";
+import {
+    UserResponse,
+    UpdateUserRequest,
+    ChangePasswordRequest,
+    ProvisionUserRequest,
+    CreateUserRequest,
+    LoginRequest,
+} from "@/types/user";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Helper function to get auth token from localStorage
-function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+/**
+ * Get auth headers with a fresh Firebase ID token.
+ * Always async: the token may need a refresh round-trip.
+ */
+export async function getAuthHeaders(): Promise<HeadersInit> {
+    const user = firebaseAuth.currentUser;
+    if (!user) {
+        return { "Content-Type": "application/json" };
+    }
+    const token = await user.getIdToken();
+    return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+    };
 }
 
-// Helper function to get auth headers
-export function getAuthHeaders(): HeadersInit {
-  const token = getAuthToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
+/**
+ * Register a new user with Firebase and provision the backend record.
+ */
+export async function register(req: CreateUserRequest): Promise<UserResponse> {
+    const credential = await createUserWithEmailAndPassword(
+        firebaseAuth,
+        req.email,
+        req.password,
+    );
+
+    if (req.name) {
+        await updateProfile(credential.user, { displayName: req.name });
+    }
+    return provisionMe({ name: req.name });
 }
 
+/**
+ * Log in with email and password.
+ * Also ensures backend provisioning (idempotent) in case the user
+ * was created out-of-band.
+ */
+export async function login(req: LoginRequest): Promise<UserResponse> {
+    await signInWithEmailAndPassword(firebaseAuth, req.email, req.password);
+    return provisionMe();
+}
 
-export async function register(createUserRequest: CreateUserRequest) {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
+/**
+ * Log out of Firebase. Clears SDK state.
+ */
+export async function logout(): Promise<void> {
+    await firebaseSignOut(firebaseAuth);
+}
+
+/**
+ * Create the backend user record after Firebase sign-up/sign-in.
+ * Idempotent: returns existing record if already provisioned.
+ */
+async function provisionMe(data?: ProvisionUserRequest): Promise<UserResponse> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/users/provision`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createUserRequest),
+        headers,
+        body: JSON.stringify(data ?? {}),
     });
 
     if (!response.ok) {
         const errorData = await response.text();
-        console.error(`Fehler beim Erstellen des Users (${response.status}):`, errorData);
-        throw new Error(`Fehler beim Registrieren: ${response.status}`);
+        console.error(`Provisioning failed (${response.status}):`, errorData);
+        throw new Error(`Provisioning failed: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data as AuthResponse;
+    return response.json();
 }
 
-export async function login(loginRequest: LoginRequest) {
-    console.log("Login Request:", JSON.stringify(loginRequest));
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginRequest),
+export async function getMe(): Promise<UserResponse | null> {
+    if (!firebaseAuth.currentUser) return null;
+
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/users/me`, {
+        method: "GET",
+        headers,
     });
-    
-    console.log("Login Response Status:", response.status);
-    
+
     if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`Fehler beim Einloggen (${response.status}):`, errorData);
-        throw new Error(`Fehler beim Einloggen: ${response.status}`);
+        console.error(`getMe failed (${response.status})`);
+        return null;
     }
 
-    const data = await response.json();
-    console.log("Login erfolgreich:", data);
-    return data as AuthResponse;
+    return response.json();
 }
 
-export async function updateMe(data: UpdateUserRequest) {
+export async function updateMe(data: UpdateUserRequest): Promise<UserResponse> {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/users/me`, {
         method: "PUT",
-        headers: getAuthHeaders(),
+        headers,
         body: JSON.stringify(data),
     });
 
     if (!response.ok) {
         const errorData = await response.text();
-        console.error(`Fehler beim Aktualisieren des Profils (${response.status}):`, errorData);
+        console.error(`updateMe failed (${response.status}):`, errorData);
         throw new Error(`Fehler beim Aktualisieren: ${response.status}`);
     }
 
-    const userData = await response.json();
-    return userData as UserResponse;
+    return response.json();
 }
 
-export async function changePassword(data: ChangePasswordRequest) {
-    const response = await fetch(`${API_URL}/api/users/me/password`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`Fehler beim Ändern des Passworts (${response.status}):`, errorData);
-        throw new Error(`Fehler beim Ändern des Passworts: ${response.status}`);
+/**
+ * Change password directly via Firebase. Requires recent authentication —
+ * Firebase throws `auth/requires-recent-login` if the session is too old,
+ * in which case the caller must re-authenticate first.
+ */
+export async function changePassword(data: ChangePasswordRequest): Promise<void> {
+    const user = firebaseAuth.currentUser;
+    if (!user || !user.email) {
+        throw new Error("Not authenticated");
     }
 
-    return true;
+    const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+    try {
+        await reauthenticateWithCredential(user, credential);
+    } catch (err: unknown) {
+        // @ts-expect-error - Firebase Error has attribute code.
+        if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+            throw new Error("Aktuelles Passwort ist falsch");
+        }
+        throw err;
+    }
+
+    await firebaseUpdatePassword(user, data.newPassword);
 }
 
-export async function getMe() {
-    const req = {
-        method: "GET",
-        headers: getAuthHeaders(),
-    }
-
-    console.log("Req:", req);
-
-    const response = await fetch(`${API_URL}/api/users/me`, req);
-
-    if (!response.ok) {
-        const errorData = await response.text();
-        // console.error(`Fehler beim Abrufen des Profils (${response.status}):`, errorData);
-        // throw new Error(`Fehler beim Abrufen des Profils: ${response.status}`);
-        // Do nothing
-    }
-
-    const userData = await response.json();
-    return userData as UserResponse;
+/**
+ * Send a password reset email. Firebase handles the reset link + flow.
+ */
+export async function sendPasswordReset(email: string): Promise<void> {
+    const { sendPasswordResetEmail } = await import("firebase/auth");
+    await sendPasswordResetEmail(firebaseAuth, email);
 }
-

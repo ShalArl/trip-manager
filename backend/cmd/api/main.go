@@ -73,23 +73,27 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	firebaseAuth, err := auth.NewFirebaseAuth(ctx, application.Config.FirebaseConfig.ProjectID)
+	if err != nil {
+		application.Logger.Printf("Error initializing firebase auth: %v", err)
+		os.Exit(1)
+	}
+
 	// Routes
 	r.Route("/api", func(r chi.Router) {
-		// Initialize auth manager for middleware (7 day token expiration)
-		authManager := auth.NewAuthManager(application.Config.JWTSecret, 7*24*time.Hour)
-
 		// ─── Auth Routes (no auth required) ────────────────────────────────────
-		r.Post("/auth/register", handler.CreateUserHandler(application))
-		r.Post("/auth/login", handler.LoginHandler(application))
 		r.Get("/trips/search", handler.SearchTripsHandler(application))
 		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
 		// ─── Optional Auth Routes (public but user context if available) ────────
-		r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/trips/{tripId}", handler.GetTripHandler(application))
+		r.With(chimiddleware.ProvisionMiddleware(firebaseAuth)).
+			Post("/users/provision", handler.ProvisionMeHandler(application))
+		r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, application.Services.User)).
+			Get("/trips/{tripId}", handler.GetTripHandler(application))
 
 		// Protected routes - require JWT authentication
 		r.Group(func(r chi.Router) {
-			r.Use(chimiddleware.AuthMiddleware(authManager))
+			r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, application.Services.User))
 
 			// ─── Upload Routes ──────────────────────────────────────────────────────
 			r.Post("/uploads/presigned", handler.GetPresignedURLHandler(application))
@@ -97,7 +101,6 @@ func main() {
 			// ─── User Routes ────────────────────────────────────────────────────────
 			r.Get("/users/me", handler.GetMeHandler(application))
 			r.Put("/users/me", handler.UpdateMeHandler(application))
-			r.Put("/users/me/password", handler.ChangePasswordHandler(application))
 			r.Get("/users/{userId}", handler.GetUserHandler(application))
 			r.Put("/users/{userId}", handler.UpdateUserHandler(application))
 			r.Delete("/users/{userId}", handler.DeleteUserHandler(application))
@@ -105,7 +108,6 @@ func main() {
 			// ─── Trip Routes ────────────────────────────────────────────────────────
 			r.Get("/trips", handler.ListTripsHandler(application))
 			r.Post("/trips", handler.CreateTripHandler(application))
-			//r.Get("/trips/{tripId}", handler.GetTripHandler(application))
 			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
 			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
 

@@ -62,8 +62,8 @@ func GetLocationHandler(app *app.App) http.HandlerFunc {
 // CreateLocationHandler handles POST /api/trips/{tripId}/locations
 func CreateLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -98,8 +98,8 @@ func CreateLocationHandler(app *app.App) http.HandlerFunc {
 // UpdateLocationHandler handles PUT /api/locations/{locationId}
 func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -134,8 +134,8 @@ func UpdateLocationHandler(app *app.App) http.HandlerFunc {
 // DeleteLocationHandler handles DELETE /api/locations/{locationId}
 func DeleteLocationHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -148,7 +148,7 @@ func DeleteLocationHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("DeleteLocation: id=%s", locationId)
 
-		err = app.Services.Location.DeleteLocation(r.Context(), locationId, userID)
+		err := app.Services.Location.DeleteLocation(r.Context(), locationId, userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

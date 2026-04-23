@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { components } from "@/generated/types";
 type CreateTripRequest = components["schemas"]["CreateTripRequest"];
@@ -18,7 +18,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
     const [error, setError] = useState("");
 
 
-    function handleSubmit(e: React.SyntheticEvent) {
+    function handleSubmit(e: React.SubmitEvent) {
         e.preventDefault();
         setError("");
 

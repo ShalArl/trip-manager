@@ -3,12 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/lib/context/UserContext";
 import { register, login } from "@/lib/api/auth";
-import { components } from "@/generated/types";
 import AuthPage from "@/components/auth/AuthPage";
-
-type CreateUserRequest = components["schemas"]["CreateUserRequest"];
-type LoginRequest = components["schemas"]["LoginRequest"];
-type AuthResponse = components["schemas"]["AuthResponse"];
+import type { CreateUserRequest, LoginRequest } from "@/types/user";
 
 export default function AuthRoute() {
     const router = useRouter();
@@ -16,10 +12,8 @@ export default function AuthRoute() {
 
     const handleRegister = async (createUserRequest: CreateUserRequest) => {
         try {
-            const response: AuthResponse = await register(createUserRequest);
-            localStorage.setItem("token", response.token);
-            localStorage.setItem("userId", response.user.id);
-            updateUser(response.user);
+            const user = await register(createUserRequest);
+            updateUser(user);
             router.push("/");
         } catch (error) {
             console.error("Registration failed:", error);
@@ -29,10 +23,8 @@ export default function AuthRoute() {
 
     const handleLogin = async (loginRequest: LoginRequest) => {
         try {
-            const response = await login(loginRequest);
-            localStorage.setItem("token", response.token);
-            localStorage.setItem("userId", response.user.id);
-            updateUser(response.user);
+            const user = await login(loginRequest);
+            updateUser(user);
             router.push("/");
         } catch (error) {
             console.error("Login failed:", error);

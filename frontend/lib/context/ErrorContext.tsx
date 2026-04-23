@@ -23,8 +23,10 @@ const ErrorContext = createContext<ErrorContextType | undefined>(undefined);
 export function ErrorProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+
+
   const addToast = useCallback((message: string, type: Toast["type"], duration = 4000) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = Math.random().toString(36).substring(2, 12);
     const newToast: Toast = { id, message, type, duration };
 
     setToasts((prev) => [...prev, newToast]);
