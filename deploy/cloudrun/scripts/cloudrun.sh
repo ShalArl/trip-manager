@@ -14,6 +14,7 @@ deploy_backend_service() {
     env_vars+="@@GCS_BUCKET=${GCS_BUCKET}"
     env_vars+="@@GCS_SIGNER_SA=${SIGNED_URL_SA_EMAIL}"
     env_vars+="@@GCS_SIGNED_URL_TTL_SECONDS=900"
+    env_vars+="@@FIREBASE_PROJECT_ID=${PROJECT_ID}"
 
     local secrets="DATABASE_URL=database-url:latest"
     secrets+=",JWT_SECRET=jwt-secret:latest"
