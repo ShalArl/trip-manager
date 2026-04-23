@@ -2,44 +2,57 @@
 
 import { useState, useEffect } from "react";
 import { useUserContext } from "@/lib/context/UserContext";
+import { logout } from "@/lib/api/auth";
 import { searchTrips, getRecentPublicTrips } from "@/lib/api/trips";
 import { components } from "@/generated/types";
 import Navbar from "@/components/global/Navbar";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Plane } from "lucide-react";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 25;
 
 export default function SearchPage() {
     const { user, updateUser } = useUserContext();
     const [query, setQuery] = useState("");
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [trips, setTrips] = useState<TripResponse[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("user");
+    const handleLogout = async () => {
+        await logout();
         updateUser(null);
     };
 
+    // Reset to page 0 when query or pageSize changes
     useEffect(() => {
         setPage(0);
-    }, [query]);
+    }, [query, pageSize]);
 
     useEffect(() => {
         const fetchTrips = async () => {
             const trimmedQuery = query.trim();
-            const offset = page * PAGE_SIZE;
+            const offset = page * pageSize;
 
             if (trimmedQuery.length === 0) {
                 setIsLoading(true);
                 try {
-                    const result = await getRecentPublicTrips(PAGE_SIZE, offset);
-                    console.log("total:", result.total, "data:", result.data.length);  // ← hier
+                    const result = await getRecentPublicTrips(pageSize, offset);
                     setTrips(result.data);
                     setTotal(result.total);
                 } catch (error) {
@@ -54,7 +67,7 @@ export default function SearchPage() {
 
             setIsLoading(true);
             try {
-                const result = await searchTrips(trimmedQuery, PAGE_SIZE, offset);
+                const result = await searchTrips(trimmedQuery, pageSize, offset);
                 setTrips(result.data);
                 setTotal(result.total);
             } catch (error) {
@@ -66,97 +79,151 @@ export default function SearchPage() {
 
         const debounce = setTimeout(fetchTrips, 300);
         return () => clearTimeout(debounce);
-    }, [query, page]);
+    }, [query, page, pageSize]);
 
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const currentPage = page + 1; // 1-indexed for display
+    const firstVisibleItem = total === 0 ? 0 : page * pageSize + 1;
+    const lastVisibleItem = Math.min((page + 1) * pageSize, total);
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
             <Navbar user={user} onLogout={handleLogout} />
 
             <div className="mx-auto max-w-4xl px-6 py-12">
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
-                    Reisen entdecken
-                </h1>
-                <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-                    Entdecke Reisen von anderen Reisenden
-                </p>
-
-                <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Nach Reisen suchen..."
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-8"
-                />
-
-                {isLoading ? (
-                    <p className="text-zinc-500 text-center">Suche...</p>
-                ) : trips.length === 0 ? (
-                    <p className="text-zinc-500 dark:text-zinc-400 text-center">
-                        {query ? "Keine Reisen gefunden" : "Gib etwas ein um zu suchen"}
+                <div className="mb-10">
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">
+                        Reisen entdecken
+                    </h1>
+                    <p className="text-zinc-500 dark:text-zinc-400">
+                        Entdecke Reisen von anderen Reisenden
                     </p>
+                </div>
+
+                {/* Search + Page Size Controls */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-8">
+                    <div className="relative flex-1">
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none"
+                        />
+                        <Input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Nach Reisen suchen..."
+                            className="pl-10 h-11"
+                        />
+                    </div>
+
+                    <Select
+                        value={String(pageSize)}
+                        onValueChange={(v) => setPageSize(Number(v))}
+                    >
+                        <SelectTrigger className="w-full sm:w-[140px] h-11">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map((size) => (
+                                <SelectItem key={size} value={String(size)}>
+                                    {size} pro Seite
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Results */}
+                {isLoading ? (
+                    <div className="flex flex-col gap-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <Skeleton key={i} className="h-20 rounded-2xl" />
+                        ))}
+                    </div>
+                ) : trips.length === 0 ? (
+                    <Card className="p-12 text-center border-dashed">
+                        <p className="text-zinc-500 dark:text-zinc-400">
+                            {query ? "Keine Reisen gefunden" : "Gib etwas ein um zu suchen"}
+                        </p>
+                    </Card>
                 ) : (
                     <>
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3">
                             {trips.map((trip) => (
                                 <Link
                                     key={trip.id}
                                     href={`/trips/${encodeURIComponent(trip.id)}`}
-                                    className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-6 py-5 flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-md transition-all"
+                                    className="group"
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-xl">
-                                            ✈️
+                                    <Card className="px-6 py-5 flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-sm transition-all cursor-pointer">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-100 dark:border-sky-900 flex items-center justify-center flex-shrink-0">
+                                                <Plane className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-semibold truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                                    {trip.title}
+                                                </p>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                    {trip.startDate} · {trip.endDate}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-semibold text-zinc-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                                                {trip.title}
-                                            </p>
-                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                {trip.startDate} · {trip.endDate}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <span className="text-zinc-400 dark:text-zinc-600 group-hover:text-sky-500 transition-colors text-lg">
-                                        →
-                                    </span>
+                                        <ChevronRight className="h-5 w-5 text-zinc-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-2" />
+                                    </Card>
                                 </Link>
                             ))}
                         </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-2 mt-8">
-                                <button
+                        {/* Pagination Footer */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                {firstVisibleItem}–{lastVisibleItem} von {total}
+                            </p>
+
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setPage(0)}
+                                    disabled={page === 0}
+                                    aria-label="Erste Seite"
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
                                     onClick={() => setPage(page - 1)}
                                     disabled={page === 0}
-                                    className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    aria-label="Vorherige Seite"
                                 >
-                                    ←
-                                </button>
-                                {Array.from({ length: totalPages }, (_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setPage(i)}
-                                        className={`px-4 py-2 rounded-lg border transition-colors ${
-                                            page === i
-                                                ? "bg-sky-600 text-white border-sky-600"
-                                                : "border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                        }`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-                                <button
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+
+                                <div className="px-4 text-sm font-medium min-w-[80px] text-center">
+                                    {currentPage} / {totalPages}
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    size="icon"
                                     onClick={() => setPage(page + 1)}
                                     disabled={page >= totalPages - 1}
-                                    className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    aria-label="Nächste Seite"
                                 >
-                                    →
-                                </button>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setPage(totalPages - 1)}
+                                    disabled={page >= totalPages - 1}
+                                    aria-label="Letzte Seite"
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Button>
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
             </div>

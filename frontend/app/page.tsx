@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { getTrips } from "@/lib/api/trips";
-import { components } from "@/generated/types";
 import { useUserContext } from "@/lib/context/UserContext";
+import { logout } from "@/lib/api/auth";
 import Navbar from "@/components/global/Navbar";
 import Hero from "@/components/home/Hero";
 import FeatureGrid from "@/components/home/FeatureGrid";
 import TripList from "@/components/trips/TripList";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {TripResponse} from "@/types/trip";
+import {LoadingSpinner} from "@/components/global/LoadingSpinner";
 
-type TripResponse = components["schemas"]["TripResponse"];
 
 export default function Home() {
   const { user, isLoading, updateUser } = useUserContext();
@@ -28,18 +29,16 @@ export default function Home() {
     if (!isLoading && !user) {
       router.push("/search");
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await logout()
     updateUser(null);
     router.push("/search");
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   return (
