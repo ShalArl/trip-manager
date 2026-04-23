@@ -31,7 +31,7 @@ type TripRepository interface {
 	SearchTrips(ctx context.Context, query string, limit int, offset int) ([]*domain.Trip, int, error)
 
 	// ListRecentTrips retrieves the most recent trips across all users
-	ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error)
+	ListRecentTrips(ctx context.Context, limit int, offset int) ([]*domain.Trip, int, error)
 }
 
 type TripRepositoryImpl struct {
@@ -206,7 +206,7 @@ func (t *TripRepositoryImpl) SearchTrips(ctx context.Context, query string, limi
 	return trips, results[0].TotalCount, nil
 }
 
-func (t *TripRepositoryImpl) ListRecentTrips(ctx context.Context, limit int) ([]*domain.Trip, error) {
+func (t *TripRepositoryImpl) ListRecentTrips(ctx context.Context, limit int, offset int) ([]*domain.Trip, int, error) {
 	var results []tripRecord
 	query := `
         SELECT 
@@ -216,18 +216,24 @@ func (t *TripRepositoryImpl) ListRecentTrips(ctx context.Context, limit int) ([]
             u.name AS user_name
         FROM trips t JOIN users u ON t.user_id = u.id 
         ORDER BY t.created_at DESC
-        LIMIT $1`
-	if err := t.db.SelectContext(ctx, &results, query, limit); err != nil {
-		return nil, domain.ErrInternal
+        LIMIT $1 OFFSET $2`
+	if err := t.db.SelectContext(ctx, &results, query, limit, offset); err != nil {
+		return nil, 0, domain.ErrInternal
 	}
+
+	var total int
+	if err := t.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM trips`).Scan(&total); err != nil {
+		return nil, 0, domain.ErrInternal
+	}
+
 	if len(results) == 0 {
-		return []*domain.Trip{}, nil
+		return []*domain.Trip{}, total, nil
 	}
 	trips := make([]*domain.Trip, len(results))
 	for i, res := range results {
 		trips[i] = res.toTrip()
 	}
-	return trips, nil
+	return trips, total, nil
 }
 
 func NewTripRepository(db *sqlx.DB) TripRepository {
