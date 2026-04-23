@@ -34,6 +34,10 @@ help:
 	@echo "  make storage-up     Start MinIO (use docker-compose up minio minio-init)"
 	@echo "  make storage-down   Stop MinIO"
 	@echo ""
+	@echo "Firebase Commands:"
+	@echo "  make firebase-up    Start Firebase Emulators with Docker"
+	@echo "  make firebase-down  Stop Firebase Emulators"
+	@echo ""
 	@echo "Other Commands:"
 	@echo "  make test           Run all tests"
 	@echo "  make test-verbose   Run tests with verbose output"
@@ -59,13 +63,13 @@ build:
 # Run the compiled binary
 run: build
 	@echo "Starting server..."
-	@STORAGE_TYPE=$(STORAGE_TYPE) ./$(BIN_DIR)/$(BINARY_NAME)
+	@STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local ./$(BIN_DIR)/$(BINARY_NAME)
 
 # Run with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev:
 	@echo "Starting server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local air
 
 # Build the backend binary for Windows
 build-windows:
@@ -77,13 +81,13 @@ build-windows:
 # Run the compiled Windows binary (requires WSL2 or Windows environment)
 run-windows: build-windows
 	@echo "Starting Windows server..."
-	@STORAGE_TYPE=$(STORAGE_TYPE) ./$(BIN_DIR)/$(BINARY_NAME_WIN)
+	@STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local ./$(BIN_DIR)/$(BINARY_NAME_WIN)
 
 # Run Windows build with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev-win:
 	@echo "Starting Windows server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) GOOS=windows GOARCH=amd64 air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local GOOS=windows GOARCH=amd64 air
 
 # Run all tests
 test:
@@ -183,6 +187,43 @@ storage-down:
 	@docker rm trip_manager_minio 2>/dev/null || true
 	@echo "✓ MinIO stopped"
 
+# Start Firebase Emulators locally
+firebase-up:
+	@echo "Building Firebase Emulator Docker image..."
+	@docker build -f firebase/Dockerfile -t trip-manager-firebase:latest .
+	@echo "✓ Firebase image built"
+	@echo ""
+	@echo "Starting Firebase Emulators..."
+	@docker run -d \
+		--name trip_manager_firebase \
+		-p 8080:8080 \
+		-p 4000:4000 \
+		-p 9099:9099 \
+		-v $(PWD)/firebase:/firebase \
+		trip-manager-firebase:latest
+	@echo "✓ Firebase Emulators started"
+	@echo "  Emulator UI:  http://localhost:4000"
+	@echo "  Firestore:    http://localhost:8080"
+	@echo "  Auth:         http://localhost:9099"
+	@echo "⏳ Waiting for Firebase Emulators to be ready (this may take 30-60 seconds)..."
+	@counter=0; \
+	until [ $$counter -gt 120 ] || curl -s http://localhost:8080 > /dev/null 2>&1; do \
+		counter=$$((counter+1)); \
+		sleep 1; \
+	done; \
+	if [ $$counter -le 120 ]; then \
+		echo "✓ Firebase Emulators are ready!"; \
+	else \
+		echo "⚠ Firebase Emulators may still be starting. Check logs with: docker logs trip_manager_firebase"; \
+	fi
+
+# Stop Firebase Emulators
+firebase-down:
+	@echo "Stopping Firebase Emulators container..."
+	@docker stop trip_manager_firebase 2>/dev/null || true
+	@docker rm trip_manager_firebase 2>/dev/null || true
+	@echo "✓ Firebase Emulators stopped"
+
 # Start all services with docker-compose
 docker-up:
 	@echo "Starting all services with docker-compose..."
@@ -193,6 +234,7 @@ docker-up:
 	@echo "  Frontend:  http://localhost:3000"
 	@echo "  Backend:   http://localhost:8000"
 	@echo "  MinIO:     http://localhost:9000 (API) & http://localhost:9001 (Console)"
+	@echo "  Firebase:  http://localhost:4000 (UI) & http://localhost:9099 (Auth) & http://localhost:8080 (Firestore)"
 	@echo "  Database:  localhost:5432"
 
 # Stop all services with docker-compose
@@ -252,9 +294,9 @@ dev-setup: db-up db-setup build
 	@echo "     or with auto-reload: make run-dev"
 	@echo ""
 
-# Start everything (DB + Server)
-dev: storage-down db-down storage-up db-up
-	@echo "Database started. Starting server..."
+# Start everything locally (DB + Storage + Firebase + Server)
+dev: storage-down db-down firebase-down storage-up db-up firebase-up
+	@echo "All services started. Starting server..."
 	@$(MAKE) run
 
 # Version info

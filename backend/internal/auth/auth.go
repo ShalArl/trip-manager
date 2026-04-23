@@ -103,4 +103,3 @@ func HashEmail(email string) string {
 	hash := sha256.Sum256([]byte(email))
 	return fmt.Sprintf("%x", hash)
 }
-

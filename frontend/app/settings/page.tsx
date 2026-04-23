@@ -6,15 +6,19 @@ import { useState } from "react";
 import { useUserContext } from "@/lib/context/UserContext";
 import { User, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {LoadingSpinner} from "@/components/global/LoadingSpinner";
 
 export default function SettingsPage() {
-  const { user } = useUserContext();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
+  const { user, isLoading } = useUserContext();
 
-  // Redirect to home if not logged in
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
   if (!user) {
-    router.push("/");
+    router.push("/auth");
     return null;
   }
 

@@ -51,5 +51,8 @@ backend/.turbo/           # Turbo cache
 
 
 # tests
-
 .venv/
+
+# other
+firebase-debug.log
+firestore-debug.log

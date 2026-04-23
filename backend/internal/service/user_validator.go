@@ -7,22 +7,6 @@ import (
 	"github.com/ShalArl/trip-manager/internal/generated"
 )
 
-func validateCreateUserRequest(request generated.CreateUserRequest) error {
-	if request.Name == "" {
-		return fmt.Errorf("%w: name is required", domain.ErrInvalidInput)
-	}
-
-	if request.Email == "" {
-		return fmt.Errorf("%w: email is required", domain.ErrInvalidInput)
-	}
-
-	if request.Password == "" {
-		return fmt.Errorf("%w: password is required", domain.ErrInvalidInput)
-	}
-
-	return validatePassword(request.Password)
-}
-
 func validateUpdateUserRequest(request generated.UpdateUserRequest) error {
 	if request.Name != nil && *request.Name == "" {
 		return fmt.Errorf("%w: name cannot be empty", domain.ErrInvalidInput)

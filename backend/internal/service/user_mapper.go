@@ -6,20 +6,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
-	"github.com/google/uuid"
 )
-
-func mapCreateUserRequestToUser(request *generated.CreateUserRequest) *domain.User {
-	return &domain.User{
-		ID:           uuid.New().String(),
-		Email:        string(request.Email),
-		PasswordHash: request.Password,
-		Name:         request.Name,
-		Bio:          "",
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-}
 
 func mapUpdateUserRequestToUser(request *generated.UpdateUserRequest, existing *domain.User) *domain.User {
 	updated := *existing

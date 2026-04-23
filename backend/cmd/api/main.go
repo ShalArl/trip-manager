@@ -38,6 +38,7 @@ func startUp() (*app.App, error) {
 }
 
 func main() {
+	// Load configuration and initialize application
 	application, err := startUp()
 	if err != nil {
 		log.Fatalf("Application startup failed: %v", err)
@@ -61,6 +62,7 @@ func main() {
 	// Setup router
 	r := chi.NewRouter()
 
+	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -71,24 +73,34 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	r.Route("/api", func(r chi.Router) {
-		authManager := auth.NewAuthManager(application.Config.JWTSecret, 7*24*time.Hour)
+	firebaseAuth, err := auth.NewFirebaseAuth(ctx, application.Config.FirebaseConfig.ProjectID)
+	if err != nil {
+		application.Logger.Printf("Error initializing firebase auth: %v", err)
+		os.Exit(1)
+	}
 
-		// ─── Public Routes (no auth required) ──────────────────────────────────
-		r.Post("/auth/register", handler.CreateUserHandler(application))
-		r.Post("/auth/login", handler.LoginHandler(application))
+	userResolver := application.Services.User
+
+	// Routes
+	r.Route("/api", func(r chi.Router) {
+		// ─── Auth Routes (no auth required) ────────────────────────────────────
 		r.Get("/trips/search", handler.SearchTripsHandler(application))
 		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
-		// ─── Trip Routes (GET public, rest protected) ───────────────────────────
-		r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/trips/{tripId}", handler.GetTripHandler(application))
+		// ─── Optional Auth Routes (public but user context if available) ────────
+		r.With(chimiddleware.ProvisionMiddleware(firebaseAuth)).
+			Post("/users/provision", handler.ProvisionMeHandler(application))
+		r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+			Get("/trips/{tripId}", handler.GetTripHandler(application))
 
 		// ─── Location Routes ────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/locations", func(r chi.Router) {
-			r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/", handler.ListLocationsHandler(application))
-			r.With(chimiddleware.AuthMiddleware(authManager)).Post("/", handler.CreateLocationHandler(application))
+			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Get("/", handler.ListLocationsHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Post("/", handler.CreateLocationHandler(application))
 			r.Route("/{locationId}", func(r chi.Router) {
-				r.Use(chimiddleware.AuthMiddleware(authManager))
+				r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver))
 				r.Get("/", handler.GetLocationHandler(application))
 				r.Put("/", handler.UpdateLocationHandler(application))
 				r.Delete("/", handler.DeleteLocationHandler(application))
@@ -97,10 +109,12 @@ func main() {
 
 		// ─── Transport Routes ────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/transports", func(r chi.Router) {
-			r.With(chimiddleware.OptionalAuthMiddleware(authManager)).Get("/", handler.ListTransportsHandler(application))
-			r.With(chimiddleware.AuthMiddleware(authManager)).Post("/", handler.CreateTransportHandler(application))
+			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Get("/", handler.ListTransportsHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Post("/", handler.CreateTransportHandler(application))
 			r.Route("/{transportId}", func(r chi.Router) {
-				r.Use(chimiddleware.AuthMiddleware(authManager))
+				r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver))
 				r.Get("/", handler.GetTransportHandler(application))
 				r.Put("/", handler.UpdateTransportHandler(application))
 				r.Delete("/", handler.DeleteTransportHandler(application))
@@ -109,7 +123,7 @@ func main() {
 
 		// ─── Protected Routes ───────────────────────────────────────────────────
 		r.Group(func(r chi.Router) {
-			r.Use(chimiddleware.AuthMiddleware(authManager))
+			r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, application.Services.User))
 
 			// Upload
 			r.Post("/uploads/presigned", handler.GetPresignedURLHandler(application))
@@ -117,7 +131,6 @@ func main() {
 			// Users
 			r.Get("/users/me", handler.GetMeHandler(application))
 			r.Put("/users/me", handler.UpdateMeHandler(application))
-			r.Put("/users/me/password", handler.ChangePasswordHandler(application))
 			r.Get("/users/{userId}", handler.GetUserHandler(application))
 			r.Put("/users/{userId}", handler.UpdateUserHandler(application))
 			r.Delete("/users/{userId}", handler.DeleteUserHandler(application))
@@ -149,6 +162,7 @@ func main() {
 		})
 	})
 
+	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

@@ -130,11 +130,32 @@ services:
       minio:
         condition: service_healthy
 
+  # Firebase Emulator (for local development/testing and hetzner deployment)
+  firebase:
+    build:
+      context: ./firebase
+      dockerfile: Dockerfile
+    container_name: trip_manager_firebase
+    ports:
+      - "4000:4000"   # Emulator UI
+      - "8080:8080"   # Firestore
+      - "9099:9099"   # Auth
+    volumes:
+      - ./firebase:/firebase
+      - firebase_data:/firebase/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
 volumes:
   db_data:
   minio_data:
   caddy_data:
   caddy_config:
+  firebase_data:
 
 networks:
   trip_manager:

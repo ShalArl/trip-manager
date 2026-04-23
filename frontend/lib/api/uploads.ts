@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
     const response = await fetch(`${API_URL}/api/uploads/presigned`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(req),
     });
 

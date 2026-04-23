@@ -8,9 +8,11 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     bio  TEXT,
-    password_hash VARCHAR(255) NOT NULL,
+    firebase_uid VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    avatar_key VARCHAR(500)
+
 );
 
 -- trips table (belongs to user)

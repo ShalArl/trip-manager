@@ -17,8 +17,8 @@ type ErrorResponse struct {
 // ListTripsHandler handles GET /api/trips with pagination
 func ListTripsHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -57,15 +57,18 @@ func ListRecentTripsHandler(app *app.App) http.HandlerFunc {
 // CreateTripHandler handles POST /api/trips
 func CreateTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, userEmail, userName, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
+		userName, _ := middleware.GetName(r)
+		userEmail, _ := middleware.GetEmail(r)
+
 		var req generated.CreateTripRequest
 		// Handler only decodes JSON - validation belongs in Service layer
-		if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 			return
 		}
@@ -111,11 +114,12 @@ func GetTripHandler(app *app.App) http.HandlerFunc {
 // UpdateTripHandler handles PUT /api/trips/{tripId}
 func UpdateTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
 		tripId := r.PathValue("tripId")
 		if tripId == "" {
 			respondError(w, http.StatusBadRequest, "Trip ID is required")
@@ -146,8 +150,8 @@ func UpdateTripHandler(app *app.App) http.HandlerFunc {
 // DeleteTripHandler handles DELETE /api/trips/{tripId}
 func DeleteTripHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -160,7 +164,7 @@ func DeleteTripHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("DeleteTrip: id=%s", tripId)
 
-		err = app.Services.Trip.DeleteTrip(r.Context(), tripId, userID)
+		err := app.Services.Trip.DeleteTrip(r.Context(), tripId, userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

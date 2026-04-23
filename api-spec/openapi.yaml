@@ -17,55 +17,49 @@ security:
 
 paths:
 
- # ─── Authentication ────────────────────────────────────────────────────────
-
-  /auth/register:
+  # ─── Authentication ────────────────────────────────────────────────────────
+  /users/provision:
     post:
-      summary: Register a new user
-      operationId: registerUser
+      summary: Provision internal user record for authenticated Firebase user
+      description: |
+        Creates an internal user record for a user that has authenticated with Firebase
+        but does not yet exist in the application's database. Must be called after a
+        successful Firebase sign-up or sign-in before any other authenticated API calls.
+
+        Idempotent: if the user already exists (matched by Firebase UID), the existing
+        record is returned with 200 OK. If a new record is created, 201 Created is returned.
+
+        The request body is optional. If provided, fields override the values extracted
+        from the Firebase token claims (e.g., to set a custom display name different
+        from the one in the Firebase profile).
+      operationId: provisionMe
       tags:
-        - Auth
-      security: []
+        - users
+      security:
+        - firebaseAuth: [ ]
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '201':
-          description: User registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Invalid input
-        '409':
-          description: Email already in use
-
-  /auth/login:
-    post:
-      summary: Login and receive a JWT
-      operationId: loginUser
-      tags:
-        - Auth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/ProvisionUserRequest'
       responses:
         '200':
-          description: Login successful
+          description: User was already provisioned; existing record returned
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemas/UserResponse'
+        '201':
+          description: User was newly provisioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
         '401':
-          description: Invalid credentials
+          description: Missing or invalid Firebase token
+        '500':
+          description: Internal server error
 
  # ─── Uploads ────────────────────────────────────────────────────────────────
 
@@ -142,27 +136,7 @@ paths:
          '401':
            description: Unauthorized
 
-  /users/me/password:
-    put:
-      summary: Change current user password
-      operationId: changePassword
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
-      responses:
-        '204':
-          description: Password changed
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized or wrong current password
-
- # ─── Trips ────────────────────────────────────────────────────────────────
+  # ─── Trips ────────────────────────────────────────────────────────────────
 
   /trips:
     get:
@@ -711,13 +685,13 @@ paths:
 components:
 
   securitySchemes:
-    bearerAuth:
+    firebaseAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: >
-        JWT token obtained from /auth/login or /auth/register.
-        Include as: Authorization: Bearer <token>
+      description: |
+        Firebase ID token. Obtain via Firebase Client SDK after user authentication.
+        Pass as `Authorization: Bearer <token>` header.
 
   schemas:
 
@@ -794,51 +768,12 @@ components:
 
     # ── Auth ──────────────────────────────────────────────────────────────────
 
-    CreateUserRequest:
+    ProvisionUserRequest:
       type: object
-      required:
-        - email
-        - password
-        - name
       properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 8
-          description: Minimum 8 characters
         name:
           type: string
-          minLength: 1
-
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-
-    AuthResponse:
-      type: object
-      required:
-        - token
-        - expiresIn
-        - user
-      properties:
-        token:
-          type: string
-          description: JWT access token
-        expiresIn:
-          type: integer
-          description: Token validity in seconds (e.g. 3600)
-        user:
-           $ref: '#/components/schemas/UserResponse'
+          nullable: true
 
     # ── Upload ────────────────────────────────────────────────────────────────
 
@@ -934,18 +869,6 @@ components:
           type: string
           nullable: true
           description: Optional S3/MinIO/GCP object key for user's avatar image
-
-    ChangePasswordRequest:
-      type: object
-      required:
-        - currentPassword
-        - newPassword
-      properties:
-        currentPassword:
-          type: string
-        newPassword:
-          type: string
-          minLength: 8
 
     # ── Trip ──────────────────────────────────────────────────────────────────
 
@@ -1100,7 +1023,7 @@ components:
           type: string
         sequence:
           type: integer
-    
+
     LocationResponse:
       description: Full location object returned by all location endpoints.
       allOf:

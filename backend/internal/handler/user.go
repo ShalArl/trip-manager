@@ -10,33 +10,37 @@ import (
 	"github.com/ShalArl/trip-manager/internal/middleware"
 )
 
-// LoginHandler handles POST /api/auth/login
-func LoginHandler(app *app.App) http.HandlerFunc {
+// ProvisionMeHandler handles POST /api/users/provision
+func ProvisionMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req generated.LoginRequest
-
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
+		firebaseUID, ok := middleware.GetFirebaseUID(r)
+		if !ok {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		email, _ := middleware.GetEmail(r)
+		name, _ := middleware.GetName(r)
 
-		app.Logger.Printf("Login: email=%s", req.Email)
+		var req generated.ProvisionUserRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Name != nil && *req.Name != "" {
+			name = *req.Name
+		}
 
-		token, exp, user, err := app.Services.Auth.Login(r.Context(), &req)
+		app.Logger.Printf("ProvisionUser %s, %s, %s", name, email, firebaseUID)
+
+		user, created, err := app.Services.User.ProvisionUser(r.Context(), firebaseUID, email, name)
 		if err != nil {
-			respondError(w, http.StatusUnauthorized, err.Error())
+			app.Logger.Printf("[ProvisionMe] err=%v", err)
+			respondError(w, http.StatusInternalServerError, "provisioning failed")
 			return
 		}
 
-		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
-
-		authResp := generated.AuthResponse{
-			ExpiresIn: exp,
-			Token:     token,
-			User:      *userResponse,
+		status := http.StatusOK
+		if created {
+			status = http.StatusCreated
 		}
-
-		respondJSON(w, http.StatusOK, authResp)
+		respondJSON(w, status, mapUserToUserResponse(r.Context(), app.Services.Media, user))
 	}
 }
 
@@ -44,15 +48,15 @@ func LoginHandler(app *app.App) http.HandlerFunc {
 func GetMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
-		app.Logger.Printf("GetMe: userId=%s", userId)
+		app.Logger.Printf("GetMe: userId=%s", userID)
 
-		user, err := app.Services.User.GetUser(r.Context(), userId)
+		user, err := app.Services.User.GetUser(r.Context(), userID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
@@ -64,13 +68,11 @@ func GetMeHandler(app *app.App) http.HandlerFunc {
 }
 
 // UpdateMeHandler handles PUT /api/users/me
-// Expects JSON request body with UpdateUserRequest
-// For avatar uploads, use POST /api/uploads/presigned to get a presigned URL first
 func UpdateMeHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -82,9 +84,9 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%v, email=%v", userId, req.Name, req.Email)
+		app.Logger.Printf("[Handler] UpdateMe: userId=%s, name=%v, email=%v", userID, req.Name, req.Email)
 
-		user, err := app.Services.User.UpdateUser(r.Context(), userId, &req)
+		user, err := app.Services.User.UpdateUser(r.Context(), userID, &req)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
@@ -95,40 +97,11 @@ func UpdateMeHandler(app *app.App) http.HandlerFunc {
 	}
 }
 
-// ChangePasswordHandler handles PUT /api/users/me/password
-func ChangePasswordHandler(app *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract userId from JWT token in context
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
-
-		var req generated.ChangePasswordRequest
-
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
-			return
-		}
-
-		app.Logger.Printf("ChangePassword: userId=%s", userId)
-
-		err = app.Services.Auth.ChangePassword(r.Context(), userId, &req)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
 // GetUserHandler handles GET /api/users/{userId}
 func GetUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userId, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -146,40 +119,11 @@ func GetUserHandler(app *app.App) http.HandlerFunc {
 	}
 }
 
-// CreateUserHandler handles POST /api/auth/register
-func CreateUserHandler(app *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req generated.CreateUserRequest
-
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
-			return
-		}
-
-		app.Logger.Printf("Register: email=%s, name=%s", req.Email, req.Name)
-
-		token, exp, user, err := app.Services.Auth.Register(r.Context(), &req)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		userResponse := mapUserToUserResponse(r.Context(), app.Services.Media, user)
-		authResp := generated.AuthResponse{
-			ExpiresIn: exp,
-			Token:     token,
-			User:      *userResponse,
-		}
-
-		respondJSON(w, http.StatusCreated, authResp)
-	}
-}
-
 // UpdateUserHandler handles PUT /api/users/{userId}
 func UpdateUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userId, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -208,15 +152,15 @@ func UpdateUserHandler(app *app.App) http.HandlerFunc {
 // DeleteUserHandler handles DELETE /api/users/{userId}
 func DeleteUserHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userId, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
 		app.Logger.Printf("DeleteUser: id=%s", userId)
 
-		err = app.Services.User.DeleteUser(r.Context(), userId)
+		err := app.Services.User.DeleteUser(r.Context(), userId)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
