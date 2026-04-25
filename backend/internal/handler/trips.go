@@ -34,7 +34,7 @@ func ListTripsHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		tripsResponse := mapTripsToTripListResponse(trips, limit, offset, total)
+		tripsResponse := mapTripsToTripListResponse(r.Context(), trips, limit, offset, total, app.Services.Media)
 		app.Logger.Printf("ListTrips response: %+v", tripsResponse)
 
 		respondJSON(w, http.StatusOK, tripsResponse)
@@ -50,7 +50,7 @@ func ListRecentTripsHandler(app *app.App) http.HandlerFunc {
 			app.Logger.Printf("ListRecentTrips error: %v", err)
 			return
 		}
-		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, offset, total))
+		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(r.Context(), trips, limit, offset, total, app.Services.Media))
 	}
 }
 
@@ -82,7 +82,7 @@ func CreateTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		tripResponse := mapTripToTripResponse(trip)
+		tripResponse := mapTripToTripResponse(r.Context(), trip, app.Services.Media)
 
 		respondJSON(w, http.StatusCreated, tripResponse)
 	}
@@ -105,7 +105,7 @@ func GetTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		tripResponse := mapTripToTripResponse(trip)
+		tripResponse := mapTripToTripResponse(r.Context(), trip, app.Services.Media)
 
 		respondJSON(w, http.StatusOK, tripResponse)
 	}
@@ -141,7 +141,7 @@ func UpdateTripHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		tripResponse := mapTripToTripResponse(trip)
+		tripResponse := mapTripToTripResponse(r.Context(), trip, app.Services.Media)
 
 		respondJSON(w, http.StatusOK, tripResponse)
 	}
@@ -195,6 +195,6 @@ func SearchTripsHandler(app *app.App) http.HandlerFunc {
 		}
 
 		// Response
-		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(trips, limit, offset, total))
+		respondJSON(w, http.StatusOK, mapTripsToTripListResponse(r.Context(), trips, limit, offset, total, app.Services.Media))
 	}
 }

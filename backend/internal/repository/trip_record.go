@@ -20,4 +20,5 @@ type tripRecord struct {
 	UpdatedAt        time.Time `db:"updated_at"`
 	UserName         string    `db:"user_name"`
 	UserEmail        string    `db:"user_email"`
+	UserAvatarKey    *string   `db:"user_avatar_key"`
 }

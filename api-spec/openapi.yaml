@@ -744,6 +744,10 @@ components:
            type: string
            description: Optional S3/MinIO/GCP object key for user's avatar image
            readOnly: true
+        avatarUrl:
+          type: string
+          format: uri
+          readOnly: true
 
 
     PaginationMeta:
