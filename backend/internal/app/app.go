@@ -41,7 +41,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	// Initialize firestore database with config Firestore URL
-	firestoreClient, err := database.ConnectFirestore(ctx, cfg.Firestore)
+	firestoreClient, err := database.ConnectFirestore(ctx, cfg.FirebaseConfig)
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to connect to firestore: %w", err),
@@ -54,7 +54,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	if err != nil {
 		return nil, errors.Join(
 			fmt.Errorf("failed to setup storage: %w", err),
-			sqlDb.Close())
+			sqlDb.Close(), firestoreClient.Close())
 	}
 	svcs, err := container.NewServiceContainer(&container.ServiceConfig{
 		SQLDb:           sqlDb,

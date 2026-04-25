@@ -27,18 +27,20 @@ type ServiceContainer struct {
 	Activity  service.ActivityService
 	Media     infrastructure.MediaService
 	Transport service.TransportService
+	Social    service.SocialService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	// Initialize media service (needed by handlers for presigned URLs)
 	mediaService := infrastructure.NewMediaService(cfg.Storage, cfg.Config.Storage.SignedURLTTL)
+	socialRepo := repository.NewSocialRepository(cfg.FirestoreClient)
 
 	// Initialize repositories with the database connection
-	tripRepo := repository.NewTripRepository(cfg.DB)
-	locationRepo := repository.NewLocationRepository(cfg.DB)
-	userRepo := repository.NewUserRepository(cfg.DB)
-	activityRepo := repository.NewActivityRepository(cfg.DB)
-	transportRepo := repository.NewTransportRepository(cfg.DB)
+	tripRepo := repository.NewTripRepository(cfg.SQLDb)
+	locationRepo := repository.NewLocationRepository(cfg.SQLDb)
+	userRepo := repository.NewUserRepository(cfg.SQLDb)
+	activityRepo := repository.NewActivityRepository(cfg.SQLDb)
+	transportRepo := repository.NewTransportRepository(cfg.SQLDb)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
@@ -51,6 +53,9 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	// Initialize transport service
 	transportService := service.NewTransportService(transportRepo)
 
+	// social service
+	socialService := service.NewSocialService(socialRepo)
+
 	return &ServiceContainer{
 		Trip:      tripService,
 		Location:  locationService,
@@ -58,5 +63,6 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 		Activity:  activityService,
 		Media:     mediaService,
 		Transport: transportService,
+		Social:    socialService,
 	}, nil
 }
