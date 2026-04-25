@@ -36,6 +36,7 @@ type S3Config struct {
 }
 
 func NewS3Storage(cfg S3Config) (*S3Storage, error) {
+	println("NewS3Storage called with config: ", cfg.Endpoint, cfg.PublicURL, cfg.Bucket, cfg.Region)
 	if cfg.Bucket == "" {
 		return nil, fmt.Errorf("bucket name is required")
 	}

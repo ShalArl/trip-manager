@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/jmoiron/sqlx"
@@ -41,7 +42,7 @@ type TripRepositoryImpl struct {
 
 func (t *TripRepositoryImpl) GetTrip(ctx context.Context, id string) (*domain.Trip, error) {
 	query := `
-		SELECT t.*, u.id AS user_id, u.email AS user_email, u.name AS user_name 
+		SELECT t.*, u.id AS user_id, u.email AS user_email, u.name AS user_name , u.avatar_key AS user_avatar_key
 		FROM trips t JOIN users u ON t.user_id = u.id 
 		WHERE t.id = $1`
 
@@ -129,7 +130,8 @@ func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit
 			t.*, 
 			u.id AS user_id, 
 			u.email AS user_email, 
-			u.name AS user_name, 
+			u.name AS user_name,
+			u.avatar_key AS user_avatar_key,
 			COUNT(*) OVER() as total_count
 		FROM trips t JOIN users u ON t.user_id = u.id 
 		WHERE t.user_id = $1 
@@ -139,6 +141,12 @@ func (t *TripRepositoryImpl) ListTrips(ctx context.Context, userID string, limit
 	if err := t.db.SelectContext(ctx, &results, query, userID, limit, offset); err != nil {
 		fmt.Printf("ListTrips DB error: %v\n", err)
 		return nil, 0, domain.ErrInternal
+	}
+
+	log.Printf("[SearchTrips] Executing search with query=%q, limit=%d, offset=%d", query, limit, offset)
+
+	for i, r := range results {
+		log.Printf("[SearchTrips] row %d: user=%s avatar_key=%q", i, r.UserName, r.UserAvatarKey)
 	}
 
 	if len(results) == 0 {
@@ -182,6 +190,7 @@ func (t *TripRepositoryImpl) SearchTrips(ctx context.Context, query string, limi
             u.id AS user_id, 
             u.email AS user_email, 
             u.name AS user_name, 
+            u.avatar_key AS user_avatar_key,
             COUNT(*) OVER() as total_count
         FROM trips t JOIN users u ON t.user_id = u.id 
         WHERE t.title ILIKE $1 OR t.short_description ILIKE $1
@@ -213,7 +222,8 @@ func (t *TripRepositoryImpl) ListRecentTrips(ctx context.Context, limit int, off
             t.*, 
             u.id AS user_id, 
             u.email AS user_email, 
-            u.name AS user_name
+            u.name AS user_name,
+            u.avatar_key AS user_avatar_key
         FROM trips t JOIN users u ON t.user_id = u.id 
         ORDER BY t.created_at DESC
         LIMIT $1 OFFSET $2`

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { LocationResponse, UpdateLocationRequest } from "@/types/location";
 
 type Props = {
@@ -29,7 +29,7 @@ export default function LocationDetailModal({
         notes: location.notes ?? "",
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.SubmitEvent) => {
         e.preventDefault();
         onSaveAction({
             name: formData.name,

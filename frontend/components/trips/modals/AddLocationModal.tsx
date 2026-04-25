@@ -92,7 +92,7 @@ export default function AddLocationModal({ isOpen, onCloseAction, onAddAction }:
                         </div>
                     </div>
 
-                    {/* Latitude & Longitude */}
+                    {/* Latitude & Longitude
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Breite</label>
@@ -103,6 +103,7 @@ export default function AddLocationModal({ isOpen, onCloseAction, onAddAction }:
                             <input type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} placeholder="z.B. 2.29" className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                         </div>
                     </div>
+                    */}
 
                     {/* Notes */}
                     <div>
