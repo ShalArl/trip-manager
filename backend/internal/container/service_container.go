@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"cloud.google.com/go/firestore"
-	"github.com/ShalArl/trip-manager/internal/auth"
 	"github.com/ShalArl/trip-manager/internal/config"
 	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
@@ -22,12 +21,12 @@ type ServiceConfig struct {
 }
 
 type ServiceContainer struct {
-	Trip     service.TripService
-	Location service.LocationService
-	User     service.UserService
-	Activity service.ActivityService
-	Auth     service.AuthService
-	Media    infrastructure.MediaService
+	Trip      service.TripService
+	Location  service.LocationService
+	User      service.UserService
+	Activity  service.ActivityService
+	Media     infrastructure.MediaService
+	Transport service.TransportService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
@@ -35,10 +34,11 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	mediaService := infrastructure.NewMediaService(cfg.Storage, cfg.Config.Storage.SignedURLTTL)
 
 	// Initialize repositories with the database connection
-	tripRepo := repository.NewTripRepository(cfg.SQLDb)
-	locationRepo := repository.NewLocationRepository(cfg.SQLDb)
-	userRepo := repository.NewUserRepository(cfg.SQLDb)
-	activityRepo := repository.NewActivityRepository(cfg.SQLDb)
+	tripRepo := repository.NewTripRepository(cfg.DB)
+	locationRepo := repository.NewLocationRepository(cfg.DB)
+	userRepo := repository.NewUserRepository(cfg.DB)
+	activityRepo := repository.NewActivityRepository(cfg.DB)
+	transportRepo := repository.NewTransportRepository(cfg.DB)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
@@ -48,18 +48,15 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize auth manager (7 day token expiration)
-	authManager := auth.NewAuthManager(cfg.Config.JWTSecret, cfg.Config.TokenExpiration)
-
-	// Initialize auth service
-	authService := service.NewAuthService(authManager, userService)
+	// Initialize transport service
+	transportService := service.NewTransportService(transportRepo)
 
 	return &ServiceContainer{
-		Trip:     tripService,
-		Location: locationService,
-		User:     userService,
-		Activity: activityService,
-		Auth:     authService,
-		Media:    mediaService,
+		Trip:      tripService,
+		Location:  locationService,
+		User:      userService,
+		Activity:  activityService,
+		Media:     mediaService,
+		Transport: transportService,
 	}, nil
 }

@@ -88,8 +88,8 @@ func GetActivityHandler(app *app.App) http.HandlerFunc {
 // CreateActivityHandler handles POST /api/trips/{tripId}/activities
 func CreateActivityHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -124,8 +124,8 @@ func CreateActivityHandler(app *app.App) http.HandlerFunc {
 // UpdateActivityHandler handles PUT /api/activities/{activityId}
 func UpdateActivityHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -160,8 +160,8 @@ func UpdateActivityHandler(app *app.App) http.HandlerFunc {
 // DeleteActivityHandler handles DELETE /api/activities/{activityId}
 func DeleteActivityHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -174,7 +174,7 @@ func DeleteActivityHandler(app *app.App) http.HandlerFunc {
 
 		app.Logger.Printf("DeleteActivity: id=%s", activityId)
 
-		err = app.Services.Activity.DeleteActivity(r.Context(), activityId, userID)
+		err := app.Services.Activity.DeleteActivity(r.Context(), activityId, userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

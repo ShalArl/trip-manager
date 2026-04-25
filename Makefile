@@ -27,16 +27,15 @@ help:
 	@echo "  make docker-down    Stop all services"
 	@echo "  make docker-logs    View logs from all services"
 	@echo "  make docker-logs-SERVICE  View logs for a specific service"
-	@echo ""
-	@echo "Emulator Commands:"
-	@echo "  make firestore-up   Start Firestore Emulator"
-	@echo "  make firestore-down Stop Firestore Emulator"
-	@echo ""
 	@echo "Legacy Commands (Use docker-compose instead):"
 	@echo "  make db-up          Start PostgreSQL (use docker-compose up database)"
 	@echo "  make db-down        Stop PostgreSQL (use docker-compose down)"
 	@echo "  make storage-up     Start MinIO (use docker-compose up minio minio-init)"
 	@echo "  make storage-down   Stop MinIO"
+	@echo ""
+	@echo "Firebase Commands:"
+	@echo "  make firebase-up    Start Firebase Emulators with Docker"
+	@echo "  make firebase-down  Stop Firebase Emulators"
 	@echo ""
 	@echo "Other Commands:"
 	@echo "  make test           Run all tests"
@@ -63,13 +62,13 @@ build:
 # Run the compiled binary
 run: build
 	@echo "Starting server..."
-	@STORAGE_TYPE=$(STORAGE_TYPE) FIRESTORE_LOCAL=true FIRESTORE_PROJECT_ID=trip-nugget ./$(BIN_DIR)/$(BINARY_NAME)
+	@STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local ./$(BIN_DIR)/$(BINARY_NAME)
 
 # Run with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev:
 	@echo "Starting server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIRESTORE_LOCAL=true FIRESTORE_PROJECT_ID=trip-nugget air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local air
 
 # Build the backend binary for Windows
 build-windows:
@@ -81,13 +80,13 @@ build-windows:
 # Run the compiled Windows binary (requires WSL2 or Windows environment)
 run-windows: build-windows
 	@echo "Starting Windows server..."
-	@STORAGE_TYPE=$(STORAGE_TYPE) FIRESTORE_LOCAL=true FIRESTORE_PROJECT_ID=trip-nugget ./$(BIN_DIR)/$(BINARY_NAME_WIN)
+	@STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local ./$(BIN_DIR)/$(BINARY_NAME_WIN)
 
 # Run Windows build with auto-reload (requires 'air' - github.com/air-verse/air)
 run-dev-win:
 	@echo "Starting Windows server with auto-reload..."
 	@command -v air >/dev/null 2>&1 || { echo "Installing air..."; go install github.com/air-verse/air@latest; }
-	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIRESTORE_LOCAL=true FIRESTORE_PROJECT_ID=trip-nugget GOOS=windows GOARCH=amd64 air
+	@cd $(BACKEND_DIR) && STORAGE_TYPE=$(STORAGE_TYPE) FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 FIREBASE_PROJECT_ID=trip-manager-local GOOS=windows GOARCH=amd64 air
 
 # Run all tests
 test:
@@ -187,36 +186,42 @@ storage-down:
 	@docker rm trip_manager_minio 2>/dev/null || true
 	@echo "✓ MinIO stopped"
 
-# Start Firestore Emulator locally
-firestore-up:
-	@echo "Starting Firestore Emulator..."
-	@command -v firebase >/dev/null 2>&1 || { echo "Installing firebase-tools (first time, ~45s)..."; npm install -g firebase-tools; }
-	@cd local-dev/firestore && nohup firebase emulators:start --only firestore > /tmp/firestore-emulator.log 2>&1 &
-	@sleep 1
-	@pid=$$(pgrep -f "firebase emulators:start" | head -1); \
-	if [ -n "$$pid" ]; then \
-		echo $$pid > /tmp/firestore-emulator.pid; \
-		echo "✓ Firestore Emulator started (PID: $$pid)"; \
+# Start Firebase Emulators locally
+firebase-up:
+	@echo "Building Firebase Emulator Docker image..."
+	@docker build -f firebase/Dockerfile -t trip-manager-firebase:latest .
+	@echo "✓ Firebase image built"
+	@echo ""
+	@echo "Starting Firebase Emulators..."
+	@docker run -d \
+		--name trip_manager_firebase \
+		-p 8080:8080 \
+		-p 4000:4000 \
+		-p 9099:9099 \
+		-v $(PWD)/firebase:/firebase \
+		trip-manager-firebase:latest
+	@echo "✓ Firebase Emulators started"
+	@echo "  Emulator UI:  http://localhost:4000"
+	@echo "  Firestore:    http://localhost:8080"
+	@echo "  Auth:         http://localhost:9099"
+	@echo "⏳ Waiting for Firebase Emulators to be ready (this may take 30-60 seconds)..."
+	@counter=0; \
+	until [ $$counter -gt 120 ] || curl -s http://localhost:8080 > /dev/null 2>&1; do \
+		counter=$$((counter+1)); \
+		sleep 1; \
+	done; \
+	if [ $$counter -le 120 ]; then \
+		echo "✓ Firebase Emulators are ready!"; \
 	else \
-		echo "⚠ Warning: Could not capture PID"; \
+		echo "⚠ Firebase Emulators may still be starting. Check logs with: docker logs trip_manager_firebase"; \
 	fi
-	@echo "  Emulator:  http://localhost:8080"
-	@echo "  UI:        http://localhost:4000"
-	@echo "⏳ Waiting for Firestore Emulator to be ready..."
-	@until curl -s http://localhost:8080 > /dev/null 2>&1; do sleep 1; done
-	@echo "✓ Firestore Emulator is ready!"
 
-# Stop Firestore Emulator
-firestore-down:
-	@if [ -f /tmp/firestore-emulator.pid ]; then \
-		pid=$$(cat /tmp/firestore-emulator.pid); \
-		echo "Stopping Firestore Emulator (PID: $$pid)..."; \
-		kill $$pid 2>/dev/null || true; \
-		rm -f /tmp/firestore-emulator.pid; \
-		echo "✓ Firestore Emulator stopped"; \
-	else \
-		echo "Firestore Emulator not running"; \
-	fi
+# Stop Firebase Emulators
+firebase-down:
+	@echo "Stopping Firebase Emulators container..."
+	@docker stop trip_manager_firebase 2>/dev/null || true
+	@docker rm trip_manager_firebase 2>/dev/null || true
+	@echo "✓ Firebase Emulators stopped"
 
 # Start all services with docker-compose
 docker-up:
@@ -228,6 +233,7 @@ docker-up:
 	@echo "  Frontend:  http://localhost:3000"
 	@echo "  Backend:   http://localhost:8000"
 	@echo "  MinIO:     http://localhost:9000 (API) & http://localhost:9001 (Console)"
+	@echo "  Firebase:  http://localhost:4000 (UI) & http://localhost:9099 (Auth) & http://localhost:8080 (Firestore)"
 	@echo "  Database:  localhost:5432"
 
 # Stop all services with docker-compose
@@ -287,8 +293,8 @@ dev-setup: db-up db-setup build
 	@echo "     or with auto-reload: make run-dev"
 	@echo ""
 
-# Start everything (DB + Storage + Firestore + Server)
-dev: firestore-down storage-down db-down firestore-up storage-up db-up
+# Start everything locally (DB + Storage + Firebase + Server)
+dev: storage-down db-down firebase-down storage-up db-up firebase-up
 	@echo "All services started. Starting server..."
 	@$(MAKE) run
 
@@ -303,8 +309,6 @@ info: version help
 	@echo "Environment Variables:"
 	@echo "  DATABASE_URL=postgres://postgres:postgres@localhost:5432/trip_manager (required)"
 	@echo "  STORAGE_TYPE=s3 (default: s3, options: s3, local)"
-	@echo "  FIRESTORE_LOCAL=true (default: true in dev, options: true, false)"
-	@echo "  FIRESTORE_PROJECT_ID=trip-nugget (default: trip-nugget)"
 	@echo "  SERVER_PORT=8000 (default)"
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"

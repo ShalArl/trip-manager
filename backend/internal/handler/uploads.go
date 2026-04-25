@@ -16,8 +16,8 @@ import (
 func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract userId from JWT token in context
-		userId, _, _, err := middleware.GetUserInfoFromContext(r)
-		if err != nil {
+		userID, ok := middleware.GetUserID(r)
+		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
@@ -40,7 +40,7 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 			return
 		}
 
-		app.Logger.Printf("[Handler] GetPresignedURL: userId=%s, fileName=%s, mediaType=%s", userId, req.FileName, req.MediaType)
+		app.Logger.Printf("[Handler] GetPresignedURL: userId=%s, fileName=%s, mediaType=%s", userID, req.FileName, req.MediaType)
 
 		// Map mediaType string to infrastructure.MediaType
 		var mediaType infrastructure.MediaType
@@ -59,14 +59,14 @@ func GetPresignedURLHandler(app *app.App) http.HandlerFunc {
 		}
 
 		// Generate presigned URL via MediaService
-		ticket, err := app.Services.Media.PrepareUpload(r.Context(), userId, mediaType, req.FileName)
+		ticket, err := app.Services.Media.PrepareUpload(r.Context(), userID, mediaType, req.FileName)
 		if err != nil {
 			app.Logger.Printf("[Handler] GetPresignedURL: Failed to generate presigned URL: %v", err)
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate presigned URL: %v", err))
 			return
 		}
 
-		app.Logger.Printf("[Handler] GetPresignedURL: Successfully generated presigned URL for userId=%s", userId)
+		app.Logger.Printf("[Handler] GetPresignedURL: Successfully generated presigned URL for userId=%s", userID)
 
 		response := generated.PresignedURLResponse{
 			PresignedUrl: ticket.UploadURL,

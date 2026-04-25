@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	firebase "firebase.google.com/go/v4"
 )
 
 // Config holds application configuration
@@ -16,8 +18,8 @@ type Config struct {
 	JWTSecret          string
 	TokenExpiration    time.Duration
 
-	Storage   StorageConfig
-	Firestore FirestoreConfig
+	Storage        StorageConfig
+	FirebaseConfig *firebase.Config
 }
 
 type StorageConfig struct {
@@ -27,12 +29,6 @@ type StorageConfig struct {
 	S3 S3Settings
 	// GCS
 	GCS GCSSettings
-}
-
-type FirestoreConfig struct {
-	ProjectID string
-	IsLocal   bool
-	Endpoint  string // only relevant if IsLocal is true
 }
 
 type S3Settings struct {
@@ -56,6 +52,11 @@ func LoadConfig() (*Config, error) {
 	databaseURL := buildDatabaseURL()
 	tokenExp := getEnvDuration("TOKEN_EXPIRATION", 7*24*time.Hour)
 
+	firebaseCfg := loadFirebaseConfig()
+	if firebaseCfg.ProjectID == "" {
+		return nil, fmt.Errorf("FIREBASE_PROJECT_ID is required")
+	}
+
 	cfg := &Config{
 		CORSAllowedOrigins: parseOrigins(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
 		DatabaseURL:        databaseURL,
@@ -64,8 +65,8 @@ func LoadConfig() (*Config, error) {
 		JWTSecret:          getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		TokenExpiration:    tokenExp,
 
-		Storage:   loadStorageConfig(),
-		Firestore: loadFirestoreConfig(),
+		Storage:        loadStorageConfig(),
+		FirebaseConfig: firebaseCfg,
 	}
 
 	return cfg, nil
@@ -77,6 +78,12 @@ func loadStorageConfig() StorageConfig {
 		SignedURLTTL: getEnvDuration("SIGNED_URL_TTL", 15*time.Minute),
 		S3:           loadS3Config(),
 		GCS:          loadGCSConfig(),
+	}
+}
+
+func loadFirebaseConfig() *firebase.Config {
+	return &firebase.Config{
+		ProjectID: getEnv("FIREBASE_PROJECT_ID", ""),
 	}
 }
 
@@ -96,14 +103,6 @@ func loadS3Config() S3Settings {
 		SecretKey: getEnv("S3_SECRET_KEY", "minioadmin"),
 		PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000/trip-manager"),
 		UseSSL:    getEnvBool("S3_USE_SSL", false),
-	}
-}
-
-func loadFirestoreConfig() FirestoreConfig {
-	return FirestoreConfig{
-		ProjectID: getEnv("FIRESTORE_PROJECT_ID", ""),
-		IsLocal:   getEnvBool("FIRESTORE_IS_LOCAL", false),
-		Endpoint:  getEnv("FIRESTORE_ENDPOINT", "http://localhost:8080"),
 	}
 }
 

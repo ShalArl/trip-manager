@@ -192,6 +192,10 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_GCP || 'https://placeholder.invalid' }}
             NEXT_PUBLIC_S3_PUBLIC_URL=${{ secrets.NEXT_PUBLIC_S3_PUBLIC_URL_GCP || 'https://storage.googleapis.com/placeholder' }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           cache-from: type=gha,scope=frontend-gcp
           cache-to: type=gha,mode=max,scope=frontend-gcp
 
@@ -212,14 +216,15 @@ jobs:
           fi
 
   # Deploy to Server (only after push to main/dev with successful builds)
+  # Only if tag hetzner-release is set as currently hetzner deployment is not fully setup for Auth with firebase
   deploy-hetzner:
     needs: [ detect-changes, summary ]
     if: >
-      github.event_name == 'push' && (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/dev') &&
+      github.event_name == 'push' && (github.ref == 'refs/tags/hetzner-release') &&
       (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
       (needs.build-frontend-hetzner.result == 'success' || needs.build-frontend-hetzner.result == 'skipped') &&
       (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

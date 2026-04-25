@@ -19,7 +19,9 @@ ensure_services \
     storage.googleapis.com \
     secretmanager.googleapis.com \
     iam.googleapis.com \
-    iamcredentials.googleapis.com
+    iamcredentials.googleapis.com \
+    firebase.googleapis.com \
+    identitytoolkit.googleapis.com
 
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 
@@ -86,7 +88,16 @@ gcloud iam service-accounts add-iam-policy-binding "$SIGNED_URL_SA_EMAIL" \
     --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
     --role="roles/iam.serviceAccountTokenCreator"
 
-# === Phase 9: Cloud Run Services ===
+
+# === Phase 9: Setup Firebase ===
+# firebase projects:addfirebase "$PROJECT_ID"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+    --role="roles/firebaseauth.admin"
+
+
+# === Phase 10: Cloud Run Services ===
 BACKEND_SERVICE="${APP_NAME}-backend"
 FRONTEND_SERVICE="${APP_NAME}-frontend"
 

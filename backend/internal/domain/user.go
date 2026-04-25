@@ -1,14 +1,16 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
-	ID           string
-	Email        string
-	Name         string
-	Bio          string
-	PasswordHash string
-	AvatarKey    string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID          string
+	FirebaseUID string
+	Email       string
+	Name        string
+	Bio         string
+	AvatarKey   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

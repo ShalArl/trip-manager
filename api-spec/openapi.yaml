@@ -18,56 +18,50 @@ security:
 paths:
 
   # ─── Authentication ────────────────────────────────────────────────────────
-
-  /auth/register:
+  /users/provision:
     post:
-      summary: Register a new user
-      operationId: registerUser
+      summary: Provision internal user record for authenticated Firebase user
+      description: |
+        Creates an internal user record for a user that has authenticated with Firebase
+        but does not yet exist in the application's database. Must be called after a
+        successful Firebase sign-up or sign-in before any other authenticated API calls.
+
+        Idempotent: if the user already exists (matched by Firebase UID), the existing
+        record is returned with 200 OK. If a new record is created, 201 Created is returned.
+
+        The request body is optional. If provided, fields override the values extracted
+        from the Firebase token claims (e.g., to set a custom display name different
+        from the one in the Firebase profile).
+      operationId: provisionMe
       tags:
-        - Auth
-      security: []
+        - users
+      security:
+        - firebaseAuth: [ ]
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '201':
-          description: User registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Invalid input
-        '409':
-          description: Email already in use
-
-  /auth/login:
-    post:
-      summary: Login and receive a JWT
-      operationId: loginUser
-      tags:
-        - Auth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/ProvisionUserRequest'
       responses:
         '200':
-          description: Login successful
+          description: User was already provisioned; existing record returned
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemas/UserResponse'
+        '201':
+          description: User was newly provisioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
         '401':
-          description: Invalid credentials
+          description: Missing or invalid Firebase token
+        '500':
+          description: Internal server error
 
-  # ─── Uploads ────────────────────────────────────────────────────────────────
+ # ─── Uploads ────────────────────────────────────────────────────────────────
 
   /uploads/presigned:
     post:
@@ -98,7 +92,7 @@ paths:
          '500':
            description: Failed to generate presigned URL
 
-   # ─── User Profile ──────────────────────────────────────────────────────────
+ # ─── User Profile ──────────────────────────────────────────────────────────
 
   /users/me:
     get:
@@ -141,26 +135,6 @@ paths:
            description: Invalid input
          '401':
            description: Unauthorized
-
-  /users/me/password:
-    put:
-      summary: Change current user password
-      operationId: changePassword
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
-      responses:
-        '204':
-          description: Password changed
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized or wrong current password
 
   # ─── Trips ────────────────────────────────────────────────────────────────
 
@@ -292,7 +266,7 @@ paths:
         '404':
           description: Trip not found
 
-  # ─── Locations ────────────────────────────────────────────────────────────
+ # ─── Locations ────────────────────────────────────────────────────────────
 
   /trips/{tripId}/locations:
     get:
@@ -420,7 +394,7 @@ paths:
         '404':
           description: Location not found
 
-  # ─── Activities ───────────────────────────────────────────────────────────
+ # ─── Activities ───────────────────────────────────────────────────────────
 
   /trips/{tripId}/activities:
     get:
@@ -548,78 +522,16 @@ paths:
         '404':
           description: Activity not found
 
-  # ─── Likes ────────────────────────────────────────────────────────────────
+ # ─── Transports ───────────────────────────────────────────────────────────
 
-  /trips/{tripId}/activities/{activityId}/likes:
-    post:
-      summary: Like an activity
-      operationId: likeActivity
-      tags:
-        - Likes
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Activity liked successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LikeResponse'
-        '400':
-          description: Already liked
-        '401':
-          description: Unauthorized
-        '404':
-          description: Activity not found
-
-    delete:
-      summary: Unlike an activity
-      operationId: unlikeActivity
-      tags:
-        - Likes
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Like removed
-        '401':
-          description: Unauthorized
-        '404':
-          description: Like not found
-
-  # ─── Comments ─────────────────────────────────────────────────────────────
-
-  /trips/{tripId}/activities/{activityId}/comments:
+  /trips/{tripId}/transports:
     get:
-      summary: List activity comments
-      operationId: listComments
+      summary: List trip transports
+      operationId: listTransports
       tags:
-        - Comments
+        - Transports
       parameters:
         - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
           in: path
           required: true
           schema:
@@ -628,7 +540,7 @@ paths:
           in: query
           schema:
             type: integer
-            default: 20
+            default: 10
         - name: offset
           in: query
           schema:
@@ -636,28 +548,23 @@ paths:
             default: 0
       responses:
         '200':
-          description: Paginated list of comments
+          description: Paginated list of transports
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentListResponse'
+                $ref: '#/components/schemas/TransportListResponse'
         '401':
           description: Unauthorized
-        '404':
-          description: Activity not found
+        '403':
+          description: Forbidden
 
     post:
-      summary: Add comment to activity
-      operationId: addComment
+      summary: Add transport to trip
+      operationId: addTransport
       tags:
-        - Comments
+        - Transports
       parameters:
         - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
           in: path
           required: true
           schema:
@@ -667,204 +574,62 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateCommentRequest'
+              $ref: '#/components/schemas/CreateTransportRequest'
       responses:
         '201':
-          description: Comment added
+          description: Transport added
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentResponse'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
-        '404':
-          description: Activity not found
-
-  /trips/{tripId}/activities/{activityId}/comments/{commentId}:
-    put:
-      summary: Update comment
-      operationId: updateComment
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCommentRequest'
-      responses:
-        '200':
-          description: Comment updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommentResponse'
-        '400':
-          description: Invalid input
+                $ref: '#/components/schemas/TransportResponse'
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden – only comment author can update
-        '404':
-          description: Comment not found
+          description: Forbidden
 
-    delete:
-      summary: Delete comment
-      operationId: deleteComment
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Comment deleted
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden – only comment author can delete
-        '404':
-          description: Comment not found
-
-  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments:
+  /trips/{tripId}/transports/{transportId}:
     get:
-      summary: List comment replies
-      operationId: listReplies
+      summary: Get transport details
+      operationId: getTransport
       tags:
-        - Comments
+        - Transports
       parameters:
         - name: tripId
           in: path
           required: true
           schema:
             type: string
-        - name: activityId
+        - name: transportId
           in: path
           required: true
           schema:
             type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
       responses:
         '200':
-          description: Paginated list of replies
+          description: Transport details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentReplyListResponse'
+                $ref: '#/components/schemas/TransportResponse'
         '401':
           description: Unauthorized
+        '403':
+          description: Forbidden
         '404':
-          description: Comment not found
+          description: Transport not found
 
-    post:
-      summary: Add reply to comment
-      operationId: addReply
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCommentReplyRequest'
-      responses:
-        '201':
-          description: Reply added
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommentReplyResponse'
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized
-        '404':
-          description: Comment not found
-
-  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments/{replyId}:
     put:
-      summary: Update reply
-      operationId: updateReply
+      summary: Update transport
+      operationId: updateTransport
       tags:
-        - Comments
+        - Transports
       parameters:
         - name: tripId
           in: path
           required: true
           schema:
             type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: replyId
+        - name: transportId
           in: path
           required: true
           schema:
@@ -874,209 +639,59 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateCommentReplyRequest'
+              $ref: '#/components/schemas/UpdateTransportRequest'
       responses:
         '200':
-          description: Reply updated
+          description: Transport updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommentReplyResponse'
-        '400':
-          description: Invalid input
+                $ref: '#/components/schemas/TransportResponse'
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden – only reply author can update
+          description: Forbidden
         '404':
-          description: Reply not found
+          description: Transport not found
 
     delete:
-      summary: Delete reply
-      operationId: deleteReply
+      summary: Delete transport
+      operationId: deleteTransport
       tags:
-        - Comments
+        - Transports
       parameters:
         - name: tripId
           in: path
           required: true
           schema:
             type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: replyId
+        - name: transportId
           in: path
           required: true
           schema:
             type: string
       responses:
         '204':
-          description: Reply deleted
+          description: Transport deleted
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden – only reply author can delete
+          description: Forbidden
         '404':
-          description: Reply not found
-
-  /trips/{tripId}/activities/{activityId}/comments/{commentId}/comments/{replyId}/likes:
-    post:
-      summary: Like a reply
-      operationId: likeReply
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: replyId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Reply liked successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReplyLikeResponse'
-        '400':
-          description: Already liked
-        '401':
-          description: Unauthorized
-        '404':
-          description: Reply not found
-
-    delete:
-      summary: Unlike a reply
-      operationId: unlikeReply
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: replyId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Like removed
-        '401':
-          description: Unauthorized
-        '404':
-          description: Like not found
-    post:
-      summary: Like a comment
-      operationId: likeComment
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Comment liked successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommentLikeResponse'
-        '400':
-          description: Already liked
-        '401':
-          description: Unauthorized
-        '404':
-          description: Comment not found
-
-    delete:
-      summary: Unlike a comment
-      operationId: unlikeComment
-      tags:
-        - Comments
-      parameters:
-        - name: tripId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: activityId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Like removed
-        '401':
-          description: Unauthorized
-        '404':
-          description: Like not found
+          description: Transport not found
 
 # ─── Components ───────────────────────────────────────────────────────────────
 
 components:
 
   securitySchemes:
-    bearerAuth:
+    firebaseAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: >
-        JWT token obtained from /auth/login or /auth/register.
-        Include as: Authorization: Bearer <token>
+      description: |
+        Firebase ID token. Obtain via Firebase Client SDK after user authentication.
+        Pass as `Authorization: Bearer <token>` header.
 
   schemas:
 
@@ -1129,6 +744,10 @@ components:
            type: string
            description: Optional S3/MinIO/GCP object key for user's avatar image
            readOnly: true
+        avatarUrl:
+          type: string
+          format: uri
+          readOnly: true
 
 
     PaginationMeta:
@@ -1153,51 +772,12 @@ components:
 
     # ── Auth ──────────────────────────────────────────────────────────────────
 
-    CreateUserRequest:
+    ProvisionUserRequest:
       type: object
-      required:
-        - email
-        - password
-        - name
       properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 8
-          description: Minimum 8 characters
         name:
           type: string
-          minLength: 1
-
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-
-    AuthResponse:
-      type: object
-      required:
-        - token
-        - expiresIn
-        - user
-      properties:
-        token:
-          type: string
-          description: JWT access token
-        expiresIn:
-          type: integer
-          description: Token validity in seconds (e.g. 3600)
-        user:
-           $ref: '#/components/schemas/UserResponse'
+          nullable: true
 
     # ── Upload ────────────────────────────────────────────────────────────────
 
@@ -1293,18 +873,6 @@ components:
           type: string
           nullable: true
           description: Optional S3/MinIO/GCP object key for user's avatar image
-
-    ChangePasswordRequest:
-      type: object
-      required:
-        - currentPassword
-        - newPassword
-      properties:
-        currentPassword:
-          type: string
-        newPassword:
-          type: string
-          minLength: 8
 
     # ── Trip ──────────────────────────────────────────────────────────────────
 
@@ -1402,6 +970,9 @@ components:
         - name
         - city
         - country
+        - shortDescription
+        - dateFrom
+        - dateTo
       properties:
         name:
           type: string
@@ -1409,6 +980,14 @@ components:
           type: string
         country:
           type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
         latitude:
           type: number
           format: float
@@ -1430,6 +1009,14 @@ components:
           type: string
         country:
           type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
         latitude:
           type: number
           format: float
@@ -1440,7 +1027,6 @@ components:
           type: string
         sequence:
           type: integer
-          description: Visit sequence number
 
     LocationResponse:
       description: Full location object returned by all location endpoints.
@@ -1451,6 +1037,9 @@ components:
             - name
             - city
             - country
+            - shortDescription
+            - dateFrom
+            - dateTo
           properties:
             name:
               type: string
@@ -1458,6 +1047,14 @@ components:
               type: string
             country:
               type: string
+            shortDescription:
+              type: string
+            dateFrom:
+              type: string
+              format: date
+            dateTo:
+              type: string
+              format: date
             latitude:
               type: number
               format: float
@@ -1601,6 +1198,96 @@ components:
               items:
                 $ref: '#/components/schemas/ActivityResponse'
 
+    # ── Transport ─────────────────────────────────────────────────────────────
+
+    CreateTransportRequest:
+      type: object
+      required:
+        - fromLocationId
+        - toLocationId
+        - date
+        - type
+      properties:
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [flight, train, car, bus]
+        notes:
+          type: string
+
+    UpdateTransportRequest:
+      type: object
+      properties:
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [flight, train, car, bus]
+        notes:
+          type: string
+
+    TransportResponse:
+      description: Full transport object returned by all transport endpoints.
+      allOf:
+        - $ref: '#/components/schemas/ResourceMeta'
+        - type: object
+          required:
+            - fromLocationId
+            - toLocationId
+            - date
+            - type
+          properties:
+            fromLocationId:
+              type: string
+              format: uuid
+            toLocationId:
+              type: string
+              format: uuid
+            departureTime:
+              type: string
+              format: date-time
+            arrivalTime:
+              type: string
+              format: date-time
+            type:
+              type: string
+              enum: [flight, train, car, bus]
+            notes:
+              type: string
+
+    TransportListResponse:
+      description: Paginated list of transports.
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransportResponse'
     # ── Like ──────────────────────────────────────────────────────────────────
 
     LikeResponse:
