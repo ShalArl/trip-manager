@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { getTrip } from "@/lib/api/trips";
 import TripDetail from "@/components/trips/TripDetail";
 import { TripResponse } from "@/types/trip";
-import {LoadingSpinner} from "@/components/global/LoadingSpinner";
-import {useUserContext} from "@/lib/context/UserContext";
+import { LoadingSpinner } from "@/components/global/LoadingSpinner";
+import { useUserContext } from "@/lib/context/UserContext";
 
 
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +35,5 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
     const isEditable = !!user && trip.createdBy?.id === user.id;
 
-
-    return <TripDetail trip={trip} isEditable={isEditable} onTripUpdate={setTrip} />;
+    return <TripDetail trip={trip} isEditable={isEditable} onTripUpdate={setTrip} currentUser={user} />;
 }

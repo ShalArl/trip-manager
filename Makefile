@@ -27,7 +27,6 @@ help:
 	@echo "  make docker-down    Stop all services"
 	@echo "  make docker-logs    View logs from all services"
 	@echo "  make docker-logs-SERVICE  View logs for a specific service"
-	@echo ""
 	@echo "Legacy Commands (Use docker-compose instead):"
 	@echo "  make db-up          Start PostgreSQL (use docker-compose up database)"
 	@echo "  make db-down        Stop PostgreSQL (use docker-compose down)"
@@ -220,7 +219,7 @@ firebase-up:
 # Stop Firebase Emulators
 firebase-down:
 	@echo "Stopping Firebase Emulators container..."
-	@docker stop trip_manager_firebase 2>/dev/null || true
+	@docker stop --timeout=30 trip_manager_firebase 2>/dev/null || true
 	@docker rm trip_manager_firebase 2>/dev/null || true
 	@echo "✓ Firebase Emulators stopped"
 

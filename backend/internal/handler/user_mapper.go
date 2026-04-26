@@ -33,6 +33,24 @@ func mapUserToUserResponse(ctx context.Context, media infrastructure.MediaServic
 	return resp
 }
 
+func mapUserToUserSummaryWithAvatar(ctx context.Context, user *domain.User, media infrastructure.MediaService) *generated.UserSummary {
+	id, _ := uuid.Parse(user.ID)
+
+	var avatarURL *string
+	if user.AvatarKey != "" {
+		if url, err := media.GetDownloadURL(ctx, user.AvatarKey); err == nil {
+			avatarURL = &url
+		}
+	}
+
+	return &generated.UserSummary{
+		Id:        id,
+		Email:     openapitypes.Email(user.Email),
+		Name:      user.Name,
+		AvatarUrl: avatarURL,
+	}
+}
+
 func mapUserToUserSummary(user *domain.User) *generated.UserSummary {
 	id, _ := uuid.Parse(user.ID)
 

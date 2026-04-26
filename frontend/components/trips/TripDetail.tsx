@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { updateTrip } from "@/lib/api/trips";
+import { likeTrip, unlikeTrip, getTripComments, createTripComment, deleteTripComment, getTripLikes } from "@/lib/api/social";
 import { components } from "@/generated/types";
 import { TransportResponse, CreateTransportRequest, UpdateTransportRequest } from "@/types/transport";
 import { createTransport, getTransports } from "@/lib/api/transports";
@@ -13,6 +14,8 @@ import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
 import AddTransportModal from "./modals/AddTransportModal";
 import LocationDetailModal from "./modals/LocationDetailModal";
+import { UserResponse } from "@/types/user";
+import { TripLikeResponse, TripCommentResponse, TripCommentListResponse, CreateTripCommentRequest } from "@/types/social";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -20,9 +23,10 @@ type Props = {
     trip: TripResponse;
     isEditable?: boolean;
     onTripUpdate: (trip: TripResponse) => void;
+    currentUser?: UserResponse | null;
 };
 
-export default function TripDetail({ trip, isEditable = false, onTripUpdate }: Props) {
+export default function TripDetail({ trip, isEditable = false, onTripUpdate, currentUser }: Props) {
     const [isEditingTrip, setIsEditingTrip] = useState(false);
     const [currentTrip, setCurrentTrip] = useState<TripResponse>(trip);
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
@@ -44,12 +48,22 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate }: P
         (a) => a.locationId === selectedLocationId
     );
 
+    const [likeInfo, setLikeInfo] = useState<TripLikeResponse>({ likeCount: 0, hasLiked: false });
+    const [comments, setComments] = useState<TripCommentResponse[]>([]);
+    const [showComments, setShowComments] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
     useEffect(() => {
         getLocations(trip.id).then(setLocations).catch(console.error);
     }, [trip.id]);
 
     useEffect(() => {
         getTransports(trip.id).then(setTransports).catch(console.error);
+    }, [trip.id]);
+    // NEU
+    useEffect(() => {
+        getTripLikes(trip.id).then(setLikeInfo).catch(console.error);
     }, [trip.id]);
 
     const handleAddLocation = async (newLocation: CreateLocationRequest) => {
@@ -139,6 +153,56 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate }: P
         }
     };
 
+    const handleLike = async () => {
+        if (!currentUser) return;
+        try {
+            if (likeInfo.hasLiked) {
+                await unlikeTrip(trip.id);
+                setLikeInfo({ likeCount: likeInfo.likeCount - 1, hasLiked: false });
+            } else {
+                await likeTrip(trip.id);
+                setLikeInfo({ likeCount: likeInfo.likeCount + 1, hasLiked: true });
+            }
+        } catch (error) {
+            console.error("Fehler beim Liken:", error);
+        }
+    };
+
+    const handleShowComments = async () => {
+        if (!showComments && comments.length === 0) {
+            try {
+                const data = await getTripComments(trip.id);
+                setComments(data.data ?? []);
+            } catch (error) {
+                console.error("Fehler beim Laden der Kommentare:", error);
+            }
+        }
+        setShowComments(!showComments);
+    };
+
+    const handleSubmitComment = async () => {
+        if (!newComment.trim() || !currentUser) return;
+        setIsSubmittingComment(true);
+        try {
+            const created = await createTripComment(trip.id, newComment.trim());
+            setComments([...comments, created]);
+            setNewComment("");
+        } catch (error) {
+            console.error("Fehler beim Erstellen des Kommentars:", error);
+        } finally {
+            setIsSubmittingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            await deleteTripComment(trip.id, commentId);
+            setComments(comments.filter((c) => c.id !== commentId));
+        } catch (error) {
+            console.error("Fehler beim Löschen des Kommentars:", error);
+        }
+    };
+
     return (
         <div className="max-w-5xl px-6 py-12">
             <Link
@@ -180,7 +244,8 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate }: P
                                 <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
                                     Kurzbeschreibung
                                 </p>
-                                <p className="text-zinc-700 dark:text-zinc-300">{currentTrip.shortDescription}</p>                            </div>
+                                <p className="text-zinc-700 dark:text-zinc-300">{currentTrip.shortDescription}</p>
+                            </div>
                             {currentTrip.description && (
                                 <div>
                                     <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
@@ -190,6 +255,91 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate }: P
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Social: Likes & Comments */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+                        <div className="flex items-center gap-4">
+                            {/* Like Button */}
+                            <button
+                                onClick={handleLike}
+                                disabled={!currentUser}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${likeInfo.hasLiked
+                                    ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                                    : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                <span>{likeInfo.hasLiked ? "❤️" : "🤍"}</span>
+                                <span>{likeInfo.likeCount} {likeInfo.likeCount === 1 ? "Like" : "Likes"}</span>
+                            </button>
+
+                            {/* Comments Toggle */}
+                            <button
+                                onClick={handleShowComments}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700 transition-colors"
+                            >
+                                <span>💬</span>
+                                <span>{showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}</span>
+                            </button>
+                        </div>
+
+                        {/* Comments Section */}
+                        {showComments && (
+                            <div className="mt-6 space-y-4">
+                                {comments.length === 0 ? (
+                                    <p className="text-zinc-500 dark:text-zinc-400 text-sm text-center py-4">
+                                        Noch keine Kommentare
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {comments.map((comment) => (
+                                            <div
+                                                key={comment.id}
+                                                className="flex items-start justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl"
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                        {comment.user.name}
+                                                    </p>
+                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                                                        {comment.text}
+                                                    </p>
+                                                </div>
+                                                {currentUser && comment.user.id === currentUser.id && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-blue-950/30 transition-colors shrink-0"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* New Comment Input */}
+                                {currentUser && (
+                                    <div className="flex gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                        <input
+                                            type="text"
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
+                                            placeholder="Kommentar schreiben..."
+                                            className="flex-1 px-4 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:border-sky-400 dark:focus:border-sky-600 text-zinc-900 dark:text-white placeholder-zinc-400"
+                                        />
+                                        <button
+                                            onClick={handleSubmitComment}
+                                            disabled={!newComment.trim() || isSubmittingComment}
+                                            className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isSubmittingComment ? "..." : "Senden"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Locations List */}
@@ -245,12 +395,9 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate }: P
                                         </div>
                                     </div>
                                 ))}
-
                             </div>
                         )}
                     </div>
-
-
 
                     {/* Travel Plan */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
