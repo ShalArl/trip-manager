@@ -219,7 +219,7 @@ firebase-up:
 # Stop Firebase Emulators
 firebase-down:
 	@echo "Stopping Firebase Emulators container..."
-	@docker stop trip_manager_firebase 2>/dev/null || true
+	@docker stop --timeout=30 trip_manager_firebase 2>/dev/null || true
 	@docker rm trip_manager_firebase 2>/dev/null || true
 	@echo "✓ Firebase Emulators stopped"
 
