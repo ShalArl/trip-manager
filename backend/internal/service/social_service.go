@@ -1,226 +1,146 @@
-// internal/service/social_service.go
 package service
 
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
+	"github.com/ShalArl/trip-manager/internal/generated"
 	"github.com/ShalArl/trip-manager/internal/repository"
+	"github.com/google/uuid"
+
+	openapitypes "github.com/oapi-codegen/runtime/types"
 )
 
 type SocialService interface {
-	ListComments(ctx context.Context, activityID string, limit, offset int) ([]*domain.Comment, int, error)
-	CreateComment(ctx context.Context, userID, activityID, text, imageKey string) (*domain.Comment, error)
-	UpdateComment(ctx context.Context, userID, commentID, text, imageKey string) (*domain.Comment, error)
-	DeleteComment(ctx context.Context, userID, commentID string) error
+	// Likes
+	LikeTrip(ctx context.Context, userID, tripID string) error
+	UnlikeTrip(ctx context.Context, userID, tripID string) error
+	GetTripLikeInfo(ctx context.Context, userID, tripID string) (*generated.TripLikeResponse, error)
 
-	ListReplies(ctx context.Context, commentID string, limit, offset int) ([]*domain.CommentReply, int, error)
-	CreateReply(ctx context.Context, userID, commentID, text, imageKey string) (*domain.CommentReply, error)
-	UpdateReply(ctx context.Context, userID, replyID, text, imageKey string) (*domain.CommentReply, error)
-	DeleteReply(ctx context.Context, userID, replyID string) error
-
-	LikeActivity(ctx context.Context, userID, activityID string) error
-	UnlikeActivity(ctx context.Context, userID, activityID string) error
-	LikeComment(ctx context.Context, userID, commentID string) error
-	UnlikeComment(ctx context.Context, userID, commentID string) error
-	LikeReply(ctx context.Context, userID, replyID string) error
-	UnlikeReply(ctx context.Context, userID, replyID string) error
-
-	GetActivityCounts(ctx context.Context, activityID string) (likes, comments int, err error)
-	GetCommentCounts(ctx context.Context, commentID string) (likes, replies int, err error)
-	GetReplyCounts(ctx context.Context, replyID string) (likes int, err error)
+	// Comments
+	CreateTripComment(ctx context.Context, userID, tripID, text string) (*generated.TripCommentResponse, error)
+	ListTripComments(ctx context.Context, tripID string) (*generated.TripCommentListResponse, error)
+	DeleteTripComment(ctx context.Context, userID, commentID string) error
 }
 
 type SocialServiceImpl struct {
-	repo repository.SocialRepository
+	socialRepo repository.SocialRepository
+	userRepo   repository.UserRepository
 }
 
-func NewSocialService(repo repository.SocialRepository) SocialService {
-	return &SocialServiceImpl{repo: repo}
-}
-
-// ── Comments ──────────────────────────────────────────────────────────────
-
-func (s *SocialServiceImpl) ListComments(ctx context.Context, activityID string, limit, offset int) ([]*domain.Comment, int, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
+func NewSocialService(socialRepo repository.SocialRepository, userRepo repository.UserRepository) SocialService {
+	return &SocialServiceImpl{
+		socialRepo: socialRepo,
+		userRepo:   userRepo,
 	}
-	if offset < 0 {
-		offset = 0
-	}
-	return s.repo.ListComments(ctx, activityID, limit, offset)
 }
 
-func (s *SocialServiceImpl) CreateComment(ctx context.Context, userID, activityID, text, imageKey string) (*domain.Comment, error) {
-	text = strings.TrimSpace(text)
+// ── Likes ──────────────────────────────────────────────────────────────────
+
+func (s *SocialServiceImpl) LikeTrip(ctx context.Context, userID, tripID string) error {
+	err := s.socialRepo.LikeTrip(ctx, userID, tripID)
+	if err != nil {
+		return fmt.Errorf("failed to like trip: %w", err)
+	}
+	return nil
+}
+
+func (s *SocialServiceImpl) UnlikeTrip(ctx context.Context, userID, tripID string) error {
+	err := s.socialRepo.UnlikeTrip(ctx, userID, tripID)
+	if err != nil {
+		return fmt.Errorf("failed to unlike trip: %w", err)
+	}
+	return nil
+}
+
+func (s *SocialServiceImpl) GetTripLikeInfo(ctx context.Context, userID, tripID string) (*generated.TripLikeResponse, error) {
+	count, err := s.socialRepo.CountTripLikes(ctx, tripID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count likes: %w", err)
+	}
+
+	// userID ist leer wenn Gast → hasLiked immer false
+	hasLiked := false
+	if userID != "" {
+		hasLiked, err = s.socialRepo.HasLiked(ctx, userID, tripID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check like status: %w", err)
+		}
+	}
+
+	return &generated.TripLikeResponse{
+		LikeCount: count,
+		HasLiked:  hasLiked,
+	}, nil
+}
+
+// ── Comments ───────────────────────────────────────────────────────────────
+
+func (s *SocialServiceImpl) CreateTripComment(ctx context.Context, userID, tripID, text string) (*generated.TripCommentResponse, error) {
 	if text == "" {
-		return nil, fmt.Errorf("%w: comment text required", domain.ErrInvalidInput)
-	}
-	if len(text) > 500 {
-		return nil, fmt.Errorf("%w: comment too long (max 500)", domain.ErrInvalidInput)
-	}
-	if imageKey != "" && !strings.HasPrefix(imageKey, "comments/") {
-		return nil, fmt.Errorf("%w: invalid image key", domain.ErrInvalidInput)
+		return nil, fmt.Errorf("%w: comment text cannot be empty", domain.ErrInvalidInput)
 	}
 
-	c := &domain.Comment{
-		ActivityID: activityID,
-		UserID:     userID,
-		Text:       text,
-		ImageKey:   &imageKey,
-	}
-	return s.repo.CreateComment(ctx, c)
-}
-
-func (s *SocialServiceImpl) UpdateComment(ctx context.Context, userID, commentID, text, imageKey string) (*domain.Comment, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, fmt.Errorf("%w: comment text required", domain.ErrInvalidInput)
+	comment := &domain.TripComment{
+		TripID: tripID,
+		UserID: userID,
+		Text:   text,
 	}
 
-	existing, err := s.repo.GetComment(ctx, commentID)
+	created, err := s.socialRepo.CreateTripComment(ctx, comment)
 	if err != nil {
-		return nil, err
-	}
-	if existing.UserID != userID {
-		return nil, domain.ErrUnauthorized
+		return nil, fmt.Errorf("failed to create comment: %w", err)
 	}
 
-	existing.Text = text
-	existing.ImageKey = &imageKey
-	return s.repo.UpdateComment(ctx, existing)
-}
-
-func (s *SocialServiceImpl) DeleteComment(ctx context.Context, userID, commentID string) error {
-	existing, err := s.repo.GetComment(ctx, commentID)
+	user, err := s.userRepo.GetUser(ctx, userID)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
-	if existing.UserID != userID {
-		return domain.ErrUnauthorized
-	}
-	return s.repo.DeleteComment(ctx, commentID)
+
+	return mapToTripCommentResponse(created, user), nil
 }
 
-// ── Replies ───────────────────────────────────────────────────────────────
-
-func (s *SocialServiceImpl) ListReplies(ctx context.Context, commentID string, limit, offset int) ([]*domain.CommentReply, int, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	return s.repo.ListReplies(ctx, commentID, limit, offset)
-}
-
-func (s *SocialServiceImpl) CreateReply(ctx context.Context, userID, commentID, text, imageKey string) (*domain.CommentReply, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, fmt.Errorf("%w: reply text required", domain.ErrInvalidInput)
-	}
-	if len(text) > 500 {
-		return nil, fmt.Errorf("%w: reply too long (max 500)", domain.ErrInvalidInput)
-	}
-
-	// Parent-Comment muss existieren
-	if _, err := s.repo.GetComment(ctx, commentID); err != nil {
-		return nil, err
-	}
-
-	rep := &domain.CommentReply{
-		CommentID: commentID,
-		UserID:    userID,
-		Text:      text,
-		ImageKey:  &imageKey,
-	}
-	return s.repo.CreateReply(ctx, rep)
-}
-
-func (s *SocialServiceImpl) UpdateReply(ctx context.Context, userID, replyID, text, imageKey string) (*domain.CommentReply, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, fmt.Errorf("%w: reply text required", domain.ErrInvalidInput)
-	}
-
-	existing, err := s.repo.GetReply(ctx, replyID)
+func (s *SocialServiceImpl) ListTripComments(ctx context.Context, tripID string) (*generated.TripCommentListResponse, error) {
+	comments, err := s.socialRepo.ListTripComments(ctx, tripID)
 	if err != nil {
-		return nil, err
-	}
-	if existing.UserID != userID {
-		return nil, domain.ErrUnauthorized
+		return nil, fmt.Errorf("failed to list comments: %w", err)
 	}
 
-	existing.Text = text
-	existing.ImageKey = &imageKey
-	return s.repo.UpdateReply(ctx, existing)
+	var responses []generated.TripCommentResponse
+	for _, c := range comments {
+		user, err := s.userRepo.GetUser(ctx, c.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user for comment: %w", err)
+		}
+		responses = append(responses, *mapToTripCommentResponse(c, user))
+	}
+
+	return &generated.TripCommentListResponse{Data: responses}, nil
 }
 
-func (s *SocialServiceImpl) DeleteReply(ctx context.Context, userID, replyID string) error {
-	existing, err := s.repo.GetReply(ctx, replyID)
+func (s *SocialServiceImpl) DeleteTripComment(ctx context.Context, userID, commentID string) error {
+	err := s.socialRepo.DeleteTripComment(ctx, commentID, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete comment: %w", err)
 	}
-	if existing.UserID != userID {
-		return domain.ErrUnauthorized
+	return nil
+}
+
+// ── Mapper ─────────────────────────────────────────────────────────────────
+
+func mapToTripCommentResponse(c *domain.TripComment, user *domain.User) *generated.TripCommentResponse {
+	id, _ := uuid.Parse(user.ID)
+	return &generated.TripCommentResponse{
+		Id:     c.ID,
+		TripId: c.TripID,
+		User: &generated.UserSummary{
+			Id:    id,
+			Email: openapitypes.Email(user.Email),
+			Name:  user.Name,
+		},
+		Text:      c.Text,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
 	}
-	return s.repo.DeleteReply(ctx, replyID)
-}
-
-// ── Likes ─────────────────────────────────────────────────────────────────
-
-func (s *SocialServiceImpl) LikeActivity(ctx context.Context, userID, activityID string) error {
-	return s.repo.LikeActivity(ctx, userID, activityID)
-}
-
-func (s *SocialServiceImpl) UnlikeActivity(ctx context.Context, userID, activityID string) error {
-	return s.repo.UnlikeActivity(ctx, userID, activityID)
-}
-
-func (s *SocialServiceImpl) LikeComment(ctx context.Context, userID, commentID string) error {
-	return s.repo.LikeComment(ctx, userID, commentID)
-}
-
-func (s *SocialServiceImpl) UnlikeComment(ctx context.Context, userID, commentID string) error {
-	return s.repo.UnlikeComment(ctx, userID, commentID)
-}
-
-func (s *SocialServiceImpl) LikeReply(ctx context.Context, userID, replyID string) error {
-	return s.repo.LikeReply(ctx, userID, replyID)
-}
-
-func (s *SocialServiceImpl) UnlikeReply(ctx context.Context, userID, replyID string) error {
-	return s.repo.UnlikeReply(ctx, userID, replyID)
-}
-
-// ── Counts ────────────────────────────────────────────────────────────────
-
-func (s *SocialServiceImpl) GetActivityCounts(ctx context.Context, activityID string) (int, int, error) {
-	likes, err := s.repo.CountActivityLikes(ctx, activityID)
-	if err != nil {
-		return 0, 0, err
-	}
-	comments, err := s.repo.CountActivityComments(ctx, activityID)
-	if err != nil {
-		return 0, 0, err
-	}
-	return likes, comments, nil
-}
-
-func (s *SocialServiceImpl) GetCommentCounts(ctx context.Context, commentID string) (int, int, error) {
-	likes, err := s.repo.CountCommentLikes(ctx, commentID)
-	if err != nil {
-		return 0, 0, err
-	}
-	replies, err := s.repo.CountCommentReplies(ctx, commentID)
-	if err != nil {
-		return 0, 0, err
-	}
-	return likes, replies, nil
-}
-
-func (s *SocialServiceImpl) GetReplyCounts(ctx context.Context, replyID string) (int, error) {
-	return s.repo.CountReplyLikes(ctx, replyID)
 }

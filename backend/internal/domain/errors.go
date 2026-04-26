@@ -8,4 +8,5 @@ var (
 	ErrUnauthorized = errors.New("unauthorized access")
 	ErrConflict     = errors.New("resource already exists")
 	ErrInternal     = errors.New("internal server error")
+	ErrForbidden    = errors.New("forbidden")
 )

@@ -83,17 +83,19 @@ func main() {
 
 	// Routes
 	r.Route("/api", func(r chi.Router) {
-		// ─── Auth Routes (no auth required) ────────────────────────────────────
+		// ─── Public Routes ──────────────────────────────────────────────────────
 		r.Get("/trips/search", handler.SearchTripsHandler(application))
 		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
-		// ─── Optional Auth Routes (public but user context if available) ────────
+		// ─── Provision ──────────────────────────────────────────────────────────
 		r.With(chimiddleware.ProvisionMiddleware(firebaseAuth)).
 			Post("/users/provision", handler.ProvisionMeHandler(application))
+
+		// ─── Optional Auth ───────────────────────────────────────────────────────
 		r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 			Get("/trips/{tripId}", handler.GetTripHandler(application))
 
-		// ─── Location Routes ────────────────────────────────────────────────────
+		// ─── Location Routes ─────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/locations", func(r chi.Router) {
 			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 				Get("/", handler.ListLocationsHandler(application))
@@ -121,7 +123,26 @@ func main() {
 			})
 		})
 
-		// ─── Protected Routes ───────────────────────────────────────────────────
+		// ─── Social Routes (Likes & Comments) ────────────────────────────────────
+		r.Route("/trips/{tripId}/likes", func(r chi.Router) {
+			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Get("/", handler.GetTripLikesHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Post("/", handler.LikeTripHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Delete("/", handler.UnlikeTripHandler(application))
+		})
+
+		r.Route("/trips/{tripId}/comments", func(r chi.Router) {
+			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Get("/", handler.ListTripCommentsHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Post("/", handler.CreateTripCommentHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Delete("/{commentId}", handler.DeleteTripCommentHandler(application))
+		})
+
+		// ─── Protected Routes ────────────────────────────────────────────────────
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, application.Services.User))
 
@@ -141,59 +162,23 @@ func main() {
 			r.Put("/trips/{tripId}", handler.UpdateTripHandler(application))
 			r.Delete("/trips/{tripId}", handler.DeleteTripHandler(application))
 
-			// Direct Location Routes
+			// Locations
 			r.Get("/locations/{locationId}", handler.GetLocationHandler(application))
 
-			// Activity Routes
+			// Activities
 			r.Route("/trips/{tripId}/activities", func(r chi.Router) {
 				r.Get("/", handler.ListActivitiesForTripHandler(application))
 				r.Post("/", handler.CreateActivityHandler(application))
 				r.Route("/{activityId}", func(r chi.Router) {
 					r.Put("/", handler.UpdateActivityHandler(application))
 					r.Delete("/", handler.DeleteActivityHandler(application))
-
-					// ─── Activity Likes Routes ──────────────────────────────────────────
-					r.Post("/likes", handler.LikeActivityHandler(application))
-					r.Delete("/likes", handler.UnlikeActivityHandler(application))
-
-					// ─── Comments Routes ────────────────────────────────────────────────
-					r.Route("/comments", func(r chi.Router) {
-						r.Get("/", handler.ListCommentsHandler(application))
-						r.Post("/", handler.CreateCommentHandler(application))
-						r.Route("/{commentId}", func(r chi.Router) {
-							r.Put("/", handler.UpdateCommentHandler(application))
-							r.Delete("/", handler.DeleteCommentHandler(application))
-
-							// ─── Comment Likes Routes ──────────────────────────────────────
-							r.Post("/likes", handler.LikeCommentHandler(application))
-							r.Delete("/likes", handler.UnlikeCommentHandler(application))
-
-							// ─── Nested Comments (Replies) Routes ───────────────────────────
-							r.Route("/comments", func(r chi.Router) {
-								r.Get("/", handler.ListRepliesHandler(application))
-								r.Post("/", handler.CreateReplyHandler(application))
-								r.Route("/{replyId}", func(r chi.Router) {
-									r.Put("/", handler.UpdateReplyHandler(application))
-									r.Delete("/", handler.DeleteReplyHandler(application))
-
-									// ─── Reply Likes Routes ─────────────────────────────────────
-									r.Post("/likes", handler.LikeReplyHandler(application))
-									r.Delete("/likes", handler.UnlikeReplyHandler(application))
-								})
-							})
-						})
-					})
 				})
 			})
 
-			// Activity by Location
 			r.Get("/locations/{locationId}/activities", handler.ListActivitiesForLocationHandler(application))
-
-			// Direct Activity Routes
 			r.Get("/activities/{activityId}", handler.GetActivityHandler(application))
 		})
 	})
-
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -679,6 +679,134 @@ paths:
           description: Forbidden
         '404':
           description: Transport not found
+  
+ # ─── Social ───────────────────────────────────────────────────────────────
+  /trips/{tripId}/likes:
+    get:
+      summary: Get like count and like status for a trip
+      operationId: getTripLikes
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Like info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripLikeResponse'
+    post:
+      summary: Like a trip
+      operationId: likeTrip
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Trip liked
+        '409':
+          description: Already liked
+        '401':
+          description: Unauthorized
+    delete:
+      summary: Unlike a trip
+      operationId: unlikeTrip
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trip unliked
+        '401':
+          description: Unauthorized
+
+  /trips/{tripId}/comments:
+    get:
+      summary: List comments for a trip
+      operationId: listTripComments
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentListResponse'
+    post:
+      summary: Add a comment to a trip
+      operationId: createTripComment
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentResponse'
+        '401':
+          description: Unauthorized
+
+  /trips/{tripId}/comments/{commentId}:
+    delete:
+      summary: Delete a comment
+      operationId: deleteTripComment
+      tags:
+        - Social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
 
 # ─── Components ───────────────────────────────────────────────────────────────
 
@@ -1288,246 +1416,59 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/TransportResponse'
-    # ── Like ──────────────────────────────────────────────────────────────────
 
-    LikeResponse:
-      description: Like object returned when liking an activity.
+    # ── Social ────────────────────────────────────────────────────────────────
+    
+    TripLikeResponse:
+      type: object
+      required:
+        - likeCount
+        - hasLiked
+      properties:
+        likeCount:
+          type: integer
+        hasLiked:
+          type: boolean
+
+    CreateTripCommentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+
+    TripCommentResponse:
       type: object
       required:
         - id
-        - activityId
-        - userId
+        - tripId
+        - user
+        - text
         - createdAt
+        - updatedAt
       properties:
         id:
           type: string
-          format: uuid
-          readOnly: true
-        activityId:
+        tripId:
           type: string
-          format: uuid
-          description: ID of the liked activity
-        userId:
-          type: string
-          format: uuid
-          description: ID of the user who liked
         user:
           $ref: '#/components/schemas/UserSummary'
-          description: User who liked this activity
+        text:
+          type: string
         createdAt:
           type: string
           format: date-time
-          readOnly: true
-
-    # ── Comment ───────────────────────────────────────────────────────────────
-
-    CreateCommentRequest:
-      description: Request to create a new comment on an activity.
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: Comment text
-        imageKey:
-          type: string
-          nullable: true
-          description: Optional S3/MinIO/GCP object key for comment image
-
-    UpdateCommentRequest:
-      description: Request to update a comment.
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: Updated comment text
-        imageKey:
-          type: string
-          nullable: true
-          description: Optional S3/MinIO/GCP object key for comment image
-
-    CommentResponse:
-      description: Full comment object returned by all comment endpoints.
-      allOf:
-        - $ref: '#/components/schemas/ResourceMeta'
-        - type: object
-          required:
-            - text
-            - activityId
-          properties:
-            text:
-              type: string
-              description: Comment content
-            activityId:
-              type: string
-              format: uuid
-              description: ID of the activity this comment belongs to
-            imageUrl:
-              type: string
-              nullable: true
-              description: Short-lived signed URL for comment image
-              readOnly: true
-            likeCount:
-              type: integer
-              description: Number of likes on this comment
-              readOnly: true
-            replyCount:
-              type: integer
-              description: Number of replies to this comment
-              readOnly: true
-
-    CommentListResponse:
-      description: Paginated list of comments.
-      allOf:
-        - $ref: '#/components/schemas/PaginationMeta'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/CommentResponse'
-
-    # ── Comment Reply ──────────────────────────────────────────────────────────
-
-    CreateCommentReplyRequest:
-      description: Request to create a reply to a comment.
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: Reply text
-        imageKey:
-          type: string
-          nullable: true
-          description: Optional S3/MinIO/GCP object key for reply image
-
-    UpdateCommentReplyRequest:
-      description: Request to update a comment reply.
-      type: object
-      required:
-        - text
-      properties:
-        text:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: Updated reply text
-        imageKey:
-          type: string
-          nullable: true
-          description: Optional S3/MinIO/GCP object key for reply image
-
-    CommentReplyResponse:
-      description: Full comment reply object returned by all reply endpoints.
-      allOf:
-        - $ref: '#/components/schemas/ResourceMeta'
-        - type: object
-          required:
-            - text
-            - commentId
-          properties:
-            text:
-              type: string
-              description: Reply content
-            commentId:
-              type: string
-              format: uuid
-              description: ID of the parent comment
-            imageUrl:
-              type: string
-              nullable: true
-              description: Short-lived signed URL for reply image
-              readOnly: true
-            likeCount:
-              type: integer
-              description: Number of likes on this reply
-              readOnly: true
-
-    CommentReplyListResponse:
-      description: Paginated list of comment replies.
-      allOf:
-        - $ref: '#/components/schemas/PaginationMeta'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/CommentReplyResponse'
-
-    # ── Reply Like ────────────────────────────────────────────────────────────
-
-    ReplyLikeResponse:
-      description: Like object returned when liking a reply.
-      type: object
-      required:
-        - id
-        - replyId
-        - userId
-        - createdAt
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        replyId:
-          type: string
-          format: uuid
-          description: ID of the liked reply
-        userId:
-          type: string
-          format: uuid
-          description: ID of the user who liked
-        user:
-          $ref: '#/components/schemas/UserSummary'
-          description: User who liked this reply
-        createdAt:
+        updatedAt:
           type: string
           format: date-time
-          readOnly: true
 
-    # ── Comment Like ──────────────────────────────────────────────────────────
-
-    CommentLikeResponse:
-      description: Like object returned when liking a comment.
+    TripCommentListResponse:
       type: object
       required:
-        - id
-        - commentId
-        - userId
-        - createdAt
+        - data
       properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        commentId:
-          type: string
-          format: uuid
-          description: ID of the liked comment
-        userId:
-          type: string
-          format: uuid
-          description: ID of the user who liked
-        user:
-          $ref: '#/components/schemas/UserSummary'
-          description: User who liked this comment
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripCommentResponse'

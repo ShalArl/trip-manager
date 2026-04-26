@@ -54,7 +54,7 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	transportService := service.NewTransportService(transportRepo)
 
 	// social service
-	socialService := service.NewSocialService(socialRepo)
+	socialService := service.NewSocialService(socialRepo, userRepo)
 
 	return &ServiceContainer{
 		Trip:      tripService,
