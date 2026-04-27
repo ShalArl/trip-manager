@@ -64,7 +64,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
     // NEU
     useEffect(() => {
         getTripLikes(trip.id).then(setLikeInfo).catch(console.error);
-    }, [trip.id]);
+    }, [trip.id, currentUser]);
 
     const handleAddLocation = async (newLocation: CreateLocationRequest) => {
         try {
