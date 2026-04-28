@@ -3,8 +3,8 @@ set -euo pipefail
 
 source .env
 
-for f in scripts/lib.sh scripts/cloudsql.sh scripts/artifactory.sh \
-         scripts/storage.sh scripts/runtime_sa.sh scripts/cloudrun.sh; do
+for f in lib/lib.sh lib/cloudsql.sh lib/artifactory.sh \
+         lib/storage.sh lib/runtime_sa.sh lib/cloudrun.sh; do
     source "$f"
 done
 
@@ -62,9 +62,6 @@ SQL_CONNECTION_NAME="${PROJECT_ID}:${SQL_REGION}:${SQL_INSTANCE}"
 # === Phase 6: Secrets ===
 DATABASE_URL="postgres://${SQL_DB_USER}:${DB_PASSWORD}@/${SQL_DB_NAME}?host=/cloudsql/${SQL_CONNECTION_NAME}&sslmode=disable"
 create_secret_if_missing "database-url" "$DATABASE_URL"
-
-JWT_SECRET="${JWT_SECRET:-$(openssl rand -base64 48)}"
-create_secret_if_missing "jwt-secret" "$JWT_SECRET"
 
 # === Phase 7: GCS Bucket ===
 setup_gcs_bucket "$GCS_BUCKET" "$REGION"

@@ -17,7 +17,6 @@ deploy_backend_service() {
     env_vars+="@@FIREBASE_PROJECT_ID=${PROJECT_ID}"
 
     local secrets="DATABASE_URL=database-url:latest"
-    secrets+=",JWT_SECRET=jwt-secret:latest"
 
 
     if gcloud run services describe "$service_name" \
