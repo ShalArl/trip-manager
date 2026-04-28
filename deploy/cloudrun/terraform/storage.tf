@@ -24,5 +24,5 @@ resource "google_service_account" "signed_url_signer" {
 resource "google_storage_bucket_iam_member" "signer_object_admin" {
   bucket = google_storage_bucket.uploads.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.signed_url_signer.email}"
+  member = local.sa_signer_member
 }

@@ -87,13 +87,12 @@ resource "google_cloud_run_v2_service" "backend" {
     }
   }
 
-  /*
   lifecycle {
     ignore_changes = [
       template[0].containers[0].image,
     ]
   }
-   */
+
 
   depends_on = [
     google_project_service.services["run.googleapis.com"],
@@ -139,13 +138,11 @@ resource "google_cloud_run_v2_service" "frontend" {
 
   }
 
-  /*
   lifecycle {
     ignore_changes = [
       template[0].containers[0].image,
     ]
   }
-   */
 
   depends_on = [google_project_service.services["run.googleapis.com"]]
 

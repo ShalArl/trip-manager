@@ -21,6 +21,8 @@ locals {
   cors_origins = "https://${local.app_domain}"
 
   # SA
+  sa_deploy_member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  sa_runtime_member = "serviceAccount:${google_service_account.runtime_sa.email}"
   sa_signer_member = "serviceAccount:${google_service_account.signed_url_signer.email}"
 
 }
