@@ -8,19 +8,19 @@ resource "google_service_account" "deploy_sa" {
 resource "google_project_iam_member" "deploy_sa_artifact_writer" {
   project = var.project_id
   role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  member  = local.sa_deploy_member
 }
 
 resource "google_project_iam_member" "deploy_sa_run_admin" {
   project = var.project_id
   role    = "roles/run.admin"
-  member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  member  = local.sa_deploy_member
 }
 
 resource "google_project_iam_member" "deploy_sa_service_account_user" {
   project = var.project_id
   role    = "roles/iam.serviceAccountUser"
-  member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  member  = local.sa_deploy_member
 }
 
 resource "google_service_account_iam_member" "deploy_sa_workload_identity" {
@@ -34,33 +34,38 @@ resource "google_service_account" "runtime_sa" {
   display_name = "Runtime Service Account"
 }
 
+resource "google_project_iam_member" "runtime_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = local.sa_runtime_member
+}
+
 resource "google_storage_bucket_iam_member" "runtime_object_admin" {
   bucket = google_storage_bucket.uploads.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.runtime_sa.email}"
+  member = local.sa_runtime_member
 }
 
 resource "google_service_account_iam_member" "runtime_can_impersonate_signer" {
   service_account_id = google_service_account.signed_url_signer.name
   role               = "roles/iam.serviceAccountTokenCreator"
-  member             = "serviceAccount:${google_service_account.runtime_sa.email}"
+  member             = local.sa_runtime_member
 }
 
 resource "google_project_iam_member" "runtime_secret_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.runtime_sa.email}"
+  member  = local.sa_runtime_member
 }
-
 
 resource "google_project_iam_member" "runtime_firebase_auth" {
   project = var.project_id
   role    = "roles/firebaseauth.admin"
-  member  = "serviceAccount:${google_service_account.runtime_sa.email}"
+  member  = local.sa_runtime_member
 }
 
 resource "google_project_iam_member" "runtime_firestore" {
   project = var.project_id
   role    = "roles/datastore.user"
-  member  = local.sa_signer_member
+  member  = local.sa_runtime_member
 }
