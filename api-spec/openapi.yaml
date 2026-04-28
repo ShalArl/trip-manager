@@ -679,8 +679,135 @@ paths:
           description: Forbidden
         '404':
           description: Transport not found
+
+ # ─── Accommodations ──────────────────────────────────────────────────────────
   
+  /trips/{tripId}/accommodations:
+    get:
+      summary: List trip accommodations
+      operationId: listAccommodations
+      tags:
+        - Accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated list of accommodations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    post:
+      summary: Add accommodation to trip
+      operationId: addAccommodation
+      tags:
+        - Accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccommodationRequest'
+      responses:
+        '201':
+          description: Accommodation added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /trips/{tripId}/accommodations/{accommodationId}:
+    put:
+      summary: Update accommodation
+      operationId: updateAccommodation
+      tags:
+        - Accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccommodationRequest'
+      responses:
+        '200':
+          description: Accommodation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Accommodation not found
+    delete:
+      summary: Delete accommodation
+      operationId: deleteAccommodation
+      tags:
+        - Accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Accommodation deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Accommodation not found
+
  # ─── Social ───────────────────────────────────────────────────────────────
+  
   /trips/{tripId}/likes:
     get:
       summary: Get like count and like status for a trip
@@ -1416,6 +1543,96 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/TransportResponse'
+
+    # ── Accommodation ─────────────────────────────────────────────────────────
+    
+    CreateAccommodationRequest:
+      type: object
+      required:
+        - locationId
+        - name
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        pricePerNight:
+          type: number
+          format: float
+        notes:
+          type: string
+
+    UpdateAccommodationRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        pricePerNight:
+          type: number
+          format: float
+        notes:
+          type: string
+
+    AccommodationResponse:
+      description: Full accommodation object returned by all accommodation endpoints.
+      allOf:
+        - $ref: '#/components/schemas/ResourceMeta'
+        - type: object
+          required:
+            - locationId
+            - name
+          properties:
+            locationId:
+              type: string
+              format: uuid
+            name:
+              type: string
+            address:
+              type: string
+            checkIn:
+              type: string
+              format: date-time
+            checkOut:
+              type: string
+              format: date-time
+            pricePerNight:
+              type: number
+              format: float
+            notes:
+              type: string
+
+    AccommodationListResponse:
+      description: Paginated list of accommodations.
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AccommodationResponse'
 
     # ── Social ────────────────────────────────────────────────────────────────
     
