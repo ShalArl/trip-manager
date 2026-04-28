@@ -21,13 +21,14 @@ type ServiceConfig struct {
 }
 
 type ServiceContainer struct {
-	Trip      service.TripService
-	Location  service.LocationService
-	User      service.UserService
-	Activity  service.ActivityService
-	Media     infrastructure.MediaService
-	Transport service.TransportService
-	Social    service.SocialService
+	Trip          service.TripService
+	Location      service.LocationService
+	User          service.UserService
+	Activity      service.ActivityService
+	Media         infrastructure.MediaService
+	Transport     service.TransportService
+	Social        service.SocialService
+	Accommodation service.AccommodationService
 }
 
 func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
@@ -41,6 +42,7 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	userRepo := repository.NewUserRepository(cfg.SQLDb)
 	activityRepo := repository.NewActivityRepository(cfg.SQLDb)
 	transportRepo := repository.NewTransportRepository(cfg.SQLDb)
+	accommodationRepo := repository.NewAccommodationRepository(cfg.SQLDb)
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
@@ -50,19 +52,21 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	userService := service.NewUserService(userRepo, mediaService)
 	activityService := service.NewActivityService(activityRepo)
 
-	// Initialize transport service
+	// Initialize transport and accomodation service
 	transportService := service.NewTransportService(transportRepo)
+	accommodationService := service.NewAccommodationService(accommodationRepo)
 
-	// social service
+	// Initialize social service
 	socialService := service.NewSocialService(socialRepo, userRepo)
 
 	return &ServiceContainer{
-		Trip:      tripService,
-		Location:  locationService,
-		User:      userService,
-		Activity:  activityService,
-		Media:     mediaService,
-		Transport: transportService,
-		Social:    socialService,
+		Trip:          tripService,
+		Location:      locationService,
+		User:          userService,
+		Activity:      activityService,
+		Media:         mediaService,
+		Transport:     transportService,
+		Accommodation: accommodationService,
+		Social:        socialService,
 	}, nil
 }
