@@ -101,7 +101,7 @@ func loadS3Config() S3Settings {
 		Region:    getEnv("S3_REGION", "us-east-1"),
 		AccessKey: getEnv("S3_ACCESS_KEY", "minioadmin"),
 		SecretKey: getEnv("S3_SECRET_KEY", "minioadmin"),
-		PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000/trip-manager"),
+		PublicURL: getEnv("S3_PUBLIC_URL", "http://localhost:9000"),
 		UseSSL:    getEnvBool("S3_USE_SSL", false),
 	}
 }

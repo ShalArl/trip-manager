@@ -1,21 +1,21 @@
 "use client";
 
-import React, {useRef, useState} from "react";
-import {UserResponse, UpdateUserRequest} from "@/types/user";
-import {updateMe} from "@/lib/api/auth";
-import {uploadAvatar} from "@/lib/api/uploads";
-import {useUserContext} from "@/lib/context/UserContext";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {AlertCircle, CheckCircle, ImagePlus, Mail, Trash2} from "lucide-react";
+import React, { useRef, useState } from "react";
+import { UserResponse, UpdateUserRequest } from "@/types/user";
+import { updateMe } from "@/lib/api/auth";
+import { uploadAvatar } from "@/lib/api/uploads";
+import { useUserContext } from "@/lib/context/UserContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AlertCircle, CheckCircle, ImagePlus, Mail, Trash2 } from "lucide-react";
 
 type ProfileSettingsProps = {
     user: UserResponse;
 };
 
-const ProfileSettings = ({user}: ProfileSettingsProps) => {
+const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     const [name, setName] = useState(user.name);
     const [email, setEmail] = useState(user.email);
     const [bio, setBio] = useState(user.bio || "");
@@ -61,7 +61,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    /*const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setSuccess(false);
@@ -90,7 +90,58 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
 
             updateUserContext(data);
             setSuccess(true);
-            setAvatarPreview(data.avatarUrl || null);
+            //setAvatarPreview(data.avatarUrl || null);
+            if (!avatarFile) {
+                setAvatarPreview(data.avatarUrl ? `${data.avatarUrl}&t=${Date.now()}` : null);
+            }
+            setAvatarFile(null);
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : "Fehler beim Aktualisieren des Profils"
+            );
+        } finally {
+            setLoading(false);
+        }
+    };*/
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        setSuccess(false);
+        setLoading(true);
+
+        try {
+            let avatarKey: string | undefined;
+            const hadNewAvatar = avatarFile !== null;
+            const isAvatarRemoved = avatarPreview === null && !!user.avatarUrl;
+
+            if (avatarFile) {
+                console.log("[ProfileSettings] Starting presigned avatar upload...");
+                avatarKey = await uploadAvatar(avatarFile);
+                console.log("[ProfileSettings] Avatar uploaded, key:", avatarKey);
+                setAvatarFile(null);
+            }
+
+            const updateData: UpdateUserRequest = {
+                name,
+                email,
+                bio,
+                ...(avatarKey && { avatarKey }),
+                ...(isAvatarRemoved && { avatarKey: null }),
+            };
+
+            console.log("[ProfileSettings] Updating user profile...", updateData);
+            const data = await updateMe(updateData);
+            console.log("[ProfileSettings] Profile updated:", data);
+
+            updateUserContext(data);
+            setSuccess(true);
+
+            if (!hadNewAvatar) {
+                setAvatarPreview(data.avatarUrl ? `${data.avatarUrl}&t=${Date.now()}` : null);
+            }
+
             setTimeout(() => setSuccess(false), 3000);
         } catch (err) {
             setError(
@@ -115,7 +166,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 {success && (
                     <div
                         className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-900 p-4 animate-in fade-in duration-300">
-                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0"/>
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <p className="text-sm font-medium text-green-800 dark:text-green-200">
                             Profil erfolgreich aktualisiert
                         </p>
@@ -126,7 +177,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 {error && (
                     <div
                         className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4 animate-in fade-in duration-300">
-                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0"/>
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
                         <p className="text-sm font-medium text-red-800 dark:text-red-200">
                             {error}
                         </p>
@@ -136,7 +187,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 {/* Avatar Section */}
                 <div className="space-y-4">
                     <Label className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                        <ImagePlus className="h-4 w-4"/>
+                        <ImagePlus className="h-4 w-4" />
                         Profilbild
                     </Label>
 
@@ -144,7 +195,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                         {/* Avatar Preview - Same as Navbar */}
                         <div className="flex-shrink-0">
                             <Avatar className="h-32 w-32 border-4 border-zinc-200 dark:border-zinc-800">
-                                {avatarPreview && <AvatarImage src={avatarPreview} alt={name}/>}
+                                {avatarPreview && <AvatarImage src={avatarPreview} alt={name} />}
                                 <AvatarFallback className="bg-blue-500 text-white text-lg font-semibold">
                                     {name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
@@ -175,7 +226,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                                         variant="outline"
                                         className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
                                     >
-                                        <Trash2 className="h-4 w-4"/>
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
                                 )}
                             </div>
@@ -187,12 +238,12 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-zinc-200 dark:border-zinc-800"/>
+                <div className="border-t border-zinc-200 dark:border-zinc-800" />
 
                 {/* Name Field */}
                 <div className="space-y-3">
                     <Label htmlFor="name"
-                           className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                        className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
                         📝
                         Name
                     </Label>
@@ -211,8 +262,8 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                 {/* Email Field */}
                 <div className="space-y-3">
                     <Label htmlFor="email"
-                           className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                        <Mail className="h-4 w-4"/>
+                        className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
                         E-Mail
                     </Label>
                     <Input
@@ -263,7 +314,7 @@ const ProfileSettings = ({user}: ProfileSettingsProps) => {
                         {loading ? (
                             <div className="flex items-center gap-2">
                                 <div
-                                    className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                                    className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Wird gespeichert...
                             </div>
                         ) : (
