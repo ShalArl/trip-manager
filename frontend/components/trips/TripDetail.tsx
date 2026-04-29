@@ -332,14 +332,23 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                     <div className="space-y-3">
                                         {comments.map((comment) => (
                                             <div key={comment.id} className="flex items-start justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-                                                <div>
-                                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">{comment.user.name}</p>
-                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{comment.text}</p>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden">
+                                                        {comment.user.avatarUrl ? (
+                                                            <img src={comment.user.avatarUrl} alt={comment.user.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            comment.user.name.charAt(0).toUpperCase()
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-zinc-900 dark:text-white">{comment.user.name}</p>
+                                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{comment.text}</p>
+                                                    </div>
                                                 </div>
                                                 {currentUser && comment.user.id === currentUser.id && (
                                                     <button
                                                         onClick={() => handleDeleteComment(comment.id)}
-                                                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-blue-950/30 transition-colors shrink-0"
+                                                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0"
                                                     >
                                                         🗑️
                                                     </button>

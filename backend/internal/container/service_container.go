@@ -57,7 +57,7 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 	accommodationService := service.NewAccommodationService(accommodationRepo)
 
 	// Initialize social service
-	socialService := service.NewSocialService(socialRepo, userRepo)
+	socialService := service.NewSocialService(socialRepo, userRepo, mediaService)
 
 	return &ServiceContainer{
 		Trip:          tripService,

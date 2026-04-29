@@ -6,6 +6,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
 	"github.com/google/uuid"
 
@@ -13,42 +14,39 @@ import (
 )
 
 type SocialService interface {
-	// Likes
 	LikeTrip(ctx context.Context, userID, tripID string) error
 	UnlikeTrip(ctx context.Context, userID, tripID string) error
 	GetTripLikeInfo(ctx context.Context, userID, tripID string) (*generated.TripLikeResponse, error)
-
-	// Comments
 	CreateTripComment(ctx context.Context, userID, tripID, text string) (*generated.TripCommentResponse, error)
 	ListTripComments(ctx context.Context, tripID string) (*generated.TripCommentListResponse, error)
 	DeleteTripComment(ctx context.Context, userID, commentID string) error
 }
 
 type SocialServiceImpl struct {
-	socialRepo repository.SocialRepository
-	userRepo   repository.UserRepository
+	socialRepo   repository.SocialRepository
+	userRepo     repository.UserRepository
+	mediaService infrastructure.MediaService
 }
 
-func NewSocialService(socialRepo repository.SocialRepository, userRepo repository.UserRepository) SocialService {
+func NewSocialService(socialRepo repository.SocialRepository, userRepo repository.UserRepository, mediaService infrastructure.MediaService) SocialService {
 	return &SocialServiceImpl{
-		socialRepo: socialRepo,
-		userRepo:   userRepo,
+		socialRepo:   socialRepo,
+		userRepo:     userRepo,
+		mediaService: mediaService,
 	}
 }
 
 // ── Likes ──────────────────────────────────────────────────────────────────
 
 func (s *SocialServiceImpl) LikeTrip(ctx context.Context, userID, tripID string) error {
-	err := s.socialRepo.LikeTrip(ctx, userID, tripID)
-	if err != nil {
+	if err := s.socialRepo.LikeTrip(ctx, userID, tripID); err != nil {
 		return fmt.Errorf("failed to like trip: %w", err)
 	}
 	return nil
 }
 
 func (s *SocialServiceImpl) UnlikeTrip(ctx context.Context, userID, tripID string) error {
-	err := s.socialRepo.UnlikeTrip(ctx, userID, tripID)
-	if err != nil {
+	if err := s.socialRepo.UnlikeTrip(ctx, userID, tripID); err != nil {
 		return fmt.Errorf("failed to unlike trip: %w", err)
 	}
 	return nil
@@ -60,7 +58,6 @@ func (s *SocialServiceImpl) GetTripLikeInfo(ctx context.Context, userID, tripID 
 		return nil, fmt.Errorf("failed to count likes: %w", err)
 	}
 
-	// userID ist leer wenn Gast → hasLiked immer false
 	hasLiked := false
 	if userID != "" {
 		hasLiked, err = s.socialRepo.HasLiked(ctx, userID, tripID)
@@ -98,7 +95,7 @@ func (s *SocialServiceImpl) CreateTripComment(ctx context.Context, userID, tripI
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return mapToTripCommentResponse(created, user), nil
+	return s.mapToTripCommentResponse(ctx, created, user), nil
 }
 
 func (s *SocialServiceImpl) ListTripComments(ctx context.Context, tripID string) (*generated.TripCommentListResponse, error) {
@@ -113,15 +110,14 @@ func (s *SocialServiceImpl) ListTripComments(ctx context.Context, tripID string)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get user for comment: %w", err)
 		}
-		responses = append(responses, *mapToTripCommentResponse(c, user))
+		responses = append(responses, *s.mapToTripCommentResponse(ctx, c, user))
 	}
 
 	return &generated.TripCommentListResponse{Data: responses}, nil
 }
 
 func (s *SocialServiceImpl) DeleteTripComment(ctx context.Context, userID, commentID string) error {
-	err := s.socialRepo.DeleteTripComment(ctx, commentID, userID)
-	if err != nil {
+	if err := s.socialRepo.DeleteTripComment(ctx, commentID, userID); err != nil {
 		return fmt.Errorf("failed to delete comment: %w", err)
 	}
 	return nil
@@ -129,16 +125,26 @@ func (s *SocialServiceImpl) DeleteTripComment(ctx context.Context, userID, comme
 
 // ── Mapper ─────────────────────────────────────────────────────────────────
 
-func mapToTripCommentResponse(c *domain.TripComment, user *domain.User) *generated.TripCommentResponse {
+func (s *SocialServiceImpl) mapToTripCommentResponse(ctx context.Context, c *domain.TripComment, user *domain.User) *generated.TripCommentResponse {
 	id, _ := uuid.Parse(user.ID)
+
+	userSummary := &generated.UserSummary{
+		Id:    id,
+		Email: openapitypes.Email(user.Email),
+		Name:  user.Name,
+	}
+
+	if user.AvatarKey != "" {
+		avatarUrl, err := s.mediaService.GetDownloadURL(ctx, user.AvatarKey)
+		if err == nil {
+			userSummary.AvatarUrl = &avatarUrl
+		}
+	}
+
 	return &generated.TripCommentResponse{
-		Id:     c.ID,
-		TripId: c.TripID,
-		User: &generated.UserSummary{
-			Id:    id,
-			Email: openapitypes.Email(user.Email),
-			Name:  user.Name,
-		},
+		Id:        c.ID,
+		TripId:    c.TripID,
+		User:      userSummary,
 		Text:      c.Text,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
