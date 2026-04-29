@@ -123,6 +123,19 @@ func main() {
 			})
 		})
 
+		// ─── Accommodation Routes ─────────────────────────────────────────────────
+		r.Route("/trips/{tripId}/accommodations", func(r chi.Router) {
+			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Get("/", handler.ListAccommodationsHandler(application))
+			r.With(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver)).
+				Post("/", handler.CreateAccommodationHandler(application))
+			r.Route("/{accommodationId}", func(r chi.Router) {
+				r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, userResolver))
+				r.Put("/", handler.UpdateAccommodationHandler(application))
+				r.Delete("/", handler.DeleteAccommodationHandler(application))
+			})
+		})
+
 		// ─── Social Routes (Likes & Comments) ────────────────────────────────────
 		r.Route("/trips/{tripId}/likes", func(r chi.Router) {
 			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
@@ -179,6 +192,7 @@ func main() {
 			r.Get("/activities/{activityId}", handler.GetActivityHandler(application))
 		})
 	})
+
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
