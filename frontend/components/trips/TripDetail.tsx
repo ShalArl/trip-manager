@@ -7,6 +7,8 @@ import { TransportResponse, CreateTransportRequest, UpdateTransportRequest } fro
 import { createTransport, getTransports } from "@/lib/api/transports";
 import { LocationResponse, CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
 import { getLocations, createLocation, updateLocation, deleteLocation } from "@/lib/api/locations";
+import { AccommodationResponse, CreateAccommodationRequest, UpdateAccommodationRequest } from "@/types/accommodation";
+import { getAccommodations, createAccommodation, updateAccommodation, deleteAccommodation } from "@/lib/api/accommodations";
 import EditTransportModal from "./modals/EditTransportModal";
 import { updateTransport, deleteTransport } from "@/lib/api/transports";
 import AddLocationModal from "./modals/AddLocationModal";
@@ -14,8 +16,10 @@ import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
 import AddTransportModal from "./modals/AddTransportModal";
 import LocationDetailModal from "./modals/LocationDetailModal";
+import AddAccommodationModal from "./modals/AddAccommodationModal";
+import EditAccommodationModal from "./modals/EditAccommodationModal";
 import { UserResponse } from "@/types/user";
-import { TripLikeResponse, TripCommentResponse, TripCommentListResponse, CreateTripCommentRequest } from "@/types/social";
+import { TripLikeResponse, TripCommentResponse } from "@/types/social";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -35,18 +39,22 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
     const [showAddActivityModal, setShowAddActivityModal] = useState(false);
     const [showAddTransportModal, setShowAddTransportModal] = useState(false);
     const [showLocationDetailModal, setShowLocationDetailModal] = useState(false);
+    const [showAddAccommodationModal, setShowAddAccommodationModal] = useState(false);
 
     const [transports, setTransports] = useState<TransportResponse[]>([]);
     const [detailTransport, setDetailTransport] = useState<TransportResponse | null>(null);
     const [showEditTransportModal, setShowEditTransportModal] = useState(false);
+
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [activities, setActivities] = useState<any[]>([]);
     const [detailLocation, setDetailLocation] = useState<LocationResponse | null>(null);
 
+    const [accommodations, setAccommodations] = useState<AccommodationResponse[]>([]);
+    const [detailAccommodation, setDetailAccommodation] = useState<AccommodationResponse | null>(null);
+    const [showEditAccommodationModal, setShowEditAccommodationModal] = useState(false);
+
     const activeLocation = locations.find((l) => l.id === selectedLocationId);
-    const selectedLocationActivities = activities.filter(
-        (a) => a.locationId === selectedLocationId
-    );
+    const selectedLocationActivities = activities.filter((a) => a.locationId === selectedLocationId);
 
     const [likeInfo, setLikeInfo] = useState<TripLikeResponse>({ likeCount: 0, hasLiked: false });
     const [comments, setComments] = useState<TripCommentResponse[]>([]);
@@ -61,7 +69,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
     useEffect(() => {
         getTransports(trip.id).then(setTransports).catch(console.error);
     }, [trip.id]);
-    // NEU
+
+    useEffect(() => {
+        getAccommodations(trip.id).then(setAccommodations).catch(console.error);
+    }, [trip.id]);
+
     useEffect(() => {
         getTripLikes(trip.id).then(setLikeInfo).catch(console.error);
     }, [trip.id, currentUser]);
@@ -142,11 +154,42 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
         }
     };
 
+    const handleAddAccommodation = async (req: CreateAccommodationRequest) => {
+        try {
+            const created = await createAccommodation(trip.id, req);
+            setAccommodations([...accommodations, created]);
+        } catch (error) {
+            console.error("Fehler beim Erstellen der Unterkunft:", error);
+        }
+    };
+
+    const handleUpdateAccommodation = async (req: UpdateAccommodationRequest) => {
+        if (!detailAccommodation) return;
+        try {
+            const updated = await updateAccommodation(trip.id, detailAccommodation.id!, req);
+            setAccommodations(accommodations.map((a) => a.id === updated.id ? updated : a));
+            setShowEditAccommodationModal(false);
+        } catch (error) {
+            console.error("Fehler beim Aktualisieren der Unterkunft:", error);
+        }
+    };
+
+    const handleDeleteAccommodation = async () => {
+        if (!detailAccommodation) return;
+        try {
+            await deleteAccommodation(trip.id, detailAccommodation.id!);
+            setAccommodations(accommodations.filter((a) => a.id !== detailAccommodation.id));
+            setShowEditAccommodationModal(false);
+        } catch (error) {
+            console.error("Fehler beim Löschen der Unterkunft:", error);
+        }
+    };
+
     const handleEditTrip = async (updatedTrip: Partial<TripResponse>) => {
         try {
             const updated = await updateTrip(trip.id, updatedTrip);
-            setCurrentTrip(updated);   // ← lokaler State
-            onTripUpdate(updated);     // ← Parent informieren
+            setCurrentTrip(updated);
+            onTripUpdate(updated);
             setIsEditingTrip(false);
         } catch (error) {
             console.error("Fehler beim Bearbeiten der Reise:", error);
@@ -260,7 +303,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                     {/* Social: Likes & Comments */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
                         <div className="flex items-center gap-4">
-                            {/* Like Button */}
                             <button
                                 onClick={handleLike}
                                 disabled={!currentUser}
@@ -272,8 +314,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                 <span>{likeInfo.hasLiked ? "❤️" : "🤍"}</span>
                                 <span>{likeInfo.likeCount} {likeInfo.likeCount === 1 ? "Like" : "Likes"}</span>
                             </button>
-
-                            {/* Comments Toggle */}
                             <button
                                 onClick={handleShowComments}
                                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700 transition-colors"
@@ -282,8 +322,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                 <span>{showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}</span>
                             </button>
                         </div>
-
-                        {/* Comments Section */}
                         {showComments && (
                             <div className="mt-6 space-y-4">
                                 {comments.length === 0 ? (
@@ -293,17 +331,10 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                 ) : (
                                     <div className="space-y-3">
                                         {comments.map((comment) => (
-                                            <div
-                                                key={comment.id}
-                                                className="flex items-start justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl"
-                                            >
+                                            <div key={comment.id} className="flex items-start justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                                                 <div>
-                                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                        {comment.user.name}
-                                                    </p>
-                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                                                        {comment.text}
-                                                    </p>
+                                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">{comment.user.name}</p>
+                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{comment.text}</p>
                                                 </div>
                                                 {currentUser && comment.user.id === currentUser.id && (
                                                     <button
@@ -317,8 +348,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                         ))}
                                     </div>
                                 )}
-
-                                {/* New Comment Input */}
                                 {currentUser && (
                                     <div className="flex gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                                         <input
@@ -342,12 +371,10 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                         )}
                     </div>
 
-                    {/* Locations List */}
+                    {/* Locations */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                                Orte ({locations.length})
-                            </h2>
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Orte ({locations.length})</h2>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddLocationModal(true)}
@@ -358,17 +385,13 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                             )}
                         </div>
                         {locations.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">
-                                Keine Orte hinzugefügt
-                            </p>
+                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Keine Orte hinzugefügt</p>
                         ) : (
                             <div className="space-y-2">
                                 {locations.map((location) => (
                                     <div
                                         key={location.id}
-                                        onClick={() => setSelectedLocationId(
-                                            selectedLocationId === location.id ? null : location.id!
-                                        )}
+                                        onClick={() => setSelectedLocationId(selectedLocationId === location.id ? null : location.id!)}
                                         className={`w-full text-left p-4 rounded-xl border-2 transition-colors cursor-pointer ${selectedLocationId === location.id
                                             ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
                                             : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
@@ -383,10 +406,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                             </div>
                                             {isEditable && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleLocationClick(location);
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); handleLocationClick(location); }}
                                                     className="p-2 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
                                                 >
                                                     ✏️
@@ -399,10 +419,10 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                         )}
                     </div>
 
-                    {/* Travel Plan */}
+                    {/* Transports */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Travel Plan</h2>
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Transporte ({transports.length})</h2>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddTransportModal(true)}
@@ -413,9 +433,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                             )}
                         </div>
                         {transports.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">
-                                Kein Transport hinzugefügt
-                            </p>
+                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Kein Transport hinzugefügt</p>
                         ) : (
                             <div className="space-y-2">
                                 {transports.map((t) => {
@@ -423,10 +441,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                     const toLocation = locations.find((l) => l.id === t.toLocationId);
                                     const typeEmoji = { flight: "✈️", train: "🚂", car: "🚗", bus: "🚌" }[t.type ?? "flight"] ?? "🚗";
                                     return (
-                                        <div
-                                            key={t.id}
-                                            className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700"
-                                        >
+                                        <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-2xl">{typeEmoji}</span>
@@ -454,6 +469,60 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                             </div>
                         )}
                     </div>
+
+                    {/* Accommodations */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Unterkünfte ({accommodations.length})</h2>
+                            {isEditable && (
+                                <button
+                                    onClick={() => setShowAddAccommodationModal(true)}
+                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                                >
+                                    + Unterkunft
+                                </button>
+                            )}
+                        </div>
+                        {accommodations.length === 0 ? (
+                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Keine Unterkunft hinzugefügt</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {accommodations.map((a) => {
+                                    const location = locations.find((l) => l.id === a.locationId);
+                                    return (
+                                        <div key={a.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">🏨</span>
+                                                    <div>
+                                                        <p className="font-medium text-zinc-900 dark:text-white">{a.name}</p>
+                                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                            {location?.name ?? "Unbekannter Ort"}
+                                                            {a.checkIn && ` · Check-in: ${new Date(a.checkIn).toLocaleDateString("de-DE")}`}
+                                                            {a.checkOut && ` · Check-out: ${new Date(a.checkOut).toLocaleDateString("de-DE")}`}
+                                                        </p>
+                                                        {a.pricePerNight && (
+                                                            <p className="text-sm text-zinc-400 dark:text-zinc-500">
+                                                                {a.pricePerNight} € / Nacht
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {isEditable && (
+                                                    <button
+                                                        onClick={() => { setDetailAccommodation(a); setShowEditAccommodationModal(true); }}
+                                                        className="p-2 text-zinc-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Right: Activities */}
@@ -464,9 +533,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                 <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
                                     Aktivitäten in
                                 </p>
-                                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-                                    {activeLocation.name}
-                                </h3>
+                                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{activeLocation.name}</h3>
                             </div>
                             {isEditable && (
                                 <button
@@ -478,9 +545,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                             )}
                         </div>
                         {selectedLocationActivities.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-sm text-center py-4">
-                                Keine Aktivitäten
-                            </p>
+                            <p className="text-zinc-500 dark:text-zinc-400 text-sm text-center py-4">Keine Aktivitäten</p>
                         ) : (
                             <div className="space-y-3">
                                 {selectedLocationActivities.map((activity) => (
@@ -521,6 +586,12 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                 onCloseAction={() => setShowAddTransportModal(false)}
                 onAddAction={handleAddTransport}
             />
+            <AddAccommodationModal
+                isOpen={showAddAccommodationModal}
+                locations={locations}
+                onCloseAction={() => setShowAddAccommodationModal(false)}
+                onAddAction={handleAddAccommodation}
+            />
             {detailLocation && (
                 <LocationDetailModal
                     isOpen={showLocationDetailModal}
@@ -538,6 +609,16 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                     onCloseAction={() => setShowEditTransportModal(false)}
                     onSaveAction={handleUpdateTransport}
                     onDeleteAction={handleDeleteTransport}
+                />
+            )}
+            {detailAccommodation && (
+                <EditAccommodationModal
+                    isOpen={showEditAccommodationModal}
+                    accommodation={detailAccommodation}
+                    locations={locations}
+                    onCloseAction={() => setShowEditAccommodationModal(false)}
+                    onSaveAction={handleUpdateAccommodation}
+                    onDeleteAction={handleDeleteAccommodation}
                 />
             )}
         </div>
