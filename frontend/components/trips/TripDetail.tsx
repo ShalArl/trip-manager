@@ -31,13 +31,13 @@ type TripResponse = components["schemas"]["TripResponse"];
 type Props = {
     trip: TripResponse;
     isEditable?: boolean;
-    onTripUpdate: (trip: TripResponse) => void;
+    onTripUpdateAction: (trip: TripResponse) => void;
     currentUser?: UserResponse | null;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TripDetail({ trip, isEditable = false, onTripUpdate, currentUser }: Props) {
+export default function TripDetail({ trip, isEditable = false, onTripUpdateAction, currentUser }: Props) {
     // ── Trip ────────────────────────────────────────────────────────────────
     const [currentTrip, setCurrentTrip] = useState<TripResponse>(trip);
     const [isEditingTrip, setIsEditingTrip] = useState(false);
@@ -95,7 +95,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
         try {
             const updated = await updateTrip(trip.id, updatedTrip);
             setCurrentTrip(updated);
-            onTripUpdate(updated);
+            onTripUpdateAction(updated);
             setIsEditingTrip(false);
         } catch (error) {
             console.error("[TripDetail] updateTrip:", error);
