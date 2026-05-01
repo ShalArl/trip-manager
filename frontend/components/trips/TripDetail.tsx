@@ -1,25 +1,30 @@
+"use client";
+
 import Link from "next/link";
 import { useState, useEffect } from "react";
+
 import { updateTrip } from "@/lib/api/trips";
 import { likeTrip, unlikeTrip, getTripComments, createTripComment, deleteTripComment, getTripLikes } from "@/lib/api/social";
+import { createTransport, getTransports, updateTransport, deleteTransport } from "@/lib/api/transports";
+import { getLocations } from "@/lib/api/locations";
+import { getAccommodations, createAccommodation, updateAccommodation, deleteAccommodation } from "@/lib/api/accommodations";
+
 import { components } from "@/generated/types";
 import { TransportResponse, CreateTransportRequest, UpdateTransportRequest } from "@/types/transport";
-import { createTransport, getTransports } from "@/lib/api/transports";
-import { LocationResponse, CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
-import { getLocations, createLocation, updateLocation, deleteLocation } from "@/lib/api/locations";
+import { LocationResponse } from "@/types/location";
 import { AccommodationResponse, CreateAccommodationRequest, UpdateAccommodationRequest } from "@/types/accommodation";
-import { getAccommodations, createAccommodation, updateAccommodation, deleteAccommodation } from "@/lib/api/accommodations";
-import EditTransportModal from "./modals/EditTransportModal";
-import { updateTransport, deleteTransport } from "@/lib/api/transports";
-import AddLocationModal from "./modals/AddLocationModal";
+import { UserResponse } from "@/types/user";
+import { TripLikeResponse, TripCommentResponse } from "@/types/social";
+
+import TripLocationsSection from "@/components/trips/sections/TripLocationsSection";
 import AddActivityModal from "./modals/AddActivityModal";
 import EditTripModal from "./modals/EditTripModal";
 import AddTransportModal from "./modals/AddTransportModal";
-import LocationDetailModal from "./modals/LocationDetailModal";
+import EditTransportModal from "./modals/EditTransportModal";
 import AddAccommodationModal from "./modals/AddAccommodationModal";
 import EditAccommodationModal from "./modals/EditAccommodationModal";
-import { UserResponse } from "@/types/user";
-import { TripLikeResponse, TripCommentResponse } from "@/types/social";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -30,37 +35,43 @@ type Props = {
     currentUser?: UserResponse | null;
 };
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function TripDetail({ trip, isEditable = false, onTripUpdate, currentUser }: Props) {
-    const [isEditingTrip, setIsEditingTrip] = useState(false);
+    // ── Trip ────────────────────────────────────────────────────────────────
     const [currentTrip, setCurrentTrip] = useState<TripResponse>(trip);
-    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+    const [isEditingTrip, setIsEditingTrip] = useState(false);
 
-    const [showAddLocationModal, setShowAddLocationModal] = useState(false);
-    const [showAddActivityModal, setShowAddActivityModal] = useState(false);
-    const [showAddTransportModal, setShowAddTransportModal] = useState(false);
-    const [showLocationDetailModal, setShowLocationDetailModal] = useState(false);
-    const [showAddAccommodationModal, setShowAddAccommodationModal] = useState(false);
-
-    const [transports, setTransports] = useState<TransportResponse[]>([]);
-    const [detailTransport, setDetailTransport] = useState<TransportResponse | null>(null);
-    const [showEditTransportModal, setShowEditTransportModal] = useState(false);
-
+    // ── Locations ───────────────────────────────────────────────────────────
     const [locations, setLocations] = useState<LocationResponse[]>([]);
-    const [activities, setActivities] = useState<any[]>([]);
-    const [detailLocation, setDetailLocation] = useState<LocationResponse | null>(null);
-
-    const [accommodations, setAccommodations] = useState<AccommodationResponse[]>([]);
-    const [detailAccommodation, setDetailAccommodation] = useState<AccommodationResponse | null>(null);
-    const [showEditAccommodationModal, setShowEditAccommodationModal] = useState(false);
-
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
     const activeLocation = locations.find((l) => l.id === selectedLocationId);
+
+    // ── Activities ──────────────────────────────────────────────────────────
+    const [activities, setActivities] = useState<any[]>([]);
+    const [showAddActivityModal, setShowAddActivityModal] = useState(false);
     const selectedLocationActivities = activities.filter((a) => a.locationId === selectedLocationId);
 
+    // ── Transports ──────────────────────────────────────────────────────────
+    const [transports, setTransports] = useState<TransportResponse[]>([]);
+    const [detailTransport, setDetailTransport] = useState<TransportResponse | null>(null);
+    const [showAddTransportModal, setShowAddTransportModal] = useState(false);
+    const [showEditTransportModal, setShowEditTransportModal] = useState(false);
+
+    // ── Accommodations ──────────────────────────────────────────────────────
+    const [accommodations, setAccommodations] = useState<AccommodationResponse[]>([]);
+    const [detailAccommodation, setDetailAccommodation] = useState<AccommodationResponse | null>(null);
+    const [showAddAccommodationModal, setShowAddAccommodationModal] = useState(false);
+    const [showEditAccommodationModal, setShowEditAccommodationModal] = useState(false);
+
+    // ── Social ──────────────────────────────────────────────────────────────
     const [likeInfo, setLikeInfo] = useState<TripLikeResponse>({ likeCount: 0, hasLiked: false });
     const [comments, setComments] = useState<TripCommentResponse[]>([]);
     const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+    // ── Data fetching ────────────────────────────────────────────────────────
 
     useEffect(() => {
         getLocations(trip.id).then(setLocations).catch(console.error);
@@ -78,57 +89,37 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
         getTripLikes(trip.id).then(setLikeInfo).catch(console.error);
     }, [trip.id, currentUser]);
 
-    const handleAddLocation = async (newLocation: CreateLocationRequest) => {
+    // ── Trip handlers ────────────────────────────────────────────────────────
+
+    const handleEditTrip = async (updatedTrip: Partial<TripResponse>) => {
         try {
-            const created = await createLocation(trip.id, newLocation);
-            setLocations([...locations, created]);
+            const updated = await updateTrip(trip.id, updatedTrip);
+            setCurrentTrip(updated);
+            onTripUpdate(updated);
+            setIsEditingTrip(false);
         } catch (error) {
-            console.error("Fehler beim Erstellen der Location:", error);
+            console.error("[TripDetail] updateTrip:", error);
         }
     };
 
-    const handleLocationClick = (location: LocationResponse) => {
-        setDetailLocation(location);
-        setShowLocationDetailModal(true);
-    };
-
-    const handleUpdateLocation = async (req: UpdateLocationRequest) => {
-        if (!detailLocation) return;
-        try {
-            const updated = await updateLocation(trip.id, detailLocation.id!, req);
-            setLocations(locations.map((l) => l.id === updated.id ? updated : l));
-            setShowLocationDetailModal(false);
-        } catch (error) {
-            console.error("Fehler beim Aktualisieren der Location:", error);
-        }
-    };
-
-    const handleDeleteLocation = async () => {
-        if (!detailLocation) return;
-        try {
-            await deleteLocation(trip.id, detailLocation.id!);
-            setLocations(locations.filter((l) => l.id !== detailLocation.id));
-            setShowLocationDetailModal(false);
-        } catch (error) {
-            console.error("Fehler beim Löschen der Location:", error);
-        }
-    };
+    // ── Activity handlers ────────────────────────────────────────────────────
 
     const handleAddActivity = (newActivity: any) => {
-        const activity = {
+        setActivities([...activities, {
             id: `act-${Date.now()}`,
             locationId: selectedLocationId!,
             ...newActivity,
-        };
-        setActivities([...activities, activity]);
+        }]);
     };
 
-    const handleAddTransport = async (newTransport: CreateTransportRequest) => {
+    // ── Transport handlers ───────────────────────────────────────────────────
+
+    const handleAddTransport = async (req: CreateTransportRequest) => {
         try {
-            const created = await createTransport(trip.id, newTransport);
+            const created = await createTransport(trip.id, req);
             setTransports([...transports, created]);
         } catch (error) {
-            console.error("Fehler beim Erstellen des Transports:", error);
+            console.error("[TripDetail] createTransport:", error);
         }
     };
 
@@ -139,7 +130,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             setTransports(transports.map((t) => t.id === updated.id ? updated : t));
             setShowEditTransportModal(false);
         } catch (error) {
-            console.error("Fehler beim Aktualisieren des Transports:", error);
+            console.error("[TripDetail] updateTransport:", error);
         }
     };
 
@@ -150,16 +141,18 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             setTransports(transports.filter((t) => t.id !== detailTransport.id));
             setShowEditTransportModal(false);
         } catch (error) {
-            console.error("Fehler beim Löschen des Transports:", error);
+            console.error("[TripDetail] deleteTransport:", error);
         }
     };
+
+    // ── Accommodation handlers ───────────────────────────────────────────────
 
     const handleAddAccommodation = async (req: CreateAccommodationRequest) => {
         try {
             const created = await createAccommodation(trip.id, req);
             setAccommodations([...accommodations, created]);
         } catch (error) {
-            console.error("Fehler beim Erstellen der Unterkunft:", error);
+            console.error("[TripDetail] createAccommodation:", error);
         }
     };
 
@@ -170,7 +163,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             setAccommodations(accommodations.map((a) => a.id === updated.id ? updated : a));
             setShowEditAccommodationModal(false);
         } catch (error) {
-            console.error("Fehler beim Aktualisieren der Unterkunft:", error);
+            console.error("[TripDetail] updateAccommodation:", error);
         }
     };
 
@@ -181,20 +174,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             setAccommodations(accommodations.filter((a) => a.id !== detailAccommodation.id));
             setShowEditAccommodationModal(false);
         } catch (error) {
-            console.error("Fehler beim Löschen der Unterkunft:", error);
+            console.error("[TripDetail] deleteAccommodation:", error);
         }
     };
 
-    const handleEditTrip = async (updatedTrip: Partial<TripResponse>) => {
-        try {
-            const updated = await updateTrip(trip.id, updatedTrip);
-            setCurrentTrip(updated);
-            onTripUpdate(updated);
-            setIsEditingTrip(false);
-        } catch (error) {
-            console.error("Fehler beim Bearbeiten der Reise:", error);
-        }
-    };
+    // ── Social handlers ──────────────────────────────────────────────────────
 
     const handleLike = async () => {
         if (!currentUser) return;
@@ -207,7 +191,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                 setLikeInfo({ likeCount: likeInfo.likeCount + 1, hasLiked: true });
             }
         } catch (error) {
-            console.error("Fehler beim Liken:", error);
+            console.error("[TripDetail] like:", error);
         }
     };
 
@@ -217,7 +201,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                 const data = await getTripComments(trip.id);
                 setComments(data.data ?? []);
             } catch (error) {
-                console.error("Fehler beim Laden der Kommentare:", error);
+                console.error("[TripDetail] getTripComments:", error);
             }
         }
         setShowComments(!showComments);
@@ -231,7 +215,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             setComments([...comments, created]);
             setNewComment("");
         } catch (error) {
-            console.error("Fehler beim Erstellen des Kommentars:", error);
+            console.error("[TripDetail] createTripComment:", error);
         } finally {
             setIsSubmittingComment(false);
         }
@@ -242,9 +226,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
             await deleteTripComment(trip.id, commentId);
             setComments(comments.filter((c) => c.id !== commentId));
         } catch (error) {
-            console.error("Fehler beim Löschen des Kommentars:", error);
+            console.error("[TripDetail] deleteTripComment:", error);
         }
     };
+
+    // ── Render ───────────────────────────────────────────────────────────────
 
     return (
         <div className="max-w-5xl px-6 py-12">
@@ -257,7 +243,8 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Trip Header */}
+
+                    {/* ── Trip Header ─────────────────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-start justify-between mb-6">
                             <div className="flex items-center gap-4">
@@ -300,16 +287,17 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                         </div>
                     </div>
 
-                    {/* Social: Likes & Comments */}
+                    {/* ── Social: Likes & Comments ─────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={handleLike}
                                 disabled={!currentUser}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${likeInfo.hasLiked
-                                    ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
-                                    : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                                    likeInfo.hasLiked
+                                        ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                                        : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <span>{likeInfo.hasLiked ? "❤️" : "🤍"}</span>
                                 <span>{likeInfo.likeCount} {likeInfo.likeCount === 1 ? "Like" : "Likes"}</span>
@@ -322,6 +310,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                                 <span>{showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}</span>
                             </button>
                         </div>
+
                         {showComments && (
                             <div className="mt-6 space-y-4">
                                 {comments.length === 0 ? (
@@ -380,58 +369,22 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                         )}
                     </div>
 
-                    {/* Locations */}
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Orte ({locations.length})</h2>
-                            {isEditable && (
-                                <button
-                                    onClick={() => setShowAddLocationModal(true)}
-                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
-                                >
-                                    + Ort hinzufügen
-                                </button>
-                            )}
-                        </div>
-                        {locations.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Keine Orte hinzugefügt</p>
-                        ) : (
-                            <div className="space-y-2">
-                                {locations.map((location) => (
-                                    <div
-                                        key={location.id}
-                                        onClick={() => setSelectedLocationId(selectedLocationId === location.id ? null : location.id!)}
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-colors cursor-pointer ${selectedLocationId === location.id
-                                            ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
-                                            : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-medium text-zinc-900 dark:text-white">{location.name}</p>
-                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                    {location.city}, {location.country} · {location.dateFrom} – {location.dateTo}
-                                                </p>
-                                            </div>
-                                            {isEditable && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleLocationClick(location); }}
-                                                    className="p-2 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
-                                                >
-                                                    ✏️
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* ── Locations ────────────────────────────────────────── */}
+                    <TripLocationsSection
+                        tripId={trip.id}
+                        isEditable={isEditable}
+                        locations={locations}
+                        selectedLocationId={selectedLocationId}
+                        onLocationsChange={setLocations}
+                        onLocationSelect={setSelectedLocationId}
+                    />
 
-                    {/* Transports */}
+                    {/* ── Transports ───────────────────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Transporte ({transports.length})</h2>
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                Transporte ({transports.length})
+                            </h2>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddTransportModal(true)}
@@ -479,10 +432,12 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                         )}
                     </div>
 
-                    {/* Accommodations */}
+                    {/* ── Accommodations ───────────────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Unterkünfte ({accommodations.length})</h2>
+                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                Unterkünfte ({accommodations.length})
+                            </h2>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddAccommodationModal(true)}
@@ -534,7 +489,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                     </div>
                 </div>
 
-                {/* Right: Activities */}
+                {/* ── Right: Activities ────────────────────────────────────── */}
                 {activeLocation && (
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 h-fit">
                         <div className="flex items-center justify-between mb-4">
@@ -569,12 +524,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                 )}
             </div>
 
-            {/* Modals */}
-            <AddLocationModal
-                isOpen={showAddLocationModal}
-                onCloseAction={() => setShowAddLocationModal(false)}
-                onAddAction={handleAddLocation}
-            />
+            {/* ── Modals ───────────────────────────────────────────────────── */}
             <AddActivityModal
                 isOpen={showAddActivityModal}
                 locationId={selectedLocationId}
@@ -601,15 +551,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdate, cur
                 onCloseAction={() => setShowAddAccommodationModal(false)}
                 onAddAction={handleAddAccommodation}
             />
-            {detailLocation && (
-                <LocationDetailModal
-                    isOpen={showLocationDetailModal}
-                    location={detailLocation}
-                    onCloseAction={() => setShowLocationDetailModal(false)}
-                    onSaveAction={handleUpdateLocation}
-                    onDeleteAction={handleDeleteLocation}
-                />
-            )}
             {detailTransport && (
                 <EditTransportModal
                     isOpen={showEditTransportModal}
