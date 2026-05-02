@@ -337,7 +337,8 @@ jobs:
           gcloud run services update ${{ vars.GCP_BACKEND_SERVICE }} \
             --image=${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend:sha-${{ github.sha }} \
             --region=${{ vars.GCP_REGION }} \
-            --project=${{ vars.GCP_PROJECT_ID }}
+            --project=${{ vars.GCP_PROJECT_ID }} \
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:trip-manager-db
 
       - name: Update Frontend Image
         if: needs.detect-changes.outputs.frontend == 'true'

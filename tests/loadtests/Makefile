@@ -1,5 +1,5 @@
-BASE_URL ?= http://localhost:8000
-USERS ?= 100
+BASE_URL ?= https://api.neatnode.xyz
+USERS ?= 10
 SPAWN_RATE ?= 10
 RUN_TIME ?= 5m
 

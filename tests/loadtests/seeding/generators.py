@@ -1,6 +1,7 @@
 import io
 
 import random
+from datetime import timedelta
 
 from faker import Faker
 from PIL import Image
@@ -87,11 +88,19 @@ type CreateLocationRequest struct {
 """
 
 def generate_location() -> dict:
+    start_date = fake.date_between(start_date="today", end_date="+1y")
+    end_date = fake.date_between(
+        start_date=start_date + timedelta(days=1),
+        end_date=start_date + timedelta(days=10),
+    )
     return {
         "city": fake.city(),
         "country": fake.country(),
-        "latitude": fake.latitude(),
-        "longitude": fake.longitude(),
+        "shortDescription": fake.sentence(nb_words=6),
+        "dateFrom": start_date.isoformat(),
+        "dateTo": end_date.isoformat(),
+        "latitude": float(fake.latitude()),
+        "longitude": float(fake.longitude()),
         "name": fake.sentence(nb_words=2),
         "notes": fake.sentence(nb_words=10),
         "sequence": random.randint(1, 10),
@@ -154,3 +163,13 @@ def generate_fake_images(count=10, width=800, height=600) -> list[bytes]:
         img.save(buf, format="JPEG")
         images.append(buf.getvalue())
     return images
+
+
+def generate_comment() -> dict:
+    return {
+        "text": fake.sentence(nb_words=20),
+    }
+
+
+def generate_city() -> str:
+    return fake.city()

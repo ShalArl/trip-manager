@@ -1,5 +1,5 @@
 import random
-from tests.base import BaseUser, USERS
+from tests.base import BaseUser, USERS, with_auth
 from locust import between, task
 
 from seeding.generators import get_bio, get_name, get_password
