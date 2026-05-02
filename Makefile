@@ -66,7 +66,6 @@ build:
 	@cd $(BACKEND_DIR) && go build -o bin/$(BINARY_NAME) ./cmd/api
 	@echo "✓ Build complete: $(BIN_DIR)/$(BINARY_NAME)"
 
-
 # Run the compiled binary
 run: build
 	@echo "Starting server..."

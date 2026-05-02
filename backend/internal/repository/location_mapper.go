@@ -33,13 +33,23 @@ func (rec *locationRecord) toLocation() *domain.Location {
 		},
 		Notes:    ptr.FromPtr(rec.Notes),
 		Sequence: ptr.FromPtr(rec.Sequence),
+		Images:   []domain.LocationImage{},
+	}
+}
+
+func (rec *locationImageRecord) toLocationImage() domain.LocationImage {
+	return domain.LocationImage{
+		ID:         rec.ID.String(),
+		LocationID: rec.LocationID.String(),
+		ImageKey:   rec.ImageKey,
+		Sequence:   ptr.FromPtr(rec.Sequence),
+		CreatedAt:  rec.CreatedAt,
 	}
 }
 
 func locationToRecord(location *domain.Location) (*locationRecord, error) {
 	var locationID uuid.UUID
 	var err error
-
 	if location.ID != "" {
 		locationID, err = uuid.Parse(location.ID)
 		if err != nil {
@@ -68,7 +78,7 @@ func locationToRecord(location *domain.Location) (*locationRecord, error) {
 		DateTo:           location.DateTo,
 		Latitude:         ptr.ToPtr(location.Coordinates.Lat),
 		Longitude:        ptr.ToPtr(location.Coordinates.Lon),
-		Notes:            ptr.ToPtr(location.Notes),
+		Notes:            ptr.ToPtrNonEmpty(location.Notes),
 		Sequence:         ptr.ToPtrNonEmpty(location.Sequence),
 		CreatedAt:        location.CreatedAt,
 		UpdatedAt:        location.UpdatedAt,

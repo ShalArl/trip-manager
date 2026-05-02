@@ -46,7 +46,7 @@ func NewServiceContainer(cfg *ServiceConfig) (*ServiceContainer, error) {
 
 	// Initialize services
 	tripService := service.NewTripService(tripRepo, locationRepo, activityRepo)
-	locationService := service.NewLocationService(locationRepo)
+	locationService := service.NewLocationService(locationRepo, mediaService)
 
 	// Initialize user service
 	userService := service.NewUserService(userRepo, mediaService)

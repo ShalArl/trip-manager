@@ -89,6 +89,11 @@ export default function TripLocationsSection({
         }
     };
 
+    const handleLocationUpdate = (updated: LocationResponse) => {
+        onLocationsChange(locations.map((l) => (l.id === updated.id ? updated : l)));
+        setActiveLocation(updated);
+    };
+
     const handleEditClick = (e: React.MouseEvent, location: LocationResponse) => {
         e.stopPropagation();
         setActiveLocation(location);
@@ -148,10 +153,11 @@ export default function TripLocationsSection({
                                         tabIndex={0}
                                         onClick={() => handleLocationClick(location.id!)}
                                         onKeyDown={(e) => e.key === "Enter" && handleLocationClick(location.id!)}
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${isSelected
+                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+                                            isSelected
                                                 ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
                                                 : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                            }`}
+                                        }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3 min-w-0">
@@ -209,12 +215,15 @@ export default function TripLocationsSection({
                 <LocationDetailModal
                     isOpen={showDetailModal}
                     location={activeLocation}
+                    tripId={tripId}
+                    isEditable={isEditable}
                     onCloseAction={() => {
                         setShowDetailModal(false);
                         setActiveLocation(null);
                     }}
                     onSaveAction={handleUpdate}
                     onDeleteAction={handleDelete}
+                    onLocationUpdate={handleLocationUpdate}
                 />
             )}
         </>
