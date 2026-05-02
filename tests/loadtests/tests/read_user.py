@@ -60,3 +60,17 @@ class ReadUser(BaseUser):
             return
         location_id = random.choice(location_ids)
         self.client.get(f"/trips/{trip_id}/locations/{location_id}/activities")
+
+    @task
+    def read_comments(self):
+        if not self.trip_ids:
+            return
+        trip_id = random.choice(self.trip_ids)
+        self.client.get(f"/trips/{trip_id}/comments")
+
+    @task
+    def read_likes(self):
+        if not self.trip_ids:
+            return
+        trip_id = random.choice(self.trip_ids)
+        self.client.get(f"/trips/{trip_id}/likes")

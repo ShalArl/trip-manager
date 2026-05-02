@@ -1,8 +1,8 @@
 import random
-from locust import task, between
-from tests.base import BaseUser
-from seeding.generators import generate_trip, generate_location, generate_activity
 
+from locust import task, between
+from seeding.generators import generate_trip, generate_location, generate_activity, generate_comment
+from tests.base import BaseUser, with_auth
 
 class PowerUser(BaseUser):
     weight = 20
@@ -13,6 +13,7 @@ class PowerUser(BaseUser):
         self.trip_ids: list[str] = []
         self.location_ids: dict[str, list[str]] = {}
         self.activity_ids: dict[str, dict[str, list[str]]] = {}
+        self.comment_ids: dict[str, list[str]] = {}
 
     def on_start(self):
         super().on_start()
@@ -33,6 +34,7 @@ class PowerUser(BaseUser):
     # -- Tasks --
 
     @task(3)
+    @with_auth
     def create_full_trip(self):
         # Trip
         resp = self.client.post("/trips", json=generate_trip())
@@ -60,7 +62,11 @@ class PowerUser(BaseUser):
             activity_id = act_resp.json()["id"]
             self.activity_ids[trip_id][location_id].append(activity_id)
 
+        # Add comment to own trip
+        comment_resp = self.c
+
     @task(2)
+    @with_auth
     def add_location(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -72,6 +78,7 @@ class PowerUser(BaseUser):
             self.activity_ids[trip_id][location_id] = []
 
     @task(2)
+    @with_auth
     def add_activity(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -86,7 +93,47 @@ class PowerUser(BaseUser):
         if resp.status_code == 201:
             self.activity_ids[trip_id][location_id].append(resp.json()["id"])
 
+    @task(3)
+    @with_auth
+    def write_comment(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+
+        resp = self.client.post(
+            f"/trips/{trip_id}/comments",
+            json={"text": "Test comment"},
+        )
+
+        if resp.status_code in (200, 201):
+            self.comment_ids.setdefault(trip_id, []).append(resp.json()["id"])
+
+
     @task(1)
+    @with_auth
+    def write_and_delete_comment(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+
+        resp = self.client.post(
+            f"/trips/{trip_id}/comments",
+            json={"text": "Test comment"},
+        )
+
+        comment_ids = self.comment_ids.get(trip_id, [])
+
+        if not comment_ids:
+            return
+        comment_id = random.choice(comment_ids)
+        resp = self.client.delete(f"/trips/{trip_id}/comments/{comment_id}")
+        if resp.status_code == 204:
+            self.comment_ids[trip_id].remove(comment_id)
+
+
+
+    @task(1)
+    @with_auth
     def update_trip(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -104,6 +151,7 @@ class PowerUser(BaseUser):
         self.client.put(f"/trips/{trip_id}/locations/{location_id}", json=generate_location())
 
     @task(1)
+    @with_auth
     def update_activity(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -120,6 +168,7 @@ class PowerUser(BaseUser):
         )
 
     @task(1)
+    @with_auth
     def delete_trip(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -131,6 +180,7 @@ class PowerUser(BaseUser):
             self.activity_ids.pop(trip_id, None)
 
     @task(1)
+    @with_auth
     def delete_location(self):
         trip_id = self._random_trip_id()
         if not trip_id:
@@ -144,6 +194,7 @@ class PowerUser(BaseUser):
             self.activity_ids[trip_id].pop(location_id, None)
 
     @task(1)
+    @with_auth
     def delete_activity(self):
         trip_id = self._random_trip_id()
         if not trip_id:

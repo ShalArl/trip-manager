@@ -90,8 +90,8 @@ def generate_location() -> dict:
     return {
         "city": fake.city(),
         "country": fake.country(),
-        "latitude": fake.latitude(),
-        "longitude": fake.longitude(),
+        "latitude": float(fake.latitude()),
+        "longitude": float(fake.longitude()),
         "name": fake.sentence(nb_words=2),
         "notes": fake.sentence(nb_words=10),
         "sequence": random.randint(1, 10),
@@ -154,3 +154,9 @@ def generate_fake_images(count=10, width=800, height=600) -> list[bytes]:
         img.save(buf, format="JPEG")
         images.append(buf.getvalue())
     return images
+
+
+def generate_comment() -> dict:
+    return {
+        "text": fake.sentence(nb_words=20),
+    }
