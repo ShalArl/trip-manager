@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Plus, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { MapPin, Plus, Pencil } from "lucide-react";
 
 import { createLocation, updateLocation, deleteLocation } from "@/lib/api/locations";
 import { LocationResponse, CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
@@ -32,6 +32,7 @@ export default function TripLocationsSection({
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [activeLocation, setActiveLocation] = useState<LocationResponse | null>(null);
+    const [initialEditing, setInitialEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -94,14 +95,17 @@ export default function TripLocationsSection({
         setActiveLocation(updated);
     };
 
-    const handleEditClick = (e: React.MouseEvent, location: LocationResponse) => {
-        e.stopPropagation();
+    const handleLocationClick = (location: LocationResponse) => {
         setActiveLocation(location);
+        setInitialEditing(false);
         setShowDetailModal(true);
     };
 
-    const handleLocationClick = (locationId: string) => {
-        onLocationSelect(selectedLocationId === locationId ? null : locationId);
+    const handleEditClick = (e: React.MouseEvent, location: LocationResponse) => {
+        e.stopPropagation();
+        setActiveLocation(location);
+        setInitialEditing(true);
+        setShowDetailModal(true);
     };
 
     // ── Render ──────────────────────────────────────────────────────────────
@@ -144,63 +148,42 @@ export default function TripLocationsSection({
                     </div>
                 ) : (
                     <ul className="space-y-2">
-                        {locations.map((location) => {
-                            const isSelected = selectedLocationId === location.id;
-                            return (
-                                <li key={location.id}>
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => handleLocationClick(location.id!)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleLocationClick(location.id!)}
-                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
-                                            isSelected
-                                                ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-700"
-                                                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-sky-500" : "bg-zinc-300 dark:bg-zinc-600"}`} />
-                                                <div className="min-w-0">
-                                                    <p className="font-medium text-zinc-900 dark:text-white truncate">
-                                                        {location.name}
-                                                    </p>
-                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                                                        {location.city}, {location.country}
-                                                        {" · "}
-                                                        {location.dateFrom} – {location.dateTo}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0 ml-2">
-                                                {isEditable && (
-                                                    <button
-                                                        onClick={(e) => handleEditClick(e, location)}
-                                                        className="p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
-                                                        aria-label="Ort bearbeiten"
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {isSelected ? (
-                                                    <ChevronUp className="w-4 h-4 text-sky-500" />
-                                                ) : (
-                                                    <ChevronDown className="w-4 h-4 text-zinc-400" />
-                                                )}
+                        {locations.map((location) => (
+                            <li key={location.id}>
+                                <div
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => handleLocationClick(location)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleLocationClick(location)}
+                                    className="w-full text-left p-4 rounded-xl border-2 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-2 h-2 rounded-full shrink-0 bg-zinc-300 dark:bg-zinc-600" />
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-zinc-900 dark:text-white truncate">
+                                                    {location.name}
+                                                </p>
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                                                    {location.city}, {location.country}
+                                                    {" · "}
+                                                    {location.dateFrom} – {location.dateTo}
+                                                </p>
                                             </div>
                                         </div>
-
-                                        {/* Expanded: short description */}
-                                        {isSelected && location.shortDescription && (
-                                            <p className="mt-3 ml-5 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                                                {location.shortDescription}
-                                            </p>
+                                        {isEditable && (
+                                            <button
+                                                onClick={(e) => handleEditClick(e, location)}
+                                                className="p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors shrink-0 ml-2"
+                                                aria-label="Ort bearbeiten"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
                                         )}
                                     </div>
-                                </li>
-                            );
-                        })}
+                                </div>
+                            </li>
+                        ))}
                     </ul>
                 )}
             </section>
@@ -217,13 +200,14 @@ export default function TripLocationsSection({
                     location={activeLocation}
                     tripId={tripId}
                     isEditable={isEditable}
+                    initialEditing={initialEditing}
                     onCloseAction={() => {
                         setShowDetailModal(false);
                         setActiveLocation(null);
                     }}
                     onSaveAction={handleUpdate}
                     onDeleteAction={handleDelete}
-                    onLocationUpdate={handleLocationUpdate}
+                    onLocationUpdateAction={handleLocationUpdate}
                 />
             )}
         </>

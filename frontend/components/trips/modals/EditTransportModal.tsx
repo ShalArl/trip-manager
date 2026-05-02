@@ -36,8 +36,8 @@ export default function EditTransportModal({ isOpen, transport, locations, onClo
         onSaveAction({
             fromLocationId: formData.fromLocationId,
             toLocationId: formData.toLocationId,
-            departureTime: formData.departureTime || undefined,
-            arrivalTime: formData.arrivalTime || undefined,
+            departureTime: formData.departureTime ? `${formData.departureTime}:00Z` : undefined,
+            arrivalTime: formData.arrivalTime ? `${formData.arrivalTime}:00Z` : undefined,
             type: formData.type as "flight" | "train" | "car" | "bus",
             notes: formData.notes || undefined,
         });

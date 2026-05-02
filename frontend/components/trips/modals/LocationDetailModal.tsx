@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { ImagePlus, Trash2, X } from "lucide-react";
 
 import { LocationResponse, UpdateLocationRequest } from "@/types/location";
@@ -16,10 +16,11 @@ type Props = {
     location: LocationResponse;
     tripId: string;
     isEditable: boolean;
+    initialEditing?: boolean;
     onCloseAction: () => void;
     onSaveAction: (req: UpdateLocationRequest) => void;
     onDeleteAction: () => void;
-    onLocationUpdate?: (location: LocationResponse) => void;
+    onLocationUpdateAction?: (location: LocationResponse) => void;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -29,12 +30,13 @@ export default function LocationDetailModal({
     location,
     tripId,
     isEditable,
+    initialEditing,
     onCloseAction,
     onSaveAction,
     onDeleteAction,
-    onLocationUpdate,
+    onLocationUpdateAction,
 }: Props) {
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(initialEditing ?? false);
     const [formData, setFormData] = useState({
         name: location.name,
         city: location.city,
@@ -44,6 +46,12 @@ export default function LocationDetailModal({
         dateTo: location.dateTo,
         notes: location.notes ?? "",
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsEditing(initialEditing ?? false);
+        }
+    }, [isOpen, initialEditing]);
 
     // ── Image state ──────────────────────────────────────────────────────────
     const [images, setImages] = useState<LocationImageResponse[]>(
@@ -89,8 +97,8 @@ export default function LocationDetailModal({
             const updatedImages = [...images, created];
             setImages(updatedImages);
 
-            if (onLocationUpdate) {
-                onLocationUpdate({ ...location, images: updatedImages });
+            if (onLocationUpdateAction) {
+                onLocationUpdateAction({ ...location, images: updatedImages });
             }
         } catch (err) {
             setImageError("Fehler beim Hochladen des Bildes");
@@ -107,8 +115,8 @@ export default function LocationDetailModal({
             const updatedImages = images.filter((i) => i.id !== image.id);
             setImages(updatedImages);
 
-            if (onLocationUpdate) {
-                onLocationUpdate({ ...location, images: updatedImages });
+            if (onLocationUpdateAction) {
+                onLocationUpdateAction({ ...location, images: updatedImages });
             }
         } catch (err) {
             setImageError("Fehler beim Löschen des Bildes");

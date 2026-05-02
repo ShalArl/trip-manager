@@ -36,8 +36,8 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
         onAddAction({
             fromLocationId: formData.fromLocationId,
             toLocationId: formData.toLocationId,
-            departureTime: formData.departureTime || undefined,
-            arrivalTime: formData.arrivalTime || undefined,
+            departureTime: formData.departureTime ? `${formData.departureTime}:00Z` : undefined,
+            arrivalTime: formData.arrivalTime ? `${formData.arrivalTime}:00Z` : undefined,
             type: formData.type,
             notes: formData.notes || undefined,
         });

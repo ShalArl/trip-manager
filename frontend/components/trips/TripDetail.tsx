@@ -24,8 +24,6 @@ import EditTransportModal from "./modals/EditTransportModal";
 import AddAccommodationModal from "./modals/AddAccommodationModal";
 import EditAccommodationModal from "./modals/EditAccommodationModal";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type TripResponse = components["schemas"]["TripResponse"];
 
 type Props = {
@@ -34,8 +32,6 @@ type Props = {
     onTripUpdateAction: (trip: TripResponse) => void;
     currentUser?: UserResponse | null;
 };
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TripDetail({ trip, isEditable = false, onTripUpdateAction, currentUser }: Props) {
     // ── Trip ────────────────────────────────────────────────────────────────
@@ -196,7 +192,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
     };
 
     const handleShowComments = async () => {
-        if (!showComments && comments.length === 0) {
+        if (!showComments) {
             try {
                 const data = await getTripComments(trip.id);
                 setComments(data.data ?? []);
@@ -293,11 +289,10 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                             <button
                                 onClick={handleLike}
                                 disabled={!currentUser}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                                    likeInfo.hasLiked
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${likeInfo.hasLiked
                                         ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
                                         : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <span>{likeInfo.hasLiked ? "❤️" : "🤍"}</span>
                                 <span>{likeInfo.likeCount} {likeInfo.likeCount === 1 ? "Like" : "Likes"}</span>
@@ -411,8 +406,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                                         <p className="font-medium text-zinc-900 dark:text-white">
                                                             {fromLocation?.name ?? t.fromLocationId} → {toLocation?.name ?? t.toLocationId}
                                                         </p>
+                                                       
                                                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                            {t.departureTime ?? "Keine Abfahrtszeit"}
+                                                            {t.departureTime
+                                                                ? new Date(t.departureTime).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })
+                                                                : "Keine Abfahrtszeit"}
                                                         </p>
                                                     </div>
                                                 </div>
