@@ -3,9 +3,11 @@ import random
 from locust import task, between
 from tests.base import BaseUser
 
+from seeding.generators import generate_city
+
 
 class ReadUser(BaseUser):
-    weight = 60
+    weight = 20
     wait_time = between(1, 3)
 
 
@@ -74,3 +76,9 @@ class ReadUser(BaseUser):
             return
         trip_id = random.choice(self.trip_ids)
         self.client.get(f"/trips/{trip_id}/likes")
+
+    @task
+    def search_trips(self):
+        city = generate_city()
+        limit = random.randint(10, 50)
+        self.client.get(f"/trips/search?q={city}&limit={limit}&offset=0")

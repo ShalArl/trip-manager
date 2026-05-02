@@ -1,8 +1,12 @@
 import random
 
+import httpx
 from locust import task, between
 from seeding.generators import generate_trip, generate_location, generate_activity, generate_comment
 from tests.base import BaseUser, with_auth
+
+from tests.media_user import IMAGES
+
 
 class PowerUser(BaseUser):
     weight = 20
@@ -62,8 +66,11 @@ class PowerUser(BaseUser):
             activity_id = act_resp.json()["id"]
             self.activity_ids[trip_id][location_id].append(activity_id)
 
-        # Add comment to own trip
-        comment_resp = self.c
+        # add comment to own trip
+        comment_resp = self.client.post(f"/trips/{trip_id}/comments", json=generate_comment())
+        if comment_resp == 201:
+            comment_id = comment_resp.json()["id"]
+            self.comment_ids[trip_id].append(comment_id)
 
     @task(2)
     @with_auth
@@ -71,11 +78,53 @@ class PowerUser(BaseUser):
         trip_id = self._random_trip_id()
         if not trip_id:
             return
-        resp = self.client.post(f"/trips/{trip_id}/locations", json=generate_location())
-        if resp.status_code == 201:
-            location_id = resp.json()["id"]
-            self.location_ids[trip_id].append(location_id)
-            self.activity_ids[trip_id][location_id] = []
+
+        payload = generate_location()
+        print(f"[DEBUG] Sending: {payload}")  # ← was schicken wir?
+
+        resp = self.client.post(f"/trips/{trip_id}/locations", json=payload)
+
+        if resp.status_code != 201:
+            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")  # ← was sagt Backend?
+            return
+
+        location_id = resp.json()["id"]
+        self.location_ids[trip_id].append(location_id)
+        self.activity_ids[trip_id][location_id] = []
+
+
+    @task(3)
+    @with_auth
+    def add_image_to_location(self):
+        trip_id = self._random_trip_id()
+        if not trip_id:
+            return
+        location_id = self._random_location_id(trip_id)
+        if not location_id:
+            return
+
+        # 1. Presigned URL holen
+        presigned_resp = self.client.post("/uploads/presigned", json={
+            "fileName": "location-image.jpg",
+            "mediaType": "location-image",
+        })
+        if presigned_resp.status_code != 200:
+            return
+
+        data = presigned_resp.json()
+        upload_url = data["presignedUrl"]
+        image_key = data["objectKey"]
+
+        image_bytes = random.choice(IMAGES)
+        with httpx.Client() as client:
+            client.put(upload_url, content=image_bytes, headers={"Content-Type": "image/jpeg"})
+
+        # 3. Bei Location registrieren
+        self.client.post(
+            f"/trips/{trip_id}/locations/{location_id}/images",
+            json={"imageKey": image_key},
+        )
+
 
     @task(2)
     @with_auth
@@ -91,6 +140,7 @@ class PowerUser(BaseUser):
             json=generate_activity(location_id)
         )
         if resp.status_code == 201:
+            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")
             self.activity_ids[trip_id][location_id].append(resp.json()["id"])
 
     @task(3)
@@ -106,8 +156,8 @@ class PowerUser(BaseUser):
         )
 
         if resp.status_code in (200, 201):
+            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")  # ← was sagt Backend?
             self.comment_ids.setdefault(trip_id, []).append(resp.json()["id"])
-
 
     @task(1)
     @with_auth
@@ -121,16 +171,19 @@ class PowerUser(BaseUser):
             json={"text": "Test comment"},
         )
 
+        if resp not in(200, 201):
+            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")  # ← was sagt Backend?
+            return
+
         comment_ids = self.comment_ids.get(trip_id, [])
 
         if not comment_ids:
             return
+
         comment_id = random.choice(comment_ids)
         resp = self.client.delete(f"/trips/{trip_id}/comments/{comment_id}")
         if resp.status_code == 204:
             self.comment_ids[trip_id].remove(comment_id)
-
-
 
     @task(1)
     @with_auth
