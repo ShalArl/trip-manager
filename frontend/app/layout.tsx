@@ -3,6 +3,7 @@ import { Roboto } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import {Providers} from "@/app/providers";
+import NavbarWrapper from "@/app/NavbarWrapper";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -32,6 +33,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
+          <NavbarWrapper />
           {children}
         </Providers>
       </body>

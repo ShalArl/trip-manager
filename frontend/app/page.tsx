@@ -43,7 +43,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
-      <Navbar user={user} onLogout={handleLogout} />
       <Hero />
       <div className="mx-auto max-w-4xl px-6 pt-6 flex justify-end">
         <Link
