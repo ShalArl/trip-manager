@@ -35,5 +35,5 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
     const isEditable = !!user && trip.createdBy?.id === user.id;
 
-    return <TripDetail trip={trip} isEditable={isEditable} onTripUpdate={setTrip} currentUser={user} />;
+    return <TripDetail trip={trip} isEditable={isEditable} onTripUpdateAction={setTrip} currentUser={user} />;
 }

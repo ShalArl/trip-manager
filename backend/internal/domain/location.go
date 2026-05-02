@@ -7,6 +7,14 @@ type Point struct {
 	Lon float64
 }
 
+type LocationImage struct {
+	ID         string
+	LocationID string
+	ImageKey   string
+	Sequence   int
+	CreatedAt  time.Time
+}
+
 type Location struct {
 	ResourceMeta
 	TripID           string
@@ -19,4 +27,5 @@ type Location struct {
 	ShortDescription string
 	DateFrom         time.Time
 	DateTo           time.Time
+	Images           []LocationImage
 }

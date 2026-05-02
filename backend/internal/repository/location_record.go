@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// LocationRecord represents a location in the database
 type locationRecord struct {
 	ID               uuid.UUID `db:"id"`
 	TripID           uuid.UUID `db:"trip_id"`
@@ -25,4 +24,12 @@ type locationRecord struct {
 	UserID           uuid.UUID `db:"user_id"`
 	UserName         string    `db:"user_name"`
 	UserEmail        string    `db:"user_email"`
+}
+
+type locationImageRecord struct {
+	ID         uuid.UUID `db:"id"`
+	LocationID uuid.UUID `db:"location_id"`
+	ImageKey   string    `db:"image_key"`
+	Sequence   *int      `db:"sequence"`
+	CreatedAt  time.Time `db:"created_at"`
 }

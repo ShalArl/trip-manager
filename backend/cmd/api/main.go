@@ -38,7 +38,6 @@ func startUp() (*app.App, error) {
 }
 
 func main() {
-	// Load configuration and initialize application
 	application, err := startUp()
 	if err != nil {
 		log.Fatalf("Application startup failed: %v", err)
@@ -59,10 +58,8 @@ func main() {
 		cancel()
 	}()
 
-	// Setup router
 	r := chi.NewRouter()
 
-	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
@@ -81,21 +78,20 @@ func main() {
 
 	userResolver := application.Services.User
 
-	// Routes
 	r.Route("/api", func(r chi.Router) {
-		// ─── Public Routes ──────────────────────────────────────────────────────
+		// ─── Public Routes ───────────────────────────────────────────────────────
 		r.Get("/trips/search", handler.SearchTripsHandler(application))
 		r.Get("/trips/recent", handler.ListRecentTripsHandler(application))
 
-		// ─── Provision ──────────────────────────────────────────────────────────
+		// ─── Provision ───────────────────────────────────────────────────────────
 		r.With(chimiddleware.ProvisionMiddleware(firebaseAuth)).
 			Post("/users/provision", handler.ProvisionMeHandler(application))
 
-		// ─── Optional Auth ───────────────────────────────────────────────────────
+		// ─── Optional Auth ────────────────────────────────────────────────────────
 		r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 			Get("/trips/{tripId}", handler.GetTripHandler(application))
 
-		// ─── Location Routes ─────────────────────────────────────────────────────
+		// ─── Location Routes ──────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/locations", func(r chi.Router) {
 			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 				Get("/", handler.ListLocationsHandler(application))
@@ -106,10 +102,13 @@ func main() {
 				r.Get("/", handler.GetLocationHandler(application))
 				r.Put("/", handler.UpdateLocationHandler(application))
 				r.Delete("/", handler.DeleteLocationHandler(application))
+				// ─── Location Image Routes ────────────────────────────────────────
+				r.Post("/images", handler.AddLocationImageHandler(application))
+				r.Delete("/images/{imageId}", handler.DeleteLocationImageHandler(application))
 			})
 		})
 
-		// ─── Transport Routes ────────────────────────────────────────────────────
+		// ─── Transport Routes ─────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/transports", func(r chi.Router) {
 			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 				Get("/", handler.ListTransportsHandler(application))
@@ -136,7 +135,7 @@ func main() {
 			})
 		})
 
-		// ─── Social Routes (Likes & Comments) ────────────────────────────────────
+		// ─── Social Routes ────────────────────────────────────────────────────────
 		r.Route("/trips/{tripId}/likes", func(r chi.Router) {
 			r.With(chimiddleware.OptionalFirebaseAuthMiddleware(firebaseAuth, userResolver)).
 				Get("/", handler.GetTripLikesHandler(application))
@@ -155,7 +154,7 @@ func main() {
 				Delete("/{commentId}", handler.DeleteTripCommentHandler(application))
 		})
 
-		// ─── Protected Routes ────────────────────────────────────────────────────
+		// ─── Protected Routes ─────────────────────────────────────────────────────
 		r.Group(func(r chi.Router) {
 			r.Use(chimiddleware.FirebaseAuthMiddleware(firebaseAuth, application.Services.User))
 
@@ -202,19 +201,16 @@ func main() {
 		}
 	})
 
-	// Start server
 	addr := fmt.Sprintf(":%s", application.Config.ServerPort)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
-		// Timeouts Production
+		Addr:              addr,
+		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Run in Goroutine
 	serverErr := make(chan error, 1)
 	go func() {
 		application.Logger.Printf("🚀 Server starting on http://localhost%s", addr)
@@ -231,7 +227,6 @@ func main() {
 		application.Logger.Println("shutting down gracefully")
 	}
 
-	// Graceful Shutdown with Timeout (10 seconds)
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 

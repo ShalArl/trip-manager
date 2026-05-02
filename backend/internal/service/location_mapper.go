@@ -31,6 +31,7 @@ func mapCreateLocationRequestToLocation(req *generated.CreateLocationRequest, tr
 
 func mapUpdateLocationRequestToLocation(req *generated.UpdateLocationRequest, existing *domain.Location) *domain.Location {
 	updated := *existing
+
 	if req.Name != nil {
 		updated.Name = *req.Name
 	}
@@ -61,6 +62,7 @@ func mapUpdateLocationRequestToLocation(req *generated.UpdateLocationRequest, ex
 	if req.Sequence != nil {
 		updated.Sequence = *req.Sequence
 	}
+
 	updated.UpdatedAt = time.Now()
 	return &updated
 }

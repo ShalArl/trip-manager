@@ -393,6 +393,73 @@ paths:
           description: Forbidden
         '404':
           description: Location not found
+  
+  /trips/{tripId}/locations/{locationId}/images:
+    post:
+      summary: Add image to location
+      operationId: addLocationImage
+      tags:
+        - Locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLocationImageRequest'
+      responses:
+        '201':
+          description: Image added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationImageResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /trips/{tripId}/locations/{locationId}/images/{imageId}:
+    delete:
+      summary: Remove image from location
+      operationId: deleteLocationImage
+      tags:
+        - Locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Image deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Image not found
 
  # ─── Activities ───────────────────────────────────────────────────────────
 
@@ -1320,6 +1387,11 @@ components:
               type: string
             sequence:
               type: integer
+            images:
+              type: array
+              items:
+                $ref: '#/components/schemas/LocationImageResponse'
+              readOnly: true
 
     LocationListResponse:
       description: Paginated list of locations.
@@ -1333,6 +1405,39 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/LocationResponse'
+    
+    LocationImageResponse:
+      type: object
+      required:
+        - id
+        - locationId
+        - imageUrl
+      properties:
+        id:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        imageUrl:
+          type: string
+          format: uri
+        sequence:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    
+    AddLocationImageRequest:
+      type: object
+      required:
+        - imageKey
+      properties:
+        imageKey:
+          type: string
+          description: S3/MinIO object key for the image
+        sequence:
+          type: integer
 
     # ── Activity ─────────────────────────────────────────────────────────────
 

@@ -51,13 +51,20 @@ help:
 	@echo "  make clean-all      Remove binaries and generated files"
 	@echo ""
 
+# Setup MinIO bucket for local development
+minio-setup:
+	@echo "Setting up MinIO bucket..."
+	@docker exec trip_manager_minio mc alias set local http://localhost:9000 minioadmin minioadmin --api S3v4
+	@docker exec trip_manager_minio mc mb local/trip-manager --ignore-existing
+	@docker exec trip_manager_minio mc anonymous set public local/trip-manager
+	@echo "✓ MinIO bucket ready"
+
 # Build the backend binary
 build:
 	@echo "Building backend binary..."
 	@mkdir -p $(BIN_DIR)
 	@cd $(BACKEND_DIR) && go build -o bin/$(BINARY_NAME) ./cmd/api
 	@echo "✓ Build complete: $(BIN_DIR)/$(BINARY_NAME)"
-
 
 # Run the compiled binary
 run: build
