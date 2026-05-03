@@ -39,4 +39,5 @@ This directory contains Terraform configuration files to deploy the application 
 ```bash
 terraform destroy
 ```
-This will destroy all the resources that were created during the deployment. You will be prompted to confirm
+This will destroy all the resources that were created during the deployment. You will be prompted to confirm.
+Do not destroy as otherwise the Domain Mapping won't work anymore until nameservers are updated in namecheap, this will take time.

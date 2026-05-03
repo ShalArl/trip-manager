@@ -9,7 +9,7 @@ from tests.media_user import IMAGES
 
 
 class PowerUser(BaseUser):
-    weight = 20
+    weight = 10
     wait_time = between(1, 3)
 
     def __init__(self, *args, **kwargs):
@@ -126,7 +126,7 @@ class PowerUser(BaseUser):
         )
 
 
-    @task(2)
+    @task(0)
     @with_auth
     def add_activity(self):
         trip_id = self._random_trip_id()
@@ -203,7 +203,7 @@ class PowerUser(BaseUser):
             return
         self.client.put(f"/trips/{trip_id}/locations/{location_id}", json=generate_location())
 
-    @task(1)
+    @task(0)
     @with_auth
     def update_activity(self):
         trip_id = self._random_trip_id()

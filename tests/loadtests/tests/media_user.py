@@ -9,7 +9,7 @@ IMAGES = generate_fake_images(count=10)
 
 
 class MediaUser(BaseUser):
-    weight = 10
+    weight = 0
     wait_time = between(3, 8)
 
     def on_start(self):
