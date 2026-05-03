@@ -16,6 +16,9 @@ write_files:
 
   # Docker-Compose-File
   - path: /home/deployer/app/docker-compose.yml
+    owner: deployer:deployer
+    permissions: '0644'
+    defer: true
     content: |
       services:
         backend:
@@ -38,7 +41,7 @@ write_files:
           depends_on:
             postgres:
               condition: service_healthy
-             minio:
+            minio:
               condition: service_healthy
           networks:
             - app-net
@@ -127,8 +130,20 @@ write_files:
       networks:
         app-net:
 
+
+  # GHCR Credentials (für Skripte)
+  - path: /home/deployer/scripts/ghcr-token
+    owner: deployer:deployer
+    permissions: '0600'
+    defer: true
+    content: |
+      ${github_registry_token}
+
   # Caddyfile
   - path: /home/deployer/app/Caddyfile
+    owner: deployer:deployer
+    permissions: '0644'
+    defer: true
     content: |
       iaas.neatnode.xyz {
         reverse_proxy backend:8081
@@ -154,7 +169,6 @@ write_files:
         reverse_proxy minio:9000
         encode gzip
 
-        # Wichtig: für presigned URLs brauchen wir die exakten Headers
         request_body {
           max_size 100MB
         }
@@ -162,12 +176,14 @@ write_files:
 
   # Docker-Login-Skript für GHCR
   - path: /home/deployer/scripts/docker-login.sh
-    permissions: '0700'
+    owner: deployer:deployer
+    permissions: '0755'
+    defer: true
     content: |
       #!/bin/bash
       set -e
-      if [ -n "${github_registry_token}" ]; then
-        echo "${github_registry_token}" | docker login ghcr.io -u "${github_username}" --password-stdin
+      if [ -f /home/deployer/scripts/ghcr-token ]; then
+        cat /home/deployer/scripts/ghcr-token | docker login ghcr.io -u "${github_username}" --password-stdin
       fi
 
   # Update-Skript für CD
@@ -182,15 +198,25 @@ write_files:
       docker image prune -f
 
 package_update: true
-package_upgrade: true
+# package_upgrade: true
 
 packages:
   - docker.io
-  - docker-compose-plugin
   - ufw
   - fail2ban
 
 runcmd:
+  # Install Docker-Compose
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - bash -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list'
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y docker-compose-plugin
+
+  # FS Permissions
+  - chown -R deployer:deployer /home/deployer
+
   # Docker
   - systemctl enable --now docker
   - usermod -aG docker deployer
