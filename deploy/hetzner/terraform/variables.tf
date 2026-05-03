@@ -88,3 +88,15 @@ variable "github_username" {
   description = "GitHub username for ghcr.io login"
   default     = ""
 }
+
+variable "minio_access_key" {
+  type        = string
+  description = "MinIO root user / access key"
+  sensitive   = true
+}
+
+variable "minio_secret_key" {
+  type        = string
+  description = "MinIO root password / secret key"
+  sensitive   = true
+}

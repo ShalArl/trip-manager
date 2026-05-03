@@ -41,7 +41,7 @@ resource "google_dns_record_set" "iaas" {
   managed_zone = google_dns_managed_zone.main_zone.name
   type         = "A"
   ttl          = 300
-  rrdatas      = ["5.75.139.11"]  # von hetzner
+  rrdatas      = ["167.235.66.0"]  # von hetzner
 }
 
 resource "google_dns_record_set" "iaas_app" {
@@ -49,5 +49,5 @@ resource "google_dns_record_set" "iaas_app" {
   managed_zone = google_dns_managed_zone.main_zone.name
   type         = "A"
   ttl          = 300
-  rrdatas      = ["5.75.139.11"]  # von hetzner
+  rrdatas      = ["167.235.66.0"]  # von hetzner
 }

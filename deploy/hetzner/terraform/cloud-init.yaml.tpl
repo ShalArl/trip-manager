@@ -24,12 +24,21 @@ write_files:
           environment:
             ENVIRONMENT: production
             SERVER_PORT: "8081"
-            CORS_ALLOWED_ORIGINS: ${cors_allowed_origins}
+            CORS_ALLOWED_ORIGINS: "https://iaas-app.neatnode.xyz"
             FIREBASE_PROJECT_ID: ${firebase_project_id}
             DATABASE_URL: postgres://${postgres_user}:${postgres_password}@postgres:5432/${postgres_db}?sslmode=disable
-            STORAGE_TYPE: local
+            STORAGE_TYPE: s3
+            S3_ENDPOINT: http://minio:9000
+            S3_BUCKET: trip-manager
+            S3_REGION: us-east-1
+            S3_ACCESS_KEY: ${minio_access_key}
+            S3_SECRET_KEY: ${minio_secret_key}
+            S3_USE_SSL: "false"
+            S3_PUBLIC_URL: https://iaas-storage.neatnode.xyz
           depends_on:
             postgres:
+              condition: service_healthy
+             minio:
               condition: service_healthy
           networks:
             - app-net
@@ -59,6 +68,39 @@ write_files:
           networks:
             - app-net
 
+        minio:
+          image: quay.io/minio/minio:latest
+          restart: unless-stopped
+          command: server /data --console-address ":9001"
+          environment:
+            MINIO_ROOT_USER: ${minio_access_key}
+            MINIO_ROOT_PASSWORD: ${minio_secret_key}
+            MINIO_API_CORS_ALLOW_ORIGIN: "https://iaas-app.neatnode.xyz"
+          volumes:
+            - minio-data:/data
+          healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+          networks:
+            - app-net
+
+        minio-init:
+          image: quay.io/minio/minio:latest
+          depends_on:
+            minio:
+              condition: service_healthy
+          entrypoint: >
+            /bin/sh -c "
+            mc alias set myminio http://minio:9000 ${minio_access_key} ${minio_secret_key};
+            mc mb --ignore-existing myminio/trip-manager;
+            mc anonymous set download myminio/trip-manager;
+            exit 0;
+            "
+          networks:
+            - app-net
+
         caddy:
           image: caddy:2-alpine
           restart: unless-stopped
@@ -71,6 +113,8 @@ write_files:
             - caddy-config:/config
           depends_on:
             - backend
+            - frontend
+            - minio
           networks:
             - app-net
 
@@ -78,6 +122,7 @@ write_files:
         postgres-data:
         caddy-data:
         caddy-config:
+        minio-data:
 
       networks:
         app-net:
@@ -102,6 +147,16 @@ write_files:
         log {
           output stdout
           format console
+        }
+      }
+
+      iaas-storage.neatnode.xyz {
+        reverse_proxy minio:9000
+        encode gzip
+
+        # Wichtig: für presigned URLs brauchen wir die exakten Headers
+        request_body {
+          max_size 100MB
         }
       }
 

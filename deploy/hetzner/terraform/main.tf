@@ -41,6 +41,7 @@ resource "hcloud_server" "app" {
     ssh_public_key        = var.deployer_ssh_public_key
     domain                = var.domain
     backend_image         = var.backend_image
+    frontend_image        = var.frontend_image
     firebase_project_id   = var.firebase_project_id
     cors_allowed_origins  = var.cors_allowed_origins
     postgres_image        = var.postgres_image
@@ -49,6 +50,8 @@ resource "hcloud_server" "app" {
     postgres_db           = var.postgres_db
     github_username       = var.github_username
     github_registry_token = var.github_registry_token
+    minio_access_key      = var.minio_access_key
+    minio_secret_key      = var.minio_secret_key
   })
 
   lifecycle {
