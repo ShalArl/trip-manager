@@ -165,15 +165,6 @@ write_files:
         }
       }
 
-      iaas-storage.neatnode.xyz {
-        reverse_proxy minio:9000
-        encode gzip
-
-        request_body {
-          max_size 100MB
-        }
-      }
-
   # Docker-Login-Skript für GHCR
   - path: /home/deployer/scripts/docker-login.sh
     owner: deployer:deployer
