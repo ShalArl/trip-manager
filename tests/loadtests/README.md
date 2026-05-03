@@ -49,9 +49,23 @@ make clean
 
 # Note
 
-Results 
+Performing load test scenarios 
 
-## 
+## Periodic Worklod
+To simulate a periodic workload, you can use the `test-periodic` target in the Makefile. This will run the load tests with:
+- 1000 users
+- terminate after 1 hour
+```bash
+make test-periodic
+```
+
+## Once in a Lifetime Workload
+To simulate a once in a lifetime workload, you can use the `test-once` target in the Makefile. This will run the load tests with:
+- 5000 users
+- terminate after 30 minutes
+```bash
+make test-once
+```
 
 ## Further Information
 

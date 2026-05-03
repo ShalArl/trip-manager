@@ -69,3 +69,9 @@ resource "google_project_iam_member" "runtime_firestore" {
   role    = "roles/datastore.user"
   member  = local.sa_runtime_member
 }
+
+resource "google_service_account_iam_member" "user_can_impersonate_runtime" {
+  service_account_id = google_service_account.runtime_sa.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = local.load_test_user_member
+}

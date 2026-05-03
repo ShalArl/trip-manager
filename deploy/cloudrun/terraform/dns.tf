@@ -34,3 +34,20 @@ resource "google_dns_record_set" "google_verification" {
   rrdatas      = ["\"google-site-verification=${var.domain_verification}\""]
 }
 
+# IAAS
+
+resource "google_dns_record_set" "iaas" {
+  name         = "iaas.${var.domain}."
+  managed_zone = google_dns_managed_zone.main_zone.name
+  type         = "A"
+  ttl          = 300
+  rrdatas      = ["167.235.66.0"]  # von hetzner
+}
+
+resource "google_dns_record_set" "iaas_app" {
+  name         = "iaas-app.${var.domain}."
+  managed_zone = google_dns_managed_zone.main_zone.name
+  type         = "A"
+  ttl          = 300
+  rrdatas      = ["167.235.66.0"]  # von hetzner
+}

@@ -127,9 +127,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/frontend
           tags: |
-            type=ref,event=branch
-            type=sha,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch,prefix=hetzner-
+            type=sha,format=long,prefix=hetzner-
+            type=raw,value=hetzner-latest,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -140,8 +140,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_HETZNER || 'http://localhost:8000' }}
-            NEXT_PUBLIC_S3_PUBLIC_URL=${{ secrets.NEXT_PUBLIC_S3_PUBLIC_URL_HETZNER || 'http://localhost/minio' }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_HETZNER || 'https://iaas.neatnode.xyz' }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           cache-from: type=gha,scope=frontend-hetzner
           cache-to: type=gha,mode=max,scope=frontend-hetzner
 
@@ -219,11 +222,12 @@ jobs:
   deploy-hetzner:
     needs: [ detect-changes, summary ]
     if: >
-      github.event_name == 'push' && (github.ref == 'refs/tags/hetzner-release') &&
+      always() &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
       (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
-      (needs.build-frontend-hetzner.result == 'success' || needs.build-frontend-hetzner.result == 'skipped') &&
+      (needs.build-frontend-gcp.result == 'success' || needs.build-frontend-gcp.result == 'skipped') &&
       (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -285,15 +289,9 @@ jobs:
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_NAME=${{ secrets.DB_NAME }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
           DOMAIN=${{ secrets.DOMAIN }}
-          S3_ENDPOINT=${{ secrets.S3_ENDPOINT || 'http://minio:9000' }}
-          S3_BUCKET=${{ secrets.S3_BUCKET || 'trip-manager' }}
+          S3_BUCKET=${{ secrets.FIREBASE_PROJECT_ID || 'trip-manager' }}
           S3_REGION=${{ secrets.S3_REGION || 'us-east-1' }}
-          S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY || 'minioadmin' }}
-          S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY || 'minioadmin' }}
-          S3_PUBLIC_URL=${{ secrets.S3_PUBLIC_URL }}
-          S3_USE_SSL=${{ secrets.S3_USE_SSL || 'false' }}
           EOF
 
       - name: Execute deploy script on server
@@ -308,6 +306,7 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"
 
+  
   deploy-gcp:
     needs: [detect-changes, summary]
     if: >

@@ -67,3 +67,8 @@ variable "domain_verification" {
   type = string
   description = "The TXT record value for domain ownership verification from https://search.google.com/search-console/welcome. This is required to set up custom domains with Cloud Run."
 }
+
+variable "me" {
+  type = string
+  description = "Your email address to grant permissions for load testing the deployed application."
+}

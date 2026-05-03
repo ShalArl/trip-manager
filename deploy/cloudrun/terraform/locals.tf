@@ -25,4 +25,8 @@ locals {
   sa_runtime_member = "serviceAccount:${google_service_account.runtime_sa.email}"
   sa_signer_member = "serviceAccount:${google_service_account.signed_url_signer.email}"
 
+
+  # Load Testing
+  load_test_user_member = "user:${var.me}"
+
 }
