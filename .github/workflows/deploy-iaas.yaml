@@ -306,7 +306,7 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/docker-compose.yaml ps"
 
-  
+
   deploy-gcp:
     needs: [detect-changes, summary]
     if: >
