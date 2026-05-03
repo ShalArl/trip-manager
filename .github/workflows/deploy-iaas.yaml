@@ -129,7 +129,7 @@ jobs:
           tags: |
             type=ref,event=branch,prefix=hetzner-
             type=sha,format=long,prefix=hetzner-
-            type=raw,value=hetzner-latest,enable={{is_default_branch}}
+            type=raw,value=hetzner-latest,enable=true
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -272,12 +272,12 @@ jobs:
 
           scp -P ${{ secrets.SERVER_PORT }} \
             deploy/hetzner/Caddyfile.final \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/
 
           # Rename Caddyfile on server
           ssh -p ${{ secrets.SERVER_PORT }} \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
+            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/Caddyfile"
 
       - name: Generate .env file
         run: |
@@ -298,13 +298,13 @@ jobs:
         run: |
           ssh -p ${{ secrets.SERVER_PORT }} \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.SERVER_USER }}/app/cloud && ./deploy.sh"
+            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.SERVER_USER }}/app && ./deploy.sh"
 
       - name: Verify Hetzner deployment
         run: |
           ssh -p ${{ secrets.SERVER_PORT }} \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"
+            "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/docker-compose.yaml ps"
 
   
   deploy-gcp:
