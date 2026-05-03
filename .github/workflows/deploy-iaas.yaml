@@ -140,7 +140,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL_HETZNER || 'https://iaas.neatnode.xyz' }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL_HETZNER || 'https://iaas.neatnode.xyz' }}
             NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
             NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -230,83 +230,29 @@ jobs:
       (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+        - name: Setup SSH Key
+          uses: webfactory/ssh-agent@v0.9.0
+          with:
+            ssh-private-key: ${{ secrets.SERVER_DEPLOY_KEY }}
 
-      - name: Setup SSH Key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_DEPLOY_KEY }}
+        - name: Add server to known hosts
+          run: |
+            ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Add server to known hosts
-        run: ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H "${{ secrets.SERVER_HOST }}"
-          >> ~/.ssh/known_hosts
+        - name: Deploy
+          run: |
+            ssh ${{ vars.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "cd /home/${{ vars.SERVER_USER }}/app && \
+               docker compose pull && \
+               docker compose up -d --remove-orphans && \
+               docker image prune -f"
 
-      - name: Create remote directories
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mkdir -p /home/${{ secrets.SERVER_USER }}/app/cloud/{docker,logs}"
+        - name: Verify
+          run: |
+            ssh ${{ vars.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "cd /home/${{ vars.SERVER_USER }}/app && docker compose ps"
+    
 
-      - name: Copy deploy files to server
-        env:
-          DOMAIN: ${{ secrets.DOMAIN }}
-        run: |
-          # Copy main files
-          scp -P ${{ secrets.SERVER_PORT }} \
-            deploy/hetzner/deployment/deploy.sh \
-            docker-compose.yaml \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
-
-          # Copy docker directory with initialization scripts
-          scp -P ${{ secrets.SERVER_PORT }} \
-            docker/minio-init.sh \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/docker/
-
-          # Make all scripts executable
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/docker/*.sh"
-
-          # Replace placeholders in Caddyfile and copy to server
-          envsubst < deploy/hetzner/deployment/Caddyfile > deploy/hetzner/Caddyfile.final
-
-          scp -P ${{ secrets.SERVER_PORT }} \
-            deploy/hetzner/Caddyfile.final \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/
-
-          # Rename Caddyfile on server
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/Caddyfile"
-
-      - name: Generate .env file
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
-          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
-          GHCR_PAT=${{ secrets.GHCR_PAT }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DOMAIN=${{ secrets.DOMAIN }}
-          S3_BUCKET=${{ secrets.FIREBASE_PROJECT_ID || 'trip-manager' }}
-          S3_REGION=${{ secrets.S3_REGION || 'us-east-1' }}
-          EOF
-
-      - name: Execute deploy script on server
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.SERVER_USER }}/app && ./deploy.sh"
-
-      - name: Verify Hetzner deployment
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/docker-compose.yaml ps"
-
-  
   deploy-gcp:
     needs: [detect-changes, summary]
     if: >

@@ -10,15 +10,15 @@ Complete guide for setting up and deploying the Trip Manager application to a He
 
 The Trip Manager application is currently deployed on the following infrastructure:
 
-| Component | Details         |
-|-----------|-----------------|
-| **Hoster** | Hetzner Cloud   |
-| **Operating System** | Ubuntu (latest LTS) |
-| **vCPU** | 2 cores         |
-| **RAM** | 4 GB            |
-| **Disk Storage** | 40 GB SSD       |
-| **Access URL** | https://www.travel-nugget.duckdns.org |
-| **API Endpoint** | https://www.travel-nugget.duckdns.org/api |
+| Component | Details                           |
+|-----------|-----------------------------------|
+| **Hoster** | Hetzner Cloud                     |
+| **Operating System** | Ubuntu (latest LTS)               |
+| **vCPU** | 2 cores                           |
+| **RAM** | 4 GB                              |
+| **Disk Storage** | 40 GB SSD                         |
+| **Access URL** | https://iaas-app.neatnode.xyz/    | 
+| **API Endpoint** | https://iaas.neatnode.xyz/api |
 
 ### Infrastructure Independence
 
@@ -106,7 +106,7 @@ DuckDNS is a free dynamic DNS service that allows you to:
 2. Sign in with any OAuth provider (GitHub, Google, etc.)
 3. Note your **DuckDNS Token** (you'll need it later)
 
-### 2. Create Your Domain
+### 2. Create Your Domain (Duck DNS)
 
 1. On the DuckDNS dashboard, enter your desired subdomain name (e.g., `travel-nugget`)
 2. Click "Add Domain"
