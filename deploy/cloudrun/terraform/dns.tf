@@ -1,4 +1,4 @@
-# New: setup domain
+# New: setup shared
 
 resource "google_dns_managed_zone" "main_zone" {
   dns_name    = local.dns_name

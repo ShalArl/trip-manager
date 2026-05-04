@@ -1,4 +1,4 @@
-BASE_URL ?= https://api.neatnode.xyz
+BASE_URL ?= https://hetzner.neatnode.xyz
 USERS ?= 10
 SPAWN_RATE ?= 10
 RUN_TIME ?= 5m
@@ -19,6 +19,9 @@ install:
 
 seed:
 	BASE_URL=$(BASE_URL) uv run python -m seeding.seed
+
+provision-only:
+	BASE_URL=$(BASE_URL) uv run python -m seeding.provision_only
 
 test:
 	BASE_URL=$(BASE_URL) uv run locust -f locustfile.py --host $(BASE_URL)

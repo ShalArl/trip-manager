@@ -20,7 +20,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
- * Get auth headers with a fresh Firebase ID token.
+ * Get middleware headers with a fresh Firebase ID token.
  * Always async: the token may need a refresh round-trip.
  */
 export async function getAuthHeaders(): Promise<HeadersInit> {
@@ -125,7 +125,7 @@ export async function updateMe(data: UpdateUserRequest): Promise<UserResponse> {
 
 /**
  * Change password directly via Firebase. Requires recent authentication —
- * Firebase throws `auth/requires-recent-login` if the session is too old,
+ * Firebase throws `middleware/requires-recent-login` if the session is too old,
  * in which case the caller must re-authenticate first.
  */
 export async function changePassword(data: ChangePasswordRequest): Promise<void> {
@@ -139,7 +139,7 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
         await reauthenticateWithCredential(user, credential);
     } catch (err: unknown) {
         // @ts-expect-error - Firebase Error has attribute code.
-        if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        if (err.code === "middleware/wrong-password" || err.code === "middleware/invalid-credential") {
             throw new Error("Aktuelles Passwort ist falsch");
         }
         throw err;
