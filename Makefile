@@ -46,6 +46,9 @@ help:
 	@echo "  make db-reset       Reset the database (CAUTION: deletes all data)"
 	@echo "  make db-setup       Setup database with migrations"
 	@echo ""
+	@echo "Seeding Commands:"
+	@echo "  make provision-only Provision users from CSV (requires running backend & Firebase)"
+	@echo ""
 	@echo "Cleanup Commands:"
 	@echo "  make clean          Remove built binaries"
 	@echo "  make clean-all      Remove binaries and generated files"
@@ -320,4 +323,10 @@ info: version help
 	@echo "  JWT_SECRET=your-secret-key (default: your-secret-key-change-in-production)"
 	@echo "  ENVIRONMENT=development (default)"
 	@echo ""
+
+# Provision users from CSV (requires running backend & Firebase)
+provision-only:
+	@echo "Starting user provisioning..."
+	@cd tests/loadtests && $(MAKE) provision-only
+	@echo "✓ Provisioning complete"
 
