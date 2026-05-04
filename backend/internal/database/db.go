@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"google.golang.org/api/option"
 )
 
 // ConnectSql establishes a database connection using the provided database URL
@@ -32,14 +34,17 @@ func ConnectFirestore(ctx context.Context, cfg *firebase.Config) (*firestore.Cli
 		return nil, fmt.Errorf("firestore project id required")
 	}
 
-	var client *firestore.Client
-	var err error
+	opts := []option.ClientOption{}
 
-	client, err = firestore.NewClient(ctx, cfg.ProjectID)
+	if credFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); credFile != "" {
+		opts = append(opts, option.WithCredentialsFile(credFile))
+	}
+
+	client, err := firestore.NewClient(ctx, cfg.ProjectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to firestore: %w", err)
 	}
 
-	log.Println("Successfully connected to the firestore via firestore")
+	log.Println("Successfully connected to firestore")
 	return client, nil
 }
