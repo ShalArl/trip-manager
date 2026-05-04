@@ -36,18 +36,26 @@ resource "google_dns_record_set" "google_verification" {
 
 # IAAS
 
-resource "google_dns_record_set" "iaas" {
-  name         = "iaas.${var.domain}."
+resource "google_dns_record_set" "hetzner" {
+  name         = "hetzner.${var.domain}."
   managed_zone = google_dns_managed_zone.main_zone.name
   type         = "A"
   ttl          = 300
-  rrdatas      = ["167.235.66.0"]  # von hetzner
+  rrdatas      = ["167.235.66.0"]
 }
 
-resource "google_dns_record_set" "iaas_app" {
-  name         = "iaas-app.${var.domain}."
+resource "google_dns_record_set" "hetzner_app" {
+  name         = "hetzner-app.${var.domain}."
   managed_zone = google_dns_managed_zone.main_zone.name
   type         = "A"
   ttl          = 300
-  rrdatas      = ["167.235.66.0"]  # von hetzner
+  rrdatas      = ["167.235.66.0"]
+}
+
+resource "google_dns_record_set" "hetzner_storage" {
+  name         = "hetzner-storage.${var.domain}."
+  managed_zone = google_dns_managed_zone.main_zone.name
+  type         = "A"
+  ttl          = 300
+  rrdatas      = ["167.235.66.0"]
 }

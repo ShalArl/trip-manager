@@ -24,6 +24,7 @@ class MediaUser(BaseUser):
         })
 
         if resp.status_code != 200:
+            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")  # ← was sagt Backend?
             return
 
         data = resp.json()

@@ -5,7 +5,7 @@ from locust import between, task
 from seeding.generators import get_bio, get_name, get_password
 
 class AccountUser(BaseUser):
-    weight = 5
+    weight = 3
     wait_time = between(1, 3)
 
     def __init__(self, *args, **kwargs):
