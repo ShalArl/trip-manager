@@ -7,7 +7,7 @@ from seeding.generators import generate_city
 
 
 class ReadUser(BaseUser):
-    weight = 0
+    weight = 70
     wait_time = between(1, 3)
 
 

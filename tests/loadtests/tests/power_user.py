@@ -9,7 +9,7 @@ from tests.media_user import IMAGES
 
 
 class PowerUser(BaseUser):
-    weight = 10
+    weight = 25
     wait_time = between(1, 3)
 
     def __init__(self, *args, **kwargs):
@@ -58,13 +58,13 @@ class PowerUser(BaseUser):
         self.activity_ids[trip_id][location_id] = []
 
         # Activity
-        act_resp = self.client.post(
-            f"/trips/{trip_id}/locations/{location_id}/activities",
-            json=generate_activity(location_id)
-        )
-        if act_resp.status_code == 201:
-            activity_id = act_resp.json()["id"]
-            self.activity_ids[trip_id][location_id].append(activity_id)
+        # act_resp = self.client.post(
+        #     f"/trips/{trip_id}/locations/{location_id}/activities",
+        #     json=generate_activity(location_id)
+        # )
+        # if act_resp.status_code == 201:
+        #     activity_id = act_resp.json()["id"]
+        #     self.activity_ids[trip_id][location_id].append(activity_id)
 
         # add comment to own trip
         comment_resp = self.client.post(f"/trips/{trip_id}/comments", json=generate_comment())
@@ -104,44 +104,44 @@ class PowerUser(BaseUser):
             return
 
         # 1. Presigned URL holen
-        presigned_resp = self.client.post("/uploads/presigned", json={
-            "fileName": "location-image.jpg",
-            "mediaType": "location-image",
-        })
-        if presigned_resp.status_code != 200:
-            return
+        # presigned_resp = self.client.post("/uploads/presigned", json={
+        #     "fileName": "location-image.jpg",
+        #     "mediaType": "location-image",
+        # })
+        # if presigned_resp.status_code != 200:
+        #     return
+        #
+        # data = presigned_resp.json()
+        # upload_url = data["presignedUrl"]
+        # image_key = data["objectKey"]
+        #
+        # image_bytes = random.choice(IMAGES)
+        # with httpx.Client() as client:
+        #     client.put(upload_url, content=image_bytes, headers={"Content-Type": "image/jpeg"})
+        #
+        # # 3. Bei Location registrieren
+        # self.client.post(
+        #     f"/trips/{trip_id}/locations/{location_id}/images",
+        #     json={"imageKey": image_key},
+        # )
 
-        data = presigned_resp.json()
-        upload_url = data["presignedUrl"]
-        image_key = data["objectKey"]
+    # @task(0)
+    # @with_auth
+    # def add_activity(self):
+    #     trip_id = self._random_trip_id()
+    #     if not trip_id:
+    #         return
+    #     location_id = self._random_location_id(trip_id)
+    #     if not location_id:
+    #         return
+    #     resp = self.client.post(
+    #         f"/trips/{trip_id}/locations/{location_id}/activities",
+    #         json=generate_activity(location_id)
+    #     )
+    #     if resp.status_code == 201:
+    #         print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")
+    #         self.activity_ids[trip_id][location_id].append(resp.json()["id"])
 
-        image_bytes = random.choice(IMAGES)
-        with httpx.Client() as client:
-            client.put(upload_url, content=image_bytes, headers={"Content-Type": "image/jpeg"})
-
-        # 3. Bei Location registrieren
-        self.client.post(
-            f"/trips/{trip_id}/locations/{location_id}/images",
-            json={"imageKey": image_key},
-        )
-
-
-    @task(0)
-    @with_auth
-    def add_activity(self):
-        trip_id = self._random_trip_id()
-        if not trip_id:
-            return
-        location_id = self._random_location_id(trip_id)
-        if not location_id:
-            return
-        resp = self.client.post(
-            f"/trips/{trip_id}/locations/{location_id}/activities",
-            json=generate_activity(location_id)
-        )
-        if resp.status_code == 201:
-            print(f"[DEBUG] {resp.status_code}: {resp.text[:500]}")
-            self.activity_ids[trip_id][location_id].append(resp.json()["id"])
 
     @task(3)
     @with_auth

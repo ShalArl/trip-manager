@@ -27,7 +27,7 @@ write_files:
           environment:
             ENVIRONMENT: production
             SERVER_PORT: "8081"
-            CORS_ALLOWED_ORIGINS: "https://iaas-app.neatnode.xyz"
+            CORS_ALLOWED_ORIGINS: "https://hetzner-app.neatnode.xyz"
             FIREBASE_PROJECT_ID: ${firebase_project_id}
             DATABASE_URL: postgres://${postgres_user}:${postgres_password}@postgres:5432/${postgres_db}?sslmode=disable
             STORAGE_TYPE: s3
@@ -37,7 +37,7 @@ write_files:
             S3_ACCESS_KEY: ${minio_access_key}
             S3_SECRET_KEY: ${minio_secret_key}
             S3_USE_SSL: "false"
-            S3_PUBLIC_URL: https://iaas-storage.neatnode.xyz
+            S3_PUBLIC_URL: https://hetzner-storage.neatnode.xyz
           depends_on:
             postgres:
               condition: service_healthy
@@ -145,23 +145,20 @@ write_files:
     permissions: '0644'
     defer: true
     content: |
-      iaas.neatnode.xyz {
+      hetzner.neatnode.xyz {
         reverse_proxy backend:8081
         encode gzip
-
-        log {
-          output stdout
-          format console
-        }
       }
 
-      iaas-app.neatnode.xyz {
+      hetzner-app.neatnode.xyz {
         reverse_proxy frontend:3000
         encode gzip
+      }
 
-        log {
-          output stdout
-          format console
+      hetzner-storage.neatnode.xyz {
+        reverse_proxy minio:9000
+        request_body {
+          max_size 100MB
         }
       }
 

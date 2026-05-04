@@ -33,12 +33,12 @@ variable "domain" {
 
 variable "backend_image" {
   type        = string
-  description = "Docker image for backend (e.g. ghcr.io/user/trip-manager-backend:latest)"
+  description = "Docker image for backend (e.g. ghcr.io/user/trip-manager/backend:latest)"
 }
 
 variable "frontend_image" {
   type        = string
-  description = "Docker image for frontend (e.g. ghcr.io/user/trip-manager-frontend:hetzner-latest)"
+  description = "Docker image for frontend (e.g. ghcr.io/user/trip-manager/frontend:hetzner-latest)"
 }
 
 variable "firebase_project_id" {
