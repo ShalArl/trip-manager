@@ -10,13 +10,14 @@ import (
 
 func (u *userRecord) toUser() *domain.User {
 	return &domain.User{
-		ID:           u.ID.String(),
-		Email:        u.Email,
-		Name:         u.Name,
-		Bio:          ptr.FromPtr(u.Bio),
-		PasswordHash: u.PasswordHash,
-		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.UpdatedAt,
+		ID:          u.ID.String(),
+		Email:       u.Email,
+		Name:        u.Name,
+		Bio:         ptr.FromPtr(u.Bio),
+		AvatarKey:   ptr.FromPtr(u.AvatarKey),
+		FirebaseUID: u.FirebaseUID,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
 	}
 }
 
@@ -32,12 +33,13 @@ func userToRecord(user *domain.User) (*userRecord, error) {
 	}
 
 	return &userRecord{
-		ID:           id,
-		Email:        user.Email,
-		Name:         user.Name,
-		Bio:          ptr.ToPtr(user.Bio),
-		PasswordHash: user.PasswordHash,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		ID:          id,
+		Email:       user.Email,
+		Name:        user.Name,
+		Bio:         ptr.ToPtr(user.Bio),
+		AvatarKey:   ptr.ToPtr(user.AvatarKey),
+		FirebaseUID: user.FirebaseUID,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
 	}, nil
 }

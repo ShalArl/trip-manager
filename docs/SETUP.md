@@ -1,33 +1,89 @@
 # Setup & Development Guide
 
-## 🚀 Quick Start with Makefile
+## 🚀 Quick Start
 
-### Fastest Way to Get Started
+### Fastest Way - Using Docker Compose (Recommended)
 
 ```bash
-cd trip-manager
+# Start all services (Frontend, Backend, Database, MinIO)
+docker-compose up
 
-# Automated setup: Docker + database + build
-make dev-setup
+# Or with Make:
+make docker-up
+```
 
-# Start the server
+Services will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:8000
+- **MinIO Console**: http://localhost:9001 (user: minioadmin)
+- **Database**: localhost:5432
+
+**Everything initializes automatically** - no manual setup needed!
+
+### Alternative: Manual Backend Development
+
+If you only want to run the backend with local services:
+
+```bash
+# 1. Start database and MinIO separately
+make db-up storage-up
+
+# 2. Build the backend
+make build
+
+# 3. Run the server
 make run
+
+# Or with auto-reload (requires 'air'):
+make run-dev
 ```
 
-### Available Makefile Commands
+---
 
+## 📦 Available Makefile Commands
+
+### Docker Commands (Recommended)
 ```bash
-make help              # Show all commands
-make build             # Build the backend binary
-make run               # Build and run
-make run-dev           # Run with auto-reload
-make test              # Run tests
-make docker-up         # Start PostgreSQL
-make docker-down       # Stop PostgreSQL
-make clean             # Clean binaries
+make docker-up              # Start all services
+make docker-down            # Stop all services
+make docker-logs            # View logs from all services
+make docker-logs-SERVICE    # View logs for specific service
 ```
 
-See `Makefile` for all 20+ commands!
+### Build & Run Commands
+```bash
+make build                  # Build the backend binary
+make run                    # Build and run the server
+make run-dev                # Run with auto-reload (requires air)
+make test                   # Run all tests
+make test-verbose           # Run tests with verbose output
+```
+
+### Database Commands
+```bash
+make db-up                  # Start PostgreSQL with Docker
+make db-down                # Stop PostgreSQL
+make db-setup               # Setup database with migrations
+make db-reset               # Reset database (CAUTION: deletes all data!)
+make migrate                # Run pending migrations
+```
+
+### Storage Commands
+```bash
+make storage-up             # Start MinIO with Docker
+make storage-down           # Stop MinIO
+```
+
+### Other Commands
+```bash
+make clean                  # Remove built binaries
+make clean-all              # Remove binaries and generated files
+make fmt                    # Format code
+make lint                   # Run linter (requires golangci-lint)
+make deps-check             # Check dependencies
+```
+
+See `Makefile` for complete reference!
 
 ---
 
@@ -36,7 +92,9 @@ See `Makefile` for all 20+ commands!
 **No manual migrations needed!** The server automatically runs all `.sql` files from `backend/internal/database/migrations/` on startup:
 
 ```bash
-make run
+docker-compose up
+# Or: make run
+
 # Output:
 # Found 1 migration files
 # Running migration: 001_init_schema.sql
@@ -88,7 +146,7 @@ pnpm gen
 ```
 
 This auto-generates:
-- **TypeScript types** → files in `frontend/src/generated/`
+- **TypeScript types** → files in `frontend/generated/`
 - **Go server code** → `backend/internal/generated/models.go`
 
 ### 3. Start Development
@@ -129,7 +187,7 @@ pnpm build      # Production build
 pnpm lint       # Run ESLint
 ```
 
-**Generated Types** (`frontend/src/generated/types.ts`):
+**Generated Types** (`frontend/generated/types.ts`):
 - Auto-generated TypeScript interfaces from OpenAPI spec
 - Use directly in your API service layer (build your own fetch wrapper)
 

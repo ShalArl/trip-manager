@@ -7,8 +7,9 @@ type Props = {
   locationId: string | null;
   locationName: string;
   tripStartDate: string;
-  onClose: () => void;
-  onAdd: (activity: {
+
+  onCloseAction: () => void;
+  onAddAction: (activity: {
     name: string;
     date: string;
     category: "sightseeing" | "dining" | "transport" | "accommodation" | "other";
@@ -33,8 +34,8 @@ export default function AddActivityModal({
   locationId,
   locationName,
   tripStartDate,
-  onClose,
-  onAdd,
+  onCloseAction,
+  onAddAction,
 }: Props) {
   const [formData, setFormData] = useState({
     name: "",
@@ -55,7 +56,7 @@ export default function AddActivityModal({
       return;
     }
 
-    onAdd({
+    onAddAction({
       name: formData.name,
       date: formData.date,
       category: formData.category as any,
@@ -76,7 +77,7 @@ export default function AddActivityModal({
       cost: "",
       currency: "EUR",
     });
-    onClose();
+    onCloseAction();
   };
 
   if (!isOpen || !locationId) return null;
@@ -229,7 +230,7 @@ export default function AddActivityModal({
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={onCloseAction}
               className="flex-1 px-4 py-2 text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg font-medium transition-colors"
             >
               Abbrechen

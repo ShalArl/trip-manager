@@ -20,23 +20,36 @@ func (rec *locationRecord) toLocation() *domain.Location {
 				Email: rec.UserEmail,
 			},
 		},
-		TripID:  rec.TripID.String(),
-		Name:    rec.Name,
-		City:    rec.City,
-		Country: rec.Country,
+		TripID:           rec.TripID.String(),
+		Name:             rec.Name,
+		City:             rec.City,
+		Country:          rec.Country,
+		ShortDescription: rec.ShortDescription,
+		DateFrom:         rec.DateFrom,
+		DateTo:           rec.DateTo,
 		Coordinates: domain.Point{
 			Lat: ptr.FromPtr(rec.Latitude),
 			Lon: ptr.FromPtr(rec.Longitude),
 		},
 		Notes:    ptr.FromPtr(rec.Notes),
 		Sequence: ptr.FromPtr(rec.Sequence),
+		Images:   []domain.LocationImage{},
+	}
+}
+
+func (rec *locationImageRecord) toLocationImage() domain.LocationImage {
+	return domain.LocationImage{
+		ID:         rec.ID.String(),
+		LocationID: rec.LocationID.String(),
+		ImageKey:   rec.ImageKey,
+		Sequence:   ptr.FromPtr(rec.Sequence),
+		CreatedAt:  rec.CreatedAt,
 	}
 }
 
 func locationToRecord(location *domain.Location) (*locationRecord, error) {
 	var locationID uuid.UUID
 	var err error
-
 	if location.ID != "" {
 		locationID, err = uuid.Parse(location.ID)
 		if err != nil {
@@ -55,19 +68,22 @@ func locationToRecord(location *domain.Location) (*locationRecord, error) {
 	}
 
 	return &locationRecord{
-		ID:        locationID,
-		TripID:    tripID,
-		Name:      location.Name,
-		City:      location.City,
-		Country:   location.Country,
-		Latitude:  ptr.ToPtr(location.Coordinates.Lat),
-		Longitude: ptr.ToPtr(location.Coordinates.Lon),
-		Notes:     ptr.ToPtr(location.Notes),
-		Sequence:  ptr.ToPtrNonEmpty(location.Sequence),
-		CreatedAt: location.CreatedAt,
-		UpdatedAt: location.UpdatedAt,
-		UserID:    userID,
-		UserName:  location.CreatedBy.Name,
-		UserEmail: location.CreatedBy.Email,
+		ID:               locationID,
+		TripID:           tripID,
+		Name:             location.Name,
+		City:             location.City,
+		Country:          location.Country,
+		ShortDescription: location.ShortDescription,
+		DateFrom:         location.DateFrom,
+		DateTo:           location.DateTo,
+		Latitude:         ptr.ToPtr(location.Coordinates.Lat),
+		Longitude:        ptr.ToPtr(location.Coordinates.Lon),
+		Notes:            ptr.ToPtrNonEmpty(location.Notes),
+		Sequence:         ptr.ToPtrNonEmpty(location.Sequence),
+		CreatedAt:        location.CreatedAt,
+		UpdatedAt:        location.UpdatedAt,
+		UserID:           userID,
+		UserName:         location.CreatedBy.Name,
+		UserEmail:        location.CreatedBy.Email,
 	}, nil
 }

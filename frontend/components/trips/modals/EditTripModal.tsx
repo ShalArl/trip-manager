@@ -8,15 +8,15 @@ type TripResponse = components["schemas"]["TripResponse"];
 type Props = {
   isOpen: boolean;
   trip: TripResponse;
-  onClose: () => void;
-  onSave: (trip: Partial<TripResponse>) => void;
+  onCloseAction: () => void;
+  onSaveAction: (trip: Partial<TripResponse>) => void;
 };
 
 export default function EditTripModal({
   isOpen,
   trip,
-  onClose,
-  onSave,
+  onCloseAction,
+  onSaveAction,
 }: Props) {
   const [formData, setFormData] = useState({
     title: trip.title,
@@ -50,13 +50,13 @@ export default function EditTripModal({
       return;
     }
 
-    onSave({
+    onSaveAction({
       title: formData.title,
       shortDescription: formData.shortDescription,
       description: formData.description || undefined,
     });
 
-    onClose();
+    onCloseAction();
   };
 
   if (!isOpen) return null;
@@ -164,7 +164,7 @@ export default function EditTripModal({
           <div className="flex gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800">
             <button
               type="button"
-              onClick={onClose}
+              onClick={onCloseAction}
               className="flex-1 px-4 py-3 text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl font-semibold transition-all duration-200 active:scale-95"
             >
               ← Abbrechen

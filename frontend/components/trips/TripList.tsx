@@ -1,4 +1,3 @@
-import { Trip } from "@/types/trip";
 import Link from "next/link";
 
 import { components } from "@/generated/types";

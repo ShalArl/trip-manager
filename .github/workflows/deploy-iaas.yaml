@@ -2,7 +2,7 @@ name: Build & Push Docker Images
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
     branches:
       - main
       - dev
@@ -36,11 +36,13 @@ jobs:
               - 'api-spec/**'
               - '.github/workflows/deploy-iaas.yaml'
               - 'deploy/hetzner/deployment/**'
+              - 'docker/**'
             frontend:
               - 'frontend/**'
               - 'api-spec/**'
               - '.github/workflows/deploy-iaas.yaml'
               - 'deploy/hetzner/deployment/**'
+              - 'docker/**'
 
   # Build and push backend image if changes detected
   build-backend:
@@ -50,31 +52,44 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
 
-      - name: Debug - Print output
-        run: echo "Backend changes detected, proceeding with build"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ vars.GCP_AR_HOST }}
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/backend
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend
+            ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend
           tags: |
             type=ref,event=branch
-            type=sha
-            type=raw,value=latest
+            type=sha,format=long
+            type=raw,value=latest,enable=true
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -86,8 +101,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
-  # Build and push frontend image if changes detected
-  build-frontend:
+
+  # Build and push frontend image (hetzner) if changes detected
+  build-frontend-hetzner:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -96,14 +112,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
 
-      - name: Debug - Print output
-        run: echo "Frontend changes detected, proceeding with build"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -116,9 +127,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/frontend
           tags: |
-            type=ref,event=branch
-            type=sha
-            type=raw,value=latest
+            type=ref,event=branch,prefix=hetzner-
+            type=sha,format=long,prefix=hetzner-
+            type=raw,value=hetzner-latest,enable=true
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -129,90 +140,154 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL != '' && secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL_HETZNER || 'https://iaas.neatnode.xyz' }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          cache-from: type=gha,scope=frontend-hetzner
+          cache-to: type=gha,mode=max,scope=frontend-hetzner
+
+  build-frontend-gcp:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ vars.GCP_AR_HOST }}
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL_GCP || 'https://placeholder.invalid' }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          cache-from: type=gha,scope=frontend-gcp
+          cache-to: type=gha,mode=max,scope=frontend-gcp
+
   # Summary job
   summary:
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-backend, build-frontend]
+    needs: [ detect-changes, build-backend, build-frontend-gcp, build-frontend-hetzner ]
     if: always()
     steps:
       - name: Check build status
         run: |
-          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend.result }}" = "skipped" ]; then
+          if [ "${{ needs.build-backend.result }}" = "skipped" ] && [ "${{ needs.build-frontend-gcp.result }}" = "skipped" ] && [ "${{ needs.build-frontend-hetzner.result }}" = "skipped" ]; then
             echo "✓ No changes detected - skipping builds"
           else
             echo "✓ Build pipeline completed"
             echo "Backend build: ${{ needs.build-backend.result }}"
-            echo "Frontend build: ${{ needs.build-frontend.result }}"
+            echo "Frontend build: ${{ needs.build-frontend-gcp.result }}" || echo "Frontend build: ${{ needs.build-frontend-hetzner.result }}"
           fi
 
   # Deploy to Server (only after push to main/dev with successful builds)
-  deploy:
-    needs: [detect-changes, summary]
+  # Only if tag hetzner-release is set as currently hetzner deployment is not fully setup for Auth with firebase
+  deploy-hetzner:
+    needs: [ detect-changes, build-backend, build-frontend-hetzner, summary ]
     if: >
+      always() &&
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
-      (needs.detect-changes.outputs.backend == 'true' || 
-       needs.detect-changes.outputs.frontend == 'true')
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.build-frontend-hetzner.result == 'success' || needs.build-frontend-hetzner.result == 'skipped') &&
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-
       - name: Setup SSH Key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SERVER_DEPLOY_KEY }}
 
       - name: Add server to known hosts
-        run: ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Copy deploy files to server
-        env:
-          DOMAIN: ${{ secrets.DOMAIN }}
         run: |
-          scp -P ${{ secrets.SERVER_PORT }} \
-            -r deploy/hetzner/deployment/deploy.sh \
-            docker-compose.yaml \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
-          
-          # Replace placeholders in Caddyfile and copy to server
-          envsubst < deploy/hetzner/deployment/Caddyfile > deploy/hetzner/Caddyfile.final
-          
-          scp -P ${{ secrets.SERVER_PORT }} \
-            deploy/hetzner/deployment/deploy.sh \
-            docker-compose.yaml \
-            deploy/hetzner/Caddyfile.final \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/app/cloud/
-          
-          # Rename Caddyfile on server
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mv /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile.final /home/${{ secrets.SERVER_USER }}/app/cloud/Caddyfile"
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Generate .env.example file
+      - name: Deploy
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            tee /home/${{ secrets.SERVER_USER }}/app/cloud/.env << 'EOF'
-          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
-          GHCR_PAT=${{ secrets.GHCR_PAT }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          DOMAIN=${{ secrets.DOMAIN }}
-          EOF
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cd /home/${{ secrets.SERVER_USER }}/app && \
+             docker compose pull && \
+             docker compose up -d --remove-orphans && \
+             docker image prune -f"
 
-      - name: Execute deploy script on server
+      - name: Verify
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "chmod +x /home/${{ secrets.SERVER_USER }}/app/cloud/deploy.sh && cd /home/${{ secrets.SERVER_USER }}/app/cloud && ./deploy.sh"
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cd /home/${{ secrets.SERVER_USER }}/app && docker compose ps"
+  
+  deploy-gcp:
+    needs: [detect-changes, summary]
+    if: >
+      always() &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.build-frontend-gcp.result == 'success' || needs.build-frontend-gcp.result == 'skipped') &&
+      (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
 
-      - name: Verify deployment
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Update Backend Image
+        if: needs.detect-changes.outputs.backend == 'true'
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "docker-compose -f /home/${{ secrets.SERVER_USER }}/app/cloud/docker-compose.yaml ps"
+          gcloud run services update ${{ vars.GCP_BACKEND_SERVICE }} \
+            --image=${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend:sha-${{ github.sha }} \
+            --region=${{ vars.GCP_REGION }} \
+            --project=${{ vars.GCP_PROJECT_ID }} \
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:trip-manager-db
+
+      - name: Update Frontend Image
+        if: needs.detect-changes.outputs.frontend == 'true'
+        run: |
+          gcloud run services update ${{ vars.GCP_FRONTEND_SERVICE }} \
+            --image=${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend:sha-${{ github.sha }} \
+            --region=${{ vars.GCP_REGION }} \
+            --project=${{ vars.GCP_PROJECT_ID }}

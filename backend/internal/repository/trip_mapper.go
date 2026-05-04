@@ -9,15 +9,17 @@ import (
 )
 
 func (t *tripRecord) toTrip() *domain.Trip {
+
 	return &domain.Trip{
 		ResourceMeta: domain.ResourceMeta{
 			ID:        t.ID.String(),
 			CreatedAt: t.CreatedAt,
 			UpdatedAt: t.UpdatedAt,
 			CreatedBy: domain.UserSummary{
-				ID:    t.UserID.String(),
-				Name:  t.UserName,
-				Email: t.UserEmail,
+				ID:        t.UserID.String(),
+				Name:      t.UserName,
+				Email:     t.UserEmail,
+				AvatarKey: t.UserAvatarKey,
 			},
 		},
 		Title:            t.Title,
@@ -58,5 +60,6 @@ func tripToRecord(trip *domain.Trip) (*tripRecord, error) {
 		UpdatedAt:        trip.UpdatedAt,
 		UserName:         trip.CreatedBy.Name,
 		UserEmail:        trip.CreatedBy.Email,
+		UserAvatarKey:    trip.CreatedBy.AvatarKey,
 	}, nil
 }

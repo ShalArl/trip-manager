@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/ShalArl/trip-manager/internal/domain"
 	"github.com/ShalArl/trip-manager/internal/generated"
+	"github.com/ShalArl/trip-manager/internal/infrastructure"
 	"github.com/ShalArl/trip-manager/internal/repository"
-	"github.com/ShalArl/trip-manager/internal/storage"
 )
 
 type UserService interface {
@@ -17,35 +20,35 @@ type UserService interface {
 	// GetUserByEmail retrieves a user by their email address.
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 
-	// CreateUser creates a new user with the provided details.
-	CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*domain.User, error)
-
 	// UpdateUser updates an existing user's details.
 	UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error)
 
-	// UpdateUserPassword only called internally! Updates an existing user's details without validation (used by AuthService to update password)
-	UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error)
-
 	// DeleteUser removes a user from the system by their ID.
 	DeleteUser(ctx context.Context, id string) error
+
+	// ResolveByFirebaseUID retrieves user details for a given firebase uid
+	ResolveByFirebaseUID(ctx context.Context, firebaseUID string) (string, error)
+
+	// ProvisionUser for a given firebase uid + requires user details to be stored in db
+	ProvisionUser(ctx context.Context, firebaseUID, email, name string) (*domain.User, bool, error)
 }
 
 type UserServiceImpl struct {
 	userRepository repository.UserRepository
-	s              *storage.Storage
+	mediaService   infrastructure.MediaService
+}
+
+// NewUserService creates a new UserService
+func NewUserService(userRepo repository.UserRepository, mediaService infrastructure.MediaService) UserService {
+	return &UserServiceImpl{
+		userRepository: userRepo,
+		mediaService:   mediaService,
+	}
 }
 
 // CreateUser implements [UserService].
-func (u *UserServiceImpl) CreateUser(ctx context.Context, request *generated.CreateUserRequest) (*domain.User, error) {
-	// 1. Validate input (business logic validation)
-	if err := validateCreateUserRequest(*request); err != nil {
-		return nil, err
-	}
-
-	// 2. Convert from generated type to domain
-	user := mapCreateUserRequestToUser(request)
-
-	// 3. Call repository to persist
+func (u *UserServiceImpl) CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
+	log.Default().Printf("Creating user with email: %s", user.Email)
 	createdUser, err := u.userRepository.CreateUser(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -86,21 +89,35 @@ func (u *UserServiceImpl) GetUserByEmail(ctx context.Context, email string) (*do
 
 // UpdateUser implements [UserService].
 func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *generated.UpdateUserRequest) (*domain.User, error) {
-	// 1. Validate input (business logic validation)
 	if err := validateUpdateUserRequest(*request); err != nil {
 		return nil, err
 	}
 
-	// 2. Fetch existing user
+	// Verify AvatarKey if set
+	if request.AvatarKey != nil && *request.AvatarKey != "" {
+		// Sanity-Check: Does it belong to the current User?
+		expectedPrefix := fmt.Sprintf("avatars/%s", id)
+		if !strings.HasPrefix(*request.AvatarKey, expectedPrefix) {
+			return nil, fmt.Errorf("%w: avatar key does not belong to user", domain.ErrInvalidInput)
+		}
+
+		// Does the file exist?
+		exists, err := u.mediaService.ConfirmUpload(ctx, *request.AvatarKey)
+		if err != nil {
+			return nil, fmt.Errorf("verify avatar upload: %w", err)
+		}
+		if !exists {
+			return nil, fmt.Errorf("%w: avatar not uploaded", domain.ErrInvalidInput)
+		}
+	}
+
 	existingUser, err := u.userRepository.GetUser(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// 3. Convert from generated type to domain
 	user := mapUpdateUserRequestToUser(request, existingUser)
 
-	// 4. Call repository to update and get updated record
 	updatedUser, err := u.userRepository.UpdateUserProfile(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
@@ -109,18 +126,34 @@ func (u *UserServiceImpl) UpdateUser(ctx context.Context, id string, request *ge
 	return updatedUser, nil
 }
 
-// UpdateUserPassword called only internally by AuthService therefore no validation
-func (u *UserServiceImpl) UpdateUserPassword(ctx context.Context, user *domain.User) (*domain.User, error) {
-	updatedUser, err := u.userRepository.UpdateUserPassword(ctx, user)
+// ResolveByFirebaseUID implements [UserService] + [UserResolver]
+func (u *UserServiceImpl) ResolveByFirebaseUID(ctx context.Context, firebaseUID string) (string, error) {
+	user, err := u.userRepository.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update user: %w", err)
+		return "", err
 	}
-	return updatedUser, nil
+	return user.ID, nil
 }
 
-func NewUserService(userRepository repository.UserRepository, s *storage.Storage) UserService {
-	return &UserServiceImpl{
-		userRepository: userRepository,
-		s:              s,
+// ProvisionUser implements [UserService] + [UserResolver]
+func (u *UserServiceImpl) ProvisionUser(ctx context.Context, firebaseUID, email, name string) (*domain.User, bool, error) {
+	existing, err := u.userRepository.GetUserByFirebaseUID(ctx, firebaseUID)
+	if err == nil {
+		return existing, false, nil
 	}
+	if !errors.Is(err, domain.ErrNotFound) {
+		return nil, false, fmt.Errorf("lookup existing user: %w", err)
+	}
+
+	user := &domain.User{
+		FirebaseUID: firebaseUID,
+		Email:       email,
+		Name:        name,
+	}
+	created, err := u.userRepository.CreateUser(ctx, user)
+	if err != nil {
+		println("failed to create user")
+		return nil, false, err
+	}
+	return created, true, nil
 }

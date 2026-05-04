@@ -9,7 +9,8 @@
     "gen": "turbo run gen",
     "gen:ts": "mkdirp ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
     "gen:go": "mkdirp ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen --config=oapi-codegen.yaml ./api-spec/openapi.yaml",
-    "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/src/generated/{src,docs,.openapi-generator} ./frontend/src/generated/{*.json,*.md}"
+    "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/generated/{src,docs,.openapi-generator} ./frontend/generated/{*.json,*.md}",
+    "clean:turbo": "rm -rf .turbo frontend/.turbo backend/.turbo"
   },
   "devDependencies": {
     "mkdirp": "^3.0.1",

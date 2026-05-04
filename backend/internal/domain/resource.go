@@ -10,9 +10,10 @@ type ResourceMeta struct {
 }
 
 type UserSummary struct {
-	ID    string
-	Name  string
-	Email string
+	ID        string
+	Name      string
+	Email     string
+	AvatarKey *string
 }
 
 type ListResult[T any] struct {
