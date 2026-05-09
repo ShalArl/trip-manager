@@ -26,23 +26,22 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Track whether the user had an avatar at initial render — stable reference
+    const [hadAvatarInitially] = useState(!!user.avatarUrl);
+
     const { updateUser: updateUserContext } = useUserContext();
 
     const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Validate file type
             if (!file.type.startsWith("image/")) {
                 setError("Bitte wähle eine Bilddatei aus");
                 return;
             }
-
-            // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 setError("Datei muss kleiner als 5MB sein");
                 return;
             }
-
             setAvatarFile(file);
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -61,50 +60,6 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
         }
     };
 
-    /*const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        setSuccess(false);
-        setLoading(true);
-
-        try {
-            let avatarKey: string | undefined;
-
-            if (avatarFile) {
-                console.log("[ProfileSettings] Starting presigned avatar upload...");
-                avatarKey = await uploadAvatar(avatarFile);
-                console.log("[ProfileSettings] Avatar uploaded, key:", avatarKey);
-                setAvatarFile(null);
-            }
-
-            const updateData: UpdateUserRequest = {
-                name,
-                email,
-                bio,
-                ...(avatarKey && { avatarKey }),
-            };
-
-            console.log("[ProfileSettings] Updating user profile...");
-            const data = await updateMe(updateData);
-            console.log("[ProfileSettings] Profile updated:", data);
-
-            updateUserContext(data);
-            setSuccess(true);
-            //setAvatarPreview(data.avatarUrl || null);
-            if (!avatarFile) {
-                setAvatarPreview(data.avatarUrl ? `${data.avatarUrl}&t=${Date.now()}` : null);
-            }
-            setAvatarFile(null);
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : "Fehler beim Aktualisieren des Profils"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };*/
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -114,7 +69,13 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
         try {
             let avatarKey: string | undefined;
             const hadNewAvatar = avatarFile !== null;
-            const isAvatarRemoved = avatarPreview === null && !!user.avatarUrl;
+
+            // Use stable initial value — not the prop which may have changed via context
+            const isAvatarRemoved = avatarPreview === null && hadAvatarInitially;
+
+            console.log("[ProfileSettings] isAvatarRemoved:", isAvatarRemoved);
+            console.log("[ProfileSettings] avatarPreview:", avatarPreview);
+            console.log("[ProfileSettings] hadAvatarInitially:", hadAvatarInitially);
 
             if (avatarFile) {
                 console.log("[ProfileSettings] Starting presigned avatar upload...");
@@ -131,7 +92,8 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                 ...(isAvatarRemoved && { avatarKey: null }),
             };
 
-            console.log("[ProfileSettings] Updating user profile...", updateData);
+            console.log("[ProfileSettings] updateData:", updateData);
+
             const data = await updateMe(updateData);
             console.log("[ProfileSettings] Profile updated:", data);
 
@@ -157,15 +119,14 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
         email !== user.email ||
         bio !== (user.bio || "") ||
         avatarFile !== null ||
-        (avatarPreview === null && user.avatarUrl);
+        (avatarPreview === null && hadAvatarInitially);
 
     return (
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Success Message */}
                 {success && (
-                    <div
-                        className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-900 p-4 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-900 p-4 animate-in fade-in duration-300">
                         <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <p className="text-sm font-medium text-green-800 dark:text-green-200">
                             Profil erfolgreich aktualisiert
@@ -175,8 +136,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
 
                 {/* Error Message */}
                 {error && (
-                    <div
-                        className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4 animate-in fade-in duration-300">
                         <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
                         <p className="text-sm font-medium text-red-800 dark:text-red-200">
                             {error}
@@ -192,7 +152,6 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                     </Label>
 
                     <div className="flex items-center gap-6">
-                        {/* Avatar Preview - Same as Navbar */}
                         <div className="flex-shrink-0">
                             <Avatar className="h-32 w-32 border-4 border-zinc-200 dark:border-zinc-800">
                                 {avatarPreview && <AvatarImage src={avatarPreview} alt={name} />}
@@ -202,7 +161,6 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                             </Avatar>
                         </div>
 
-                        {/* Upload Controls */}
                         <div className="space-y-3">
                             <input
                                 ref={fileInputRef}
@@ -219,7 +177,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                                 >
                                     Bild hochladen
                                 </Button>
-                                {(avatarPreview || user.avatarUrl) && (
+                                {(avatarPreview || hadAvatarInitially) && (
                                     <Button
                                         type="button"
                                         onClick={handleRemoveAvatar}
@@ -242,10 +200,8 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
 
                 {/* Name Field */}
                 <div className="space-y-3">
-                    <Label htmlFor="name"
-                        className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                        📝
-                        Name
+                    <Label htmlFor="name" className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                        📝 Name
                     </Label>
                     <Input
                         id="name"
@@ -261,8 +217,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
 
                 {/* Email Field */}
                 <div className="space-y-3">
-                    <Label htmlFor="email"
-                        className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <Label htmlFor="email" className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         E-Mail
                     </Label>
@@ -297,8 +252,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                 </div>
 
                 {/* Info Text */}
-                <div
-                    className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-4">
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 p-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                         <span className="font-semibold">Tipp:</span> Deine Änderungen werden sofort gespeichert.
                     </p>
@@ -313,8 +267,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                     >
                         {loading ? (
                             <div className="flex items-center gap-2">
-                                <div
-                                    className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Wird gespeichert...
                             </div>
                         ) : (
@@ -328,4 +281,3 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
 };
 
 export default ProfileSettings;
-
