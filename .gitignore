@@ -56,3 +56,5 @@ backend/.turbo/           # Turbo cache
 # other
 firebase-debug.log
 firestore-debug.log
+node_modules
+*.log
