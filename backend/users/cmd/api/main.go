@@ -38,6 +38,11 @@ func main() {
 	mux.HandleFunc("POST /api/users/provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /api/users/me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /api/users/me", requireAuth(handler.UpdateMeHandler(svc)))
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
 
 	log.Printf("users service starting on port %s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
