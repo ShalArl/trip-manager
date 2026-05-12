@@ -1,27 +1,38 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/users/config"
+	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 func main() {
+	ctx := context.Background()
 	cfg := config.Load()
 
 	// DB
-	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
+	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	// Migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("failed to run migrations: %v", err)
+	}
 
 	// Auth client
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
@@ -35,17 +46,37 @@ func main() {
 
 	// Router
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/users/provision", requireAuth(handler.ProvisionHandler(svc)))
-	mux.HandleFunc("GET /api/users/me", requireAuth(handler.GetMeHandler(svc)))
-	mux.HandleFunc("PUT /api/users/me", requireAuth(handler.UpdateMeHandler(svc)))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	mux.HandleFunc("POST /api/users/provision", requireAuth(handler.ProvisionHandler(svc)))
+	mux.HandleFunc("GET /api/users/me", requireAuth(handler.GetMeHandler(svc)))
+	mux.HandleFunc("PUT /api/users/me", requireAuth(handler.UpdateMeHandler(svc)))
+
+	// Server
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: mux,
+	}
+
+	// Graceful shutdown
+	go func() {
+		sigch := make(chan os.Signal, 1)
+		signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
+		<-sigch
+		log.Println("Shutting down server...")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.Fatalf("Failed to shutdown server: %v", err)
+		}
+	}()
 
 	log.Printf("users service starting on port %s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server failed: %v", err)
 	}
+	log.Println("Server stopped")
 }
