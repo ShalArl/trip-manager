@@ -13,6 +13,8 @@ COPY social/go.mod social/go.mod
 COPY social/go.sum social/go.sum
 COPY shared/authclient/go.mod shared/authclient/go.mod
 COPY shared/authclient/go.sum shared/authclient/go.sum
+COPY users/go.mod users/go.mod
+COPY users/go.sum users/go.sum
 
 RUN go work sync
 
