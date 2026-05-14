@@ -1,0 +1,4 @@
+gcp:
+  projectID: ""
+  region: ""
+  clusterName: ""

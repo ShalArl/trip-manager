@@ -41,7 +41,7 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                         onClick={() => router.push("/")}
                     >
                         <span className="text-xl">🌍</span>
-                        <span className="text-lg font-bold tracking-tight">TravelBuddy</span>
+                        <span className="text-lg font-bold tracking-tight">Trip Manager</span>
                     </div>
                     <button
                         onClick={() => router.push("/search")}

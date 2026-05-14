@@ -1,0 +1,41 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8085
+
+replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80
+
+env:
+  - name: PORT
+    value: "8085"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: PRESIGNER_URL_EXPIRATION
+    value: "15m"
+
+envFrom: []
+
+serviceAccount:
+  gcpServiceAccount: ""

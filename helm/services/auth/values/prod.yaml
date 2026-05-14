@@ -1,0 +1,39 @@
+replicaCount: 2
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+
+env:
+  - name: PORT
+    value: "8082"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: FIREBASE_PROJECT_ID
+    valueFrom:
+      secretKeyRef:
+        name: auth-secrets
+        key: FIREBASE_PROJECT_ID
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: FIREBASE_PROJECT_ID
+      remoteKey: auth-firebase-project-id
+
+envFrom:
+  - secretRef:
+      name: auth-secrets
+
+serviceAccount:
+  gcpServiceAccount: "auth-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
+
