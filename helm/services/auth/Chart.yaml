@@ -1,0 +1,8 @@
+apiVersion: v2
+name: auth
+version: 0.1.0
+description: Helm chart for the auth service
+dependencies:
+  - name: common
+    version: "1.0.0"
+    repository: "file://../../charts/common"

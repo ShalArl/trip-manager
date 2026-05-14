@@ -1,0 +1,38 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trip-manager-ingress-api
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- if eq .Values.ingress.className "nginx" }}
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - http:
+        paths:
+          - path: /api/auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.auth.service }}
+                port:
+                  number: {{ .Values.routes.auth.port }}
+          - path: /api/presign(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.presigner.service }}
+                port:
+                  number: {{ .Values.routes.presigner.port }}
+          - path: /api/social(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.social.service }}
+                port:
+                  number: {{ .Values.routes.social.port }}
+{{- end }}

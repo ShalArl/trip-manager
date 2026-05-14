@@ -13,6 +13,7 @@ resource "google_sql_database_instance" "main" {
     availability_type           = "ZONAL"
     
   }
+  deletion_protection = false
 
   depends_on = [google_project_service.services["run.googleapis.com"]]
 }
@@ -20,6 +21,7 @@ resource "google_sql_database_instance" "main" {
 resource "google_sql_database" "app_db" {
   name     = var.db_name
   instance = google_sql_database_instance.main.name
+  deletion_policy = ""
 }
 
 resource "google_sql_user" "db_user" {

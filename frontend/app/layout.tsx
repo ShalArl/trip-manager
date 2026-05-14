@@ -13,7 +13,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "TravelBuddy — Dein digitaler Reisebegleiter",
+  title: "Trip Manager — Dein digitaler Reisebegleiter",
   description: "Reisen planen, Packlisten erstellen und Budget im Blick behalten.",
 };
 
