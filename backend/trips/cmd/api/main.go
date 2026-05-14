@@ -54,13 +54,13 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	mux.HandleFunc("GET /api/trips", requireAuth(handler.ListTripsHandler(svc)))
+	mux.HandleFunc("GET /api/trips", requireAuth(handler.ListTripsHandler(svc, usersClient)))
 	mux.HandleFunc("POST /api/trips", requireAuth(handler.CreateTripHandler(svc, usersClient)))
 	mux.HandleFunc("GET /api/trips/recent", optionalAuth(handler.ListRecentTripsHandler(svc)))
 	mux.HandleFunc("GET /api/trips/search", optionalAuth(handler.SearchTripsHandler(svc)))
 	mux.HandleFunc("GET /api/trips/{tripId}", optionalAuth(handler.GetTripHandler(svc)))
-	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(handler.UpdateTripHandler(svc)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(handler.DeleteTripHandler(svc)))
+	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(handler.UpdateTripHandler(svc, usersClient)))
+	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(handler.DeleteTripHandler(svc, usersClient)))
 
 	// Server
 	server := &http.Server{

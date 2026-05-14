@@ -40,6 +40,7 @@ type UpdateInput struct {
 
 type Service interface {
 	GetByID(ctx context.Context, id string) (*User, error)
+	GetByFirebaseUID(ctx context.Context, firebaseUID string) (*User, error)
 	Provision(ctx context.Context, input ProvisionInput) (*User, bool, error)
 	Update(ctx context.Context, input UpdateInput) (*User, error)
 }
@@ -56,6 +57,14 @@ func NewService(repo repository.Repository) Service {
 
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*User, error) {
 	u, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return repoToService(u), nil
+}
+
+func (s *serviceImpl) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*User, error) {
+	u, err := s.repo.GetByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		return nil, err
 	}

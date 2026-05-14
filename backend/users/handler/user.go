@@ -9,6 +9,7 @@ import (
 	generated "github.com/ShalArl/trip-manager/backend/users/generated"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
+	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -29,8 +30,15 @@ func toResponse(u *service.User) generated.UserResponse {
 	if u.AvatarKey != "" {
 		avatarUrl = &u.AvatarKey
 	}
+	id := openapi_types.UUID{}
+	if u.ID != "" {
+		parsed, err := uuid.Parse(u.ID)
+		if err == nil {
+			id = openapi_types.UUID(parsed)
+		}
+	}
 	return generated.UserResponse{
-		Id:        nil,
+		Id:        &id,
 		Email:     openapi_types.Email(u.Email),
 		Name:      u.Name,
 		Bio:       toPtr(u.Bio),
@@ -82,13 +90,13 @@ func ProvisionHandler(svc service.Service) http.HandlerFunc {
 
 func GetMeHandler(svc service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := authclient.GetUserID(r)
+		firebaseUID, ok := authclient.GetUserID(r)
 		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
-		user, err := svc.GetByID(r.Context(), userID)
+		user, err := svc.GetByFirebaseUID(r.Context(), firebaseUID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				respondError(w, http.StatusNotFound, "user not found")

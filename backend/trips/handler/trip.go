@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/trips/client"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/ShalArl/trip-manager/backend/trips/repository"
@@ -15,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -36,6 +37,10 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 		return defaultVal
 	}
 	return n
+}
+
+func getToken(r *http.Request) string {
+	return strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 }
 
 func toResponse(t *service.Trip) generated.TripResponse {
@@ -69,21 +74,31 @@ func toPtr(s string) *string {
 	return &s
 }
 
-func ListTripsHandler(svc service.Service) http.HandlerFunc {
+// ── Handlers ──────────────────────────────────────────────────────────────────
+
+func ListTripsHandler(svc service.Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := authclient.GetUserID(r)
-		if !ok {
+		token := getToken(r)
+		if token == "" {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
+		user, err := usersClient.GetMe(r.Context(), token)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to get user")
+			return
+		}
+
 		limit := getIntQuery(r, "limit", 10)
 		offset := getIntQuery(r, "offset", 0)
 
-		trips, total, err := svc.List(r.Context(), userID, limit, offset)
+		trips, total, err := svc.List(r.Context(), user.ID, limit, offset)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -107,6 +122,7 @@ func ListRecentTripsHandler(svc service.Service) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -135,6 +151,7 @@ func SearchTripsHandler(svc service.Service) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -170,15 +187,12 @@ func GetTripHandler(svc service.Service) http.HandlerFunc {
 
 func CreateTripHandler(svc service.Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Token aus Header holen
-		token := r.Header.Get("Authorization")
+		token := getToken(r)
 		if token == "" {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		token = strings.TrimPrefix(token, "Bearer ")
 
-		// User vom users Service holen
 		user, err := usersClient.GetMe(r.Context(), token)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to get user")
@@ -218,13 +232,20 @@ func CreateTripHandler(svc service.Service, usersClient *client.UsersClient) htt
 	}
 }
 
-func UpdateTripHandler(svc service.Service) http.HandlerFunc {
+func UpdateTripHandler(svc service.Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := authclient.GetUserID(r)
-		if !ok {
+		token := getToken(r)
+		if token == "" {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
+		user, err := usersClient.GetMe(r.Context(), token)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to get user")
+			return
+		}
+
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
 			respondError(w, http.StatusBadRequest, "tripId is required")
@@ -239,7 +260,7 @@ func UpdateTripHandler(svc service.Service) http.HandlerFunc {
 
 		input := service.UpdateInput{
 			ID:               tripID,
-			UserID:           userID,
+			UserID:           user.ID,
 			Title:            req.Title,
 			ShortDescription: req.ShortDescription,
 			Description:      req.Description,
@@ -275,19 +296,27 @@ func UpdateTripHandler(svc service.Service) http.HandlerFunc {
 	}
 }
 
-func DeleteTripHandler(svc service.Service) http.HandlerFunc {
+func DeleteTripHandler(svc service.Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := authclient.GetUserID(r)
-		if !ok {
+		token := getToken(r)
+		if token == "" {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
+		user, err := usersClient.GetMe(r.Context(), token)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to get user")
+			return
+		}
+
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
 			respondError(w, http.StatusBadRequest, "tripId is required")
 			return
 		}
-		err := svc.Delete(r.Context(), tripID, userID)
+
+		err = svc.Delete(r.Context(), tripID, user.ID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				respondError(w, http.StatusNotFound, "trip not found")

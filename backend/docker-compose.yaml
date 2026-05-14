@@ -6,6 +6,7 @@ services:
       context: ../firebase
       dockerfile: Dockerfile
     container_name: trip_manager_firebase
+    stop_grace_period: 60s
     ports:
       - "4000:4000"   # Emulator UI
       - "8080:8080"   # Firestore
