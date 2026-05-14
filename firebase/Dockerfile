@@ -14,7 +14,7 @@ RUN firebase setup:emulators:firestore && \
 EXPOSE 4000 8080 9099
 
 CMD ["firebase", "emulators:start", \
-     "--project", "trip-manager-local", \
-     "--only", "auth,firestore", \
-     "--import=/firebase/data", \
-     "--export-on-exit=/firebase/data"]
+"--project", "trip-manager-local", \
+"--only", "auth,firestore", \
+"--import=/firebase/data/latest", \
+"--export-on-exit=/firebase/data/latest"]

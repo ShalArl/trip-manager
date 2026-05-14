@@ -12,7 +12,6 @@ services:
       - "9099:9099"   # Auth
     volumes:
       - ../firebase:/firebase
-      - firebase_data:/firebase/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000"]
       interval: 10s
@@ -208,6 +207,31 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+  
+  trips:
+    build:
+      context: .
+      dockerfile: trips/Dockerfile
+    container_name: trip_manager_trips
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      PORT: 8002
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@trips-db:5432/trips_db?sslmode=disable
+      AUTH_SERVICE_URL: http://auth:8082
+      USERS_SERVICE_URL: http://users:8001
+    depends_on:
+      trips-db:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     
   nginx:
     image: nginx:alpine
@@ -227,4 +251,3 @@ volumes:
   trips_db_data:
   locations_db_data:
   minio_data:
-  firebase_data:

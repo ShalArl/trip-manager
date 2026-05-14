@@ -1,6 +1,7 @@
 {
   "inputs": [
-    { "inputFile": "./api-spec/users/openapi.yaml" }
+    { "inputFile": "./api-spec/users/openapi.yaml" },
+    { "inputFile": "./api-spec/trips/openapi.yaml" }
   ],
   "output": "./api-spec/merged/openapi.yaml"
 }

@@ -15,6 +15,8 @@ COPY shared/authclient/go.mod shared/authclient/go.mod
 COPY shared/authclient/go.sum shared/authclient/go.sum
 COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
+COPY trips/go.mod trips/go.mod
+COPY trips/go.sum trips/go.sum
 
 RUN go work sync
 

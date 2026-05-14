@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -129,14 +130,17 @@ func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*User, error) 
 
 func (r *repositoryImpl) GetByFirebaseUID(ctx context.Context, uid string) (*User, error) {
 	var rec userRecord
+	log.Printf("[Repository] GetByFirebaseUID: %s", uid)
 	query := `SELECT id, email, name, bio, avatar_key, firebase_uid, created_at, updated_at 
 	          FROM users WHERE firebase_uid = $1`
 	if err := r.db.GetContext(ctx, &rec, query, uid); err != nil {
+		log.Printf("[Repository] GetByFirebaseUID error: %v", err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
 	}
+	log.Printf("[Repository] GetByFirebaseUID found: %s", rec.ID)
 	return rec.toUser(), nil
 }
 
