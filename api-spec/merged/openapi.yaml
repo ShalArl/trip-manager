@@ -208,8 +208,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TripResponse'
-        '401':
-          description: Unauthorized
         '404':
           description: Trip not found
     put:
@@ -258,6 +256,218 @@ paths:
           description: Unauthorized
         '404':
           description: Trip not found
+  '/trips/{tripId}/transports':
+    get:
+      summary: List transports for a trip
+      operationId: listTransports
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of transports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportListResponse'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add transport to a trip
+      operationId: createTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransportRequest'
+      responses:
+        '201':
+          description: Transport created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/transports/{transportId}':
+    put:
+      summary: Update a transport
+      operationId: updateTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: transportId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransportRequest'
+      responses:
+        '200':
+          description: Transport updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transport not found
+    delete:
+      summary: Delete a transport
+      operationId: deleteTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: transportId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Transport deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transport not found
+  '/trips/{tripId}/accommodations':
+    get:
+      summary: List accommodations for a trip
+      operationId: listAccommodations
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of accommodations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationListResponse'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add accommodation to a trip
+      operationId: createAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccommodationRequest'
+      responses:
+        '201':
+          description: Accommodation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/accommodations/{accommodationId}':
+    put:
+      summary: Update an accommodation
+      operationId: updateAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccommodationRequest'
+      responses:
+        '200':
+          description: Accommodation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Accommodation not found
+    delete:
+      summary: Delete an accommodation
+      operationId: deleteAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Accommodation deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Accommodation not found
 components:
   schemas:
     UserResponse:
@@ -438,6 +648,206 @@ components:
             - ongoing
             - completed
             - cancelled
+    TransportResponse:
+      type: object
+      required:
+        - id
+        - tripId
+        - type
+        - departurePlace
+        - arrivalPlace
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        tripId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - bus
+            - car
+            - ferry
+            - other
+        departurePlace:
+          type: string
+        arrivalPlace:
+          type: string
+        departureTime:
+          type: string
+          format: date-time
+          nullable: true
+        arrivalTime:
+          type: string
+          format: date-time
+          nullable: true
+        bookingRef:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TransportListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransportResponse'
+    CreateTransportRequest:
+      type: object
+      required:
+        - type
+        - departurePlace
+        - arrivalPlace
+      properties:
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - bus
+            - car
+            - ferry
+            - other
+        departurePlace:
+          type: string
+        arrivalPlace:
+          type: string
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        bookingRef:
+          type: string
+        notes:
+          type: string
+    UpdateTransportRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - bus
+            - car
+            - ferry
+            - other
+        departurePlace:
+          type: string
+        arrivalPlace:
+          type: string
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        bookingRef:
+          type: string
+        notes:
+          type: string
+    AccommodationResponse:
+      type: object
+      required:
+        - id
+        - tripId
+        - name
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        tripId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        checkIn:
+          type: string
+          format: date-time
+          nullable: true
+        checkOut:
+          type: string
+          format: date-time
+          nullable: true
+        bookingRef:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AccommodationListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccommodationResponse'
+    CreateAccommodationRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        bookingRef:
+          type: string
+        notes:
+          type: string
+    UpdateAccommodationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        bookingRef:
+          type: string
+        notes:
+          type: string
   securitySchemes:
     firebaseAuth:
       type: http

@@ -14,9 +14,9 @@ import (
 	"github.com/ShalArl/trip-manager/backend/trips/client"
 	"github.com/ShalArl/trip-manager/backend/trips/config"
 	"github.com/ShalArl/trip-manager/backend/trips/database"
-	"github.com/ShalArl/trip-manager/backend/trips/handler"
-	"github.com/ShalArl/trip-manager/backend/trips/repository"
-	"github.com/ShalArl/trip-manager/backend/trips/service"
+	"github.com/ShalArl/trip-manager/backend/trips/internal/accommodation"
+	"github.com/ShalArl/trip-manager/backend/trips/internal/transport"
+	"github.com/ShalArl/trip-manager/backend/trips/internal/trip"
 )
 
 func main() {
@@ -41,26 +41,48 @@ func main() {
 	requireAuth := authclient.RequireAuth(authClient)
 	optionalAuth := authclient.OptionalAuth(authClient)
 
-	// Wire up
-	repo := repository.NewRepository(db)
-	svc := service.NewService(repo)
+	// Wire up – trips
+	tripRepo := trip.NewRepository(db)
+	tripSvc := trip.NewService(tripRepo)
+
+	// Wire up – transport
+	transportRepo := transport.NewRepository(db)
+	transportSvc := transport.NewService(transportRepo)
+
+	// Wire up – accommodation
+	accommodationRepo := accommodation.NewRepository(db)
+	accommodationSvc := accommodation.NewService(accommodationRepo)
 
 	// Router
 	mux := http.NewServeMux()
 
+	// Health
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	mux.HandleFunc("GET /api/trips", requireAuth(handler.ListTripsHandler(svc, usersClient)))
-	mux.HandleFunc("POST /api/trips", requireAuth(handler.CreateTripHandler(svc, usersClient)))
-	mux.HandleFunc("GET /api/trips/recent", optionalAuth(handler.ListRecentTripsHandler(svc)))
-	mux.HandleFunc("GET /api/trips/search", optionalAuth(handler.SearchTripsHandler(svc)))
-	mux.HandleFunc("GET /api/trips/{tripId}", optionalAuth(handler.GetTripHandler(svc)))
-	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(handler.UpdateTripHandler(svc, usersClient)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(handler.DeleteTripHandler(svc, usersClient)))
+	// Trips
+	mux.HandleFunc("GET /api/trips", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("POST /api/trips", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /api/trips/recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /api/trips/search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /api/trips/{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
+	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
+
+	// Transports
+	mux.HandleFunc("GET /api/trips/{tripId}/transports", optionalAuth(transport.ListHandler(transportSvc)))
+	mux.HandleFunc("POST /api/trips/{tripId}/transports", requireAuth(transport.CreateHandler(transportSvc)))
+	mux.HandleFunc("PUT /api/trips/{tripId}/transports/{transportId}", requireAuth(transport.UpdateHandler(transportSvc)))
+	mux.HandleFunc("DELETE /api/trips/{tripId}/transports/{transportId}", requireAuth(transport.DeleteHandler(transportSvc)))
+
+	// Accommodations
+	mux.HandleFunc("GET /api/trips/{tripId}/accommodations", optionalAuth(accommodation.ListHandler(accommodationSvc)))
+	mux.HandleFunc("POST /api/trips/{tripId}/accommodations", requireAuth(accommodation.CreateHandler(accommodationSvc)))
+	mux.HandleFunc("PUT /api/trips/{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.UpdateHandler(accommodationSvc)))
+	mux.HandleFunc("DELETE /api/trips/{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.DeleteHandler(accommodationSvc)))
 
 	// Server
 	server := &http.Server{
