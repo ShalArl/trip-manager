@@ -1,0 +1,22 @@
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+
+env:
+  - name: PORT
+    value: "8083"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: AUTH_SERVICE_URL
+    value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
+  - name: DATABASE_URL
+    value: "postgres://users:users@users-postgres.trip-manager-dev.svc.cluster.local:5432/users?sslmode=disable"

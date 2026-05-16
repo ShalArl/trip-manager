@@ -1,0 +1,13 @@
+postgres:
+  password: ""
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: premium-rwo
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: POSTGRES_PASSWORD
+      remoteKey: users-postgres-password

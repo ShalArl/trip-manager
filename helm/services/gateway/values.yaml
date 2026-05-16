@@ -16,6 +16,14 @@ routes:
     service: social
     port: 8081
     path: /api/social
+  users:
+    service: users
+    port: 8083
+    path: /api/users
+  trips:
+    service: trips
+    port: 8084
+    path: /api/trips
   frontend:
     service: frontend
     port: 3000

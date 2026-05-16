@@ -1,0 +1,4 @@
+apiVersion: v2
+name: trips-postgres
+version: 0.1.0
+description: Postgres database for trips service

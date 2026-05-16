@@ -1,3 +1,3 @@
 module github.com/ShalArl/trip-manager/backend/shared/authclient
 
-go 1.25.7
+go 1.25.8

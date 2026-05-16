@@ -1,0 +1,22 @@
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: DATABASE_URL
+      remoteKey: users-database-url
+
+envFrom:
+  - secretRef:
+      name: users-secrets

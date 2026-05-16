@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for svc in auth presigner social; do
+for svc in auth presigner social users trips frontend gateway; do
   helm dependency update helm/services/$svc
 
   helm upgrade $svc helm/services/$svc \

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-postgres
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: users-postgres
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 5432
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-postgres-headless
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  selector:
+    app: users-postgres
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 5432

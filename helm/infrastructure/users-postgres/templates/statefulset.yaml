@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: users-postgres
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: users-postgres
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: users-postgres
+  template:
+    metadata:
+      labels:
+        app: users-postgres
+    spec:
+      containers:
+        - name: users-postgres
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.db }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user }}
+            - name: POSTGRES_PASSWORD
+              {{- if .Values.externalSecrets.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: users-postgres-secret
+                  key: POSTGRES_PASSWORD
+              {{- else }}
+              value: {{ .Values.postgres.password }}
+              {{- end }}
+          ports:
+            - containerPort: 5432
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: users-postgres-pvc
+      {{- else}}
+      volumes:
+        - name: data
+          emptyDir: { }
+      {{- end }}
