@@ -51,9 +51,9 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
-	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
-	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
+	mux.HandleFunc("POST /api/users/provision", requireAuth(handler.ProvisionHandler(svc)))
+	mux.HandleFunc("GET /api/users/me", requireAuth(handler.GetMeHandler(svc)))
+	mux.HandleFunc("PUT /api/users/me", requireAuth(handler.UpdateMeHandler(svc)))
 
 	// Server
 	server := &http.Server{

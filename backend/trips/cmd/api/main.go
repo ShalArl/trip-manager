@@ -64,13 +64,13 @@ func main() {
 	})
 
 	// Trips
-	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
-	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
-	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
-	mux.HandleFunc("PUT /{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
-	mux.HandleFunc("DELETE /{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /api/trips", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("POST /api/trips", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /api/trips/recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /api/trips/search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /api/trips/{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
+	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
 
 	// Transports
 	mux.HandleFunc("GET /api/trips/{tripId}/transports", optionalAuth(transport.ListHandler(transportSvc)))
