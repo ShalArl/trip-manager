@@ -1,5 +1,32 @@
 #!/bin/bash
 
+kubectl create configmap firebase-config \
+  --namespace trip-manager-dev \
+  --from-literal=firebase.json='{
+    "emulators": {
+      "auth": {
+        "host": "0.0.0.0",
+        "port": 9099
+      },
+      "firestore": {
+        "host": "0.0.0.0",
+        "port": 8080
+      },
+      "hub": {
+        "host": "0.0.0.0",
+        "port": 4400
+      },
+      "ui": {
+        "host": "0.0.0.0",
+        "port": 4000
+      },
+      "logging": {
+        "host": "0.0.0.0",
+        "port": 4500
+      }
+    }
+  }'
+
 cat > /tmp/firebase-emulator.yaml << 'EOF'
 apiVersion: apps/v1
 kind: Deployment
@@ -25,8 +52,16 @@ spec:
             - --only=auth,firestore
             - --project=trip-manager-local
           ports:
-            - containerPort: 9099   # Auth
-            - containerPort: 8080   # Firestore
+            - containerPort: 9099
+            - containerPort: 8080
+          volumeMounts:
+            - name: firebase-config
+              mountPath: /home/node/firebase.json
+              subPath: firebase.json
+      volumes:
+        - name: firebase-config
+          configMap:
+            name: firebase-config
 ---
 apiVersion: v1
 kind: Service
