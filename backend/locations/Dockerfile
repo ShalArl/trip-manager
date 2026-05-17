@@ -23,21 +23,18 @@ RUN go work sync
 
 # Source Code
 COPY shared/authclient/ shared/authclient/
-COPY users/ users/
+COPY locations/ locations/
 
-# Aus dem users-Verzeichnis bauen
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/users ./users/cmd/api
+# Aus dem locations-Verzeichnis bauen
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/locations ./locations/cmd/api
 
 # Runtime stage
 FROM alpine:3.19
 RUN addgroup -S app && adduser -S -G app app
 USER app
 WORKDIR /app
-
-COPY --from=builder /bin/users /bin/users
-
+COPY --from=builder /bin/locations /bin/locations
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8001/health || exit 1
-
-EXPOSE 8001
-CMD ["/bin/users"]
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8005/health || exit 1
+EXPOSE 8005
+CMD ["/bin/locations"]

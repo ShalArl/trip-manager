@@ -16,11 +16,18 @@ export async function getTransports(tripId: string): Promise<TransportResponse[]
 
 export async function createTransport(tripId: string, req: CreateTransportRequest): Promise<TransportResponse> {
     const headers = await getAuthHeaders();
+    const body = {
+        ...req,
+        departureTime: req.departureTime ? new Date(req.departureTime as string).toISOString() : undefined,
+        arrivalTime: req.arrivalTime ? new Date(req.arrivalTime as string).toISOString() : undefined,
+    };
+
     const response = await fetch(`${API_URL}/api/trips/${tripId}/transports`, {
         method: "POST",
         headers,
-        body: JSON.stringify(req),
+        body: JSON.stringify(body),
     });
+
     if (!response.ok) {
         const errorData = await response.text();
         console.error(`Fehler Backend Response:`, errorData);
@@ -31,10 +38,16 @@ export async function createTransport(tripId: string, req: CreateTransportReques
 
 export async function updateTransport(tripId: string, transportId: string, req: UpdateTransportRequest): Promise<TransportResponse> {
     const headers = await getAuthHeaders();
+    const body = {
+        ...req,
+        departureTime: req.departureTime ? new Date(req.departureTime as string).toISOString() : undefined,
+        arrivalTime: req.arrivalTime ? new Date(req.arrivalTime as string).toISOString() : undefined,
+    };
+
     const response = await fetch(`${API_URL}/api/trips/${tripId}/transports/${transportId}`, {
         method: "PUT",
         headers,
-        body: JSON.stringify(req),
+        body: JSON.stringify(body),
     });
     if (!response.ok) {
         throw new Error(`Fehler beim Aktualisieren des Transports: ${response.status}`);

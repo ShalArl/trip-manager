@@ -233,7 +233,36 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    
+   
+  locations:
+    build:
+      context: .
+      dockerfile: locations/Dockerfile
+    container_name: trip_manager_locations
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      PORT: 8005
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@locations-db:5432/locations_db?sslmode=disable
+      AUTH_SERVICE_URL: http://auth:8082
+      USERS_SERVICE_URL: http://users:8001
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-trip-manager}
+    depends_on:
+      locations-db:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   nginx:
     image: nginx:alpine
     container_name: trip_manager_gateway
@@ -246,6 +275,8 @@ services:
       - users
       - social
       - presigner
+      - trips
+      - locations
 
 volumes:
   users_db_data:

@@ -3,39 +3,19 @@ package transport
 import (
 	"context"
 	"fmt"
-	"time"
+
+	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
+	"github.com/google/uuid"
 )
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
-type CreateInput struct {
-	TripID         string
-	Type           string
-	DeparturePlace string
-	ArrivalPlace   string
-	DepartureTime  *time.Time
-	ArrivalTime    *time.Time
-	BookingRef     *string
-	Notes          *string
-}
-
-type UpdateInput struct {
-	ID             string
-	Type           *string
-	DeparturePlace *string
-	ArrivalPlace   *string
-	DepartureTime  *time.Time
-	ArrivalTime    *time.Time
-	BookingRef     *string
-	Notes          *string
-}
-
 type Service interface {
-	ListByTrip(ctx context.Context, tripID string) ([]*Transport, error)
 	GetByID(ctx context.Context, id string) (*Transport, error)
-	Create(ctx context.Context, input CreateInput) (*Transport, error)
-	Update(ctx context.Context, input UpdateInput) (*Transport, error)
-	Delete(ctx context.Context, id string) error
+	Create(ctx context.Context, req *generated.CreateTransportRequest, tripID, userID, userName, userEmail string) (*Transport, error)
+	Update(ctx context.Context, req *generated.UpdateTransportRequest, transportID, userID string) (*Transport, error)
+	ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Transport, int, error)
+	Delete(ctx context.Context, id, userID string) error
 }
 
 type serviceImpl struct {
@@ -46,65 +26,68 @@ func NewService(repo Repository) Service {
 	return &serviceImpl{repo: repo}
 }
 
-func (s *serviceImpl) ListByTrip(ctx context.Context, tripID string) ([]*Transport, error) {
-	return s.repo.ListByTrip(ctx, tripID)
-}
-
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*Transport, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Transport, error) {
-	if input.Type == "" {
-		return nil, fmt.Errorf("%w: type is required", ErrInvalidInput)
+func (s *serviceImpl) Create(ctx context.Context, req *generated.CreateTransportRequest, tripID, userID, userName, userEmail string) (*Transport, error) {
+	if req.FromLocationId == uuid.Nil || req.ToLocationId == uuid.Nil {
+		return nil, fmt.Errorf("%w: from_location_id and to_location_id are required", ErrInvalidInput)
 	}
-	if input.DeparturePlace == "" {
-		return nil, fmt.Errorf("%w: departure_place is required", ErrInvalidInput)
+
+	notes := ""
+	if req.Notes != nil {
+		notes = *req.Notes
 	}
-	if input.ArrivalPlace == "" {
-		return nil, fmt.Errorf("%w: arrival_place is required", ErrInvalidInput)
+
+	t := &Transport{
+		TripID: tripID,
+		CreatedBy: UserSummary{
+			ID:    userID,
+			Name:  userName,
+			Email: userEmail,
+		},
+		FromLocationID: req.FromLocationId.String(),
+		ToLocationID:   req.ToLocationId.String(),
+		DepartureTime:  req.DepartureTime,
+		ArrivalTime:    req.ArrivalTime,
+		Type:           string(req.Type),
+		Notes:          notes,
 	}
-	return s.repo.Create(ctx, &Transport{
-		TripID:         input.TripID,
-		Type:           input.Type,
-		DeparturePlace: input.DeparturePlace,
-		ArrivalPlace:   input.ArrivalPlace,
-		DepartureTime:  input.DepartureTime,
-		ArrivalTime:    input.ArrivalTime,
-		BookingRef:     input.BookingRef,
-		Notes:          input.Notes,
-	})
+	return s.repo.Create(ctx, t)
 }
 
-func (s *serviceImpl) Update(ctx context.Context, input UpdateInput) (*Transport, error) {
-	existing, err := s.repo.GetByID(ctx, input.ID)
+func (s *serviceImpl) Update(ctx context.Context, req *generated.UpdateTransportRequest, transportID, userID string) (*Transport, error) {
+	existing, err := s.repo.GetByID(ctx, transportID)
 	if err != nil {
 		return nil, err
 	}
-	if input.Type != nil {
-		existing.Type = *input.Type
+	if req.FromLocationId != nil {
+		existing.FromLocationID = req.FromLocationId.String()
 	}
-	if input.DeparturePlace != nil {
-		existing.DeparturePlace = *input.DeparturePlace
+	if req.ToLocationId != nil {
+		existing.ToLocationID = req.ToLocationId.String()
 	}
-	if input.ArrivalPlace != nil {
-		existing.ArrivalPlace = *input.ArrivalPlace
+	if req.DepartureTime != nil {
+		existing.DepartureTime = req.DepartureTime
 	}
-	if input.DepartureTime != nil {
-		existing.DepartureTime = input.DepartureTime
+	if req.ArrivalTime != nil {
+		existing.ArrivalTime = req.ArrivalTime
 	}
-	if input.ArrivalTime != nil {
-		existing.ArrivalTime = input.ArrivalTime
+	if req.Type != nil {
+		existing.Type = string(*req.Type)
 	}
-	if input.BookingRef != nil {
-		existing.BookingRef = input.BookingRef
+	if req.Notes != nil {
+		existing.Notes = *req.Notes
 	}
-	if input.Notes != nil {
-		existing.Notes = input.Notes
-	}
+	existing.CreatedBy.ID = userID
 	return s.repo.Update(ctx, existing)
 }
 
-func (s *serviceImpl) Delete(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+func (s *serviceImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Transport, int, error) {
+	return s.repo.ListByTrip(ctx, tripID, limit, offset)
+}
+
+func (s *serviceImpl) Delete(ctx context.Context, id, userID string) error {
+	return s.repo.Delete(ctx, id, userID)
 }

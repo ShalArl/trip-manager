@@ -1,7 +1,6 @@
 openapi: 3.0.0
 info:
   title: Trips Service API
-  description: API for managing trips, transports and accommodations
   version: 1.0.0
 
 servers:
@@ -165,6 +164,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
       responses:
         '200':
           description: List of transports
@@ -260,6 +265,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
       responses:
         '200':
           description: List of accommodations
@@ -352,8 +363,6 @@ components:
 
   schemas:
 
-    # ── Trips ─────────────────────────────────────────────────────────────────
-
     UserSummary:
       type: object
       required: [id, name, email]
@@ -370,19 +379,30 @@ components:
           type: string
           nullable: true
 
+    # ── Trips ─────────────────────────────────────────────────────────────────
+
     TripResponse:
       type: object
-      required: [id, title, shortDescription, startDate, endDate, status, createdBy, createdAt, updatedAt]
+      required: [id, createdBy, createdAt, updatedAt, title, shortDescription, startDate, endDate, status]
       properties:
         id:
           type: string
           format: uuid
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
         title:
           type: string
         shortDescription:
           type: string
         description:
           type: string
+          nullable: true
         startDate:
           type: string
           format: date
@@ -392,14 +412,6 @@ components:
         status:
           type: string
           enum: [planned, ongoing, completed, cancelled]
-        createdBy:
-          $ref: '#/components/schemas/UserSummary'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
 
     TripListResponse:
       type: object
@@ -460,90 +472,94 @@ components:
 
     TransportResponse:
       type: object
-      required: [id, tripId, type, departurePlace, arrivalPlace, createdAt, updatedAt]
+      required: [id, createdBy, createdAt, updatedAt, fromLocationId, toLocationId, type]
       properties:
         id:
           type: string
           format: uuid
-        tripId:
-          type: string
-          format: uuid
-        type:
-          type: string
-          enum: [flight, train, bus, car, ferry, other]
-        departurePlace:
-          type: string
-        arrivalPlace:
-          type: string
-        departureTime:
-          type: string
-          format: date-time
-          nullable: true
-        arrivalTime:
-          type: string
-          format: date-time
-          nullable: true
-        bookingRef:
-          type: string
-          nullable: true
-        notes:
-          type: string
-          nullable: true
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+          nullable: true
+        arrivalTime:
+          type: string
+          format: date-time
+          nullable: true
+        type:
+          type: string
+          enum: [flight, train, car, bus]
+        notes:
+          type: string
+          nullable: true
 
     TransportListResponse:
       type: object
-      required: [data]
+      required: [data, total, limit, offset]
       properties:
         data:
           type: array
           items: { $ref: '#/components/schemas/TransportResponse' }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
 
     CreateTransportRequest:
       type: object
-      required: [type, departurePlace, arrivalPlace]
+      required: [fromLocationId, toLocationId, type]
       properties:
-        type:
+        fromLocationId:
           type: string
-          enum: [flight, train, bus, car, ferry, other]
-        departurePlace:
+          format: uuid
+        toLocationId:
           type: string
-        arrivalPlace:
-          type: string
+          format: uuid
         departureTime:
           type: string
           format: date-time
         arrivalTime:
           type: string
           format: date-time
-        bookingRef:
+        type:
           type: string
+          enum: [flight, train, car, bus]
         notes:
           type: string
 
     UpdateTransportRequest:
       type: object
       properties:
-        type:
+        fromLocationId:
           type: string
-          enum: [flight, train, bus, car, ferry, other]
-        departurePlace:
+          format: uuid
+        toLocationId:
           type: string
-        arrivalPlace:
-          type: string
+          format: uuid
         departureTime:
           type: string
           format: date-time
         arrivalTime:
           type: string
           format: date-time
-        bookingRef:
+        type:
           type: string
+          enum: [flight, train, car, bus]
         notes:
           type: string
 
@@ -551,52 +567,64 @@ components:
 
     AccommodationResponse:
       type: object
-      required: [id, tripId, name, createdAt, updatedAt]
+      required: [id, createdBy, createdAt, updatedAt, locationId, name]
       properties:
         id:
           type: string
           format: uuid
-        tripId:
-          type: string
-          format: uuid
-        name:
-          type: string
-        address:
-          type: string
-          nullable: true
-        checkIn:
-          type: string
-          format: date-time
-          nullable: true
-        checkOut:
-          type: string
-          format: date-time
-          nullable: true
-        bookingRef:
-          type: string
-          nullable: true
-        notes:
-          type: string
-          nullable: true
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        checkIn:
+          type: string
+          format: date-time
+          nullable: true
+        checkOut:
+          type: string
+          format: date-time
+          nullable: true
+        pricePerNight:
+          type: number
+          format: float
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     AccommodationListResponse:
       type: object
-      required: [data]
+      required: [data, total, limit, offset]
       properties:
         data:
           type: array
           items: { $ref: '#/components/schemas/AccommodationResponse' }
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
 
     CreateAccommodationRequest:
       type: object
-      required: [name]
+      required: [locationId, name]
       properties:
+        locationId:
+          type: string
+          format: uuid
         name:
           type: string
         address:
@@ -607,14 +635,18 @@ components:
         checkOut:
           type: string
           format: date-time
-        bookingRef:
-          type: string
+        pricePerNight:
+          type: number
+          format: float
         notes:
           type: string
 
     UpdateAccommodationRequest:
       type: object
       properties:
+        locationId:
+          type: string
+          format: uuid
         name:
           type: string
         address:
@@ -625,7 +657,8 @@ components:
         checkOut:
           type: string
           format: date-time
-        bookingRef:
-          type: string
+        pricePerNight:
+          type: number
+          format: float
         notes:
           type: string

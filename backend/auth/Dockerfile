@@ -17,6 +17,8 @@ COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
 COPY trips/go.mod trips/go.mod
 COPY trips/go.sum trips/go.sum
+COPY locations/go.mod locations/go.mod
+COPY locations/go.sum locations/go.sum
 
 
 RUN go work sync

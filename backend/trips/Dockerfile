@@ -17,7 +17,8 @@ COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
 COPY trips/go.mod trips/go.mod
 COPY trips/go.sum trips/go.sum
-
+COPY locations/go.mod locations/go.mod
+COPY locations/go.sum locations/go.sum
 RUN go work sync
 
 # Source Code
@@ -32,11 +33,8 @@ FROM alpine:3.19
 RUN addgroup -S app && adduser -S -G app app
 USER app
 WORKDIR /app
-
 COPY --from=builder /bin/trips /bin/trips
-
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8002/health || exit 1
-
 EXPOSE 8002
 CMD ["/bin/trips"]

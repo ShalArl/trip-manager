@@ -3,39 +3,19 @@ package accommodation
 import (
 	"context"
 	"fmt"
-	"time"
+
+	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
+	"github.com/google/uuid"
 )
-
-// ── Input Types ───────────────────────────────────────────────────────────────
-
-type CreateInput struct {
-	TripID     string
-	Name       string
-	Address    *string
-	CheckIn    *time.Time
-	CheckOut   *time.Time
-	BookingRef *string
-	Notes      *string
-}
-
-type UpdateInput struct {
-	ID         string
-	Name       *string
-	Address    *string
-	CheckIn    *time.Time
-	CheckOut   *time.Time
-	BookingRef *string
-	Notes      *string
-}
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
 type Service interface {
-	ListByTrip(ctx context.Context, tripID string) ([]*Accommodation, error)
 	GetByID(ctx context.Context, id string) (*Accommodation, error)
-	Create(ctx context.Context, input CreateInput) (*Accommodation, error)
-	Update(ctx context.Context, input UpdateInput) (*Accommodation, error)
-	Delete(ctx context.Context, id string) error
+	Create(ctx context.Context, req *generated.CreateAccommodationRequest, tripID, userID, userName, userEmail string) (*Accommodation, error)
+	Update(ctx context.Context, req *generated.UpdateAccommodationRequest, accommodationID, userID string) (*Accommodation, error)
+	ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Accommodation, int, error)
+	Delete(ctx context.Context, id, userID string) error
 }
 
 type serviceImpl struct {
@@ -46,55 +26,127 @@ func NewService(repo Repository) Service {
 	return &serviceImpl{repo: repo}
 }
 
-func (s *serviceImpl) ListByTrip(ctx context.Context, tripID string) ([]*Accommodation, error) {
-	return s.repo.ListByTrip(ctx, tripID)
+// ── Validation ────────────────────────────────────────────────────────────────
+
+func validateCreate(req *generated.CreateAccommodationRequest) error {
+	if req.LocationId == uuid.Nil {
+		return fmt.Errorf("%w: location_id is required", ErrInvalidInput)
+	}
+	if req.Name == "" {
+		return fmt.Errorf("%w: name is required", ErrInvalidInput)
+	}
+	return nil
 }
+
+func validateUpdate(req *generated.UpdateAccommodationRequest) error {
+	if req.LocationId != nil && *req.LocationId == uuid.Nil {
+		return fmt.Errorf("%w: location_id cannot be empty", ErrInvalidInput)
+	}
+	if req.Name != nil && *req.Name == "" {
+		return fmt.Errorf("%w: name cannot be empty", ErrInvalidInput)
+	}
+	return nil
+}
+
+// ── Mappers ───────────────────────────────────────────────────────────────────
+
+func fromCreateRequest(req *generated.CreateAccommodationRequest, tripID, userID, userName, userEmail string) *Accommodation {
+	address := ""
+	if req.Address != nil {
+		address = *req.Address
+	}
+	notes := ""
+	if req.Notes != nil {
+		notes = *req.Notes
+	}
+	return &Accommodation{
+		TripID: tripID,
+		CreatedBy: UserSummary{
+			ID:    userID,
+			Name:  userName,
+			Email: userEmail,
+		},
+		LocationID:    req.LocationId.String(),
+		Name:          req.Name,
+		Address:       address,
+		CheckIn:       req.CheckIn,
+		CheckOut:      req.CheckOut,
+		PricePerNight: req.PricePerNight,
+		Notes:         notes,
+	}
+}
+
+func applyUpdate(req *generated.UpdateAccommodationRequest, existing *Accommodation) *Accommodation {
+	updated := *existing
+	if req.LocationId != nil {
+		updated.LocationID = req.LocationId.String()
+	}
+	if req.Name != nil {
+		updated.Name = *req.Name
+	}
+	if req.Address != nil {
+		updated.Address = *req.Address
+	}
+	if req.CheckIn != nil {
+		updated.CheckIn = req.CheckIn
+	}
+	if req.CheckOut != nil {
+		updated.CheckOut = req.CheckOut
+	}
+	if req.PricePerNight != nil {
+		updated.PricePerNight = req.PricePerNight
+	}
+	if req.Notes != nil {
+		updated.Notes = *req.Notes
+	}
+	return &updated
+}
+
+// ── Implementation ────────────────────────────────────────────────────────────
 
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*Accommodation, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Accommodation, error) {
-	if input.Name == "" {
-		return nil, fmt.Errorf("%w: name is required", ErrInvalidInput)
-	}
-	return s.repo.Create(ctx, &Accommodation{
-		TripID:     input.TripID,
-		Name:       input.Name,
-		Address:    input.Address,
-		CheckIn:    input.CheckIn,
-		CheckOut:   input.CheckOut,
-		BookingRef: input.BookingRef,
-		Notes:      input.Notes,
-	})
-}
-
-func (s *serviceImpl) Update(ctx context.Context, input UpdateInput) (*Accommodation, error) {
-	existing, err := s.repo.GetByID(ctx, input.ID)
-	if err != nil {
+func (s *serviceImpl) Create(ctx context.Context, req *generated.CreateAccommodationRequest, tripID, userID, userName, userEmail string) (*Accommodation, error) {
+	if err := validateCreate(req); err != nil {
 		return nil, err
 	}
-	if input.Name != nil {
-		existing.Name = *input.Name
+	a := fromCreateRequest(req, tripID, userID, userName, userEmail)
+	created, err := s.repo.Create(ctx, a)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create accommodation: %w", err)
 	}
-	if input.Address != nil {
-		existing.Address = input.Address
-	}
-	if input.CheckIn != nil {
-		existing.CheckIn = input.CheckIn
-	}
-	if input.CheckOut != nil {
-		existing.CheckOut = input.CheckOut
-	}
-	if input.BookingRef != nil {
-		existing.BookingRef = input.BookingRef
-	}
-	if input.Notes != nil {
-		existing.Notes = input.Notes
-	}
-	return s.repo.Update(ctx, existing)
+	return created, nil
 }
 
-func (s *serviceImpl) Delete(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+func (s *serviceImpl) Update(ctx context.Context, req *generated.UpdateAccommodationRequest, accommodationID, userID string) (*Accommodation, error) {
+	if err := validateUpdate(req); err != nil {
+		return nil, err
+	}
+	existing, err := s.repo.GetByID(ctx, accommodationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get accommodation: %w", err)
+	}
+	if existing.CreatedBy.ID != userID {
+		return nil, ErrUnauthorized
+	}
+	updated := applyUpdate(req, existing)
+	result, err := s.repo.Update(ctx, updated)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update accommodation: %w", err)
+	}
+	return result, nil
+}
+
+func (s *serviceImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Accommodation, int, error) {
+	accommodations, total, err := s.repo.ListByTrip(ctx, tripID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list accommodations: %w", err)
+	}
+	return accommodations, total, nil
+}
+
+func (s *serviceImpl) Delete(ctx context.Context, id, userID string) error {
+	return s.repo.Delete(ctx, id, userID)
 }
