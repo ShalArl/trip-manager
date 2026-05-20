@@ -24,6 +24,11 @@ routes:
     service: trips
     port: 8084
     path: /api/trips
+  locations:
+    service: locations
+    port: 8086
+    path: /api/trips
+    subpath: /locations
   frontend:
     service: frontend
     port: 3000

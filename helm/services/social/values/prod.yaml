@@ -20,7 +20,7 @@ env:
     value: "info"
   - name: AUTH_CLIENT_CONNECTION_STRING
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
-  - name: FIRESTORE_PROJECT
+  - name: FIRESTORE_PROJECT_ID
     value: "project-32c60644-299b-4b05-8cf"
 
 serviceAccount:

@@ -47,6 +47,13 @@ spec:
                 name: {{ .Values.routes.users.service }}
                 port:
                   number: {{ .Values.routes.users.port }}
+          - path: /api/trips(/|$)(.*)/locations(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: locations
+                port:
+                  number: 8086
           - path: {{ .Values.routes.trips.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
