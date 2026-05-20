@@ -665,6 +665,132 @@ paths:
           description: Unauthorized
         '404':
           description: Image not found
+  '/trips/{tripId}/likes':
+    get:
+      summary: Get like count and like status for a trip
+      operationId: getTripLikes
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Like info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripLikeResponse'
+    post:
+      summary: Like a trip
+      operationId: likeTrip
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Trip liked
+        '401':
+          description: Unauthorized
+        '409':
+          description: Already liked
+    delete:
+      summary: Unlike a trip
+      operationId: unlikeTrip
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trip unliked
+        '401':
+          description: Unauthorized
+        '404':
+          description: Like not found
+  '/trips/{tripId}/comments':
+    get:
+      summary: List comments for a trip
+      operationId: listTripComments
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentListResponse'
+    post:
+      summary: Add a comment to a trip
+      operationId: createTripComment
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentResponse'
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/comments/{commentId}':
+    delete:
+      summary: Delete a comment
+      operationId: deleteTripComment
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
 components:
   schemas:
     UserResponse:
@@ -1235,6 +1361,56 @@ components:
           type: string
         sequence:
           type: integer
+    TripLikeResponse:
+      type: object
+      required:
+        - likeCount
+        - hasLiked
+      properties:
+        likeCount:
+          type: integer
+        hasLiked:
+          type: boolean
+    CreateTripCommentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    TripCommentResponse:
+      type: object
+      required:
+        - id
+        - tripId
+        - user
+        - text
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        tripId:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TripCommentListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripCommentResponse'
   securitySchemes:
     firebaseAuth:
       type: http

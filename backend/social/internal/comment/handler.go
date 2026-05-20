@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/social/client"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
 )
 
@@ -49,11 +51,18 @@ func ListRepliesHandler(svc Service) http.HandlerFunc {
 }
 
 // CreateTripCommentHandler handles POST /trips/{tripId}/comments (authclient required)
-func CreateTripCommentHandler(svc Service) http.HandlerFunc {
+func CreateTripCommentHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		user, err := usersClient.GetMe(r.Context(), token)
+		if err != nil {
+			shared.RespondError(w, http.StatusInternalServerError, "failed to get user info")
 			return
 		}
 
@@ -69,7 +78,7 @@ func CreateTripCommentHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
-		resp, err := svc.CreateComment(r.Context(), userID, tripID, req.Text)
+		resp, err := svc.CreateComment(r.Context(), userID, user.ID, user.Name, user.Email, "", tripID, req.Text)
 		if err != nil {
 			if errors.Is(err, shared.ErrInvalidInput) {
 				shared.RespondError(w, http.StatusBadRequest, err.Error())
@@ -84,7 +93,7 @@ func CreateTripCommentHandler(svc Service) http.HandlerFunc {
 }
 
 // CreateReplyHandler handles POST /comments/{commentId}/replies (authclient required)
-func CreateReplyHandler(svc Service) http.HandlerFunc {
+func CreateReplyHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
@@ -92,9 +101,17 @@ func CreateReplyHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		user, err := usersClient.GetMe(r.Context(), token)
+		if err != nil {
+			shared.RespondError(w, http.StatusInternalServerError, "failed to get user info")
+			return
+		}
+
 		commentID := r.PathValue("commentId")
 		if commentID == "" {
 			shared.RespondError(w, http.StatusBadRequest, "Comment ID is required")
+			return
 		}
 
 		var req CreateCommentRequest
@@ -103,7 +120,7 @@ func CreateReplyHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
-		resp, err := svc.CreateComment(r.Context(), userID, commentID, req.Text)
+		resp, err := svc.CreateComment(r.Context(), userID, user.ID, user.Name, user.Email, "", commentID, req.Text)
 		if err != nil {
 			if errors.Is(err, shared.ErrInvalidInput) {
 				shared.RespondError(w, http.StatusBadRequest, err.Error())
@@ -118,7 +135,6 @@ func CreateReplyHandler(svc Service) http.HandlerFunc {
 		}
 
 		shared.RespondJSON(w, http.StatusCreated, resp)
-
 	}
 }
 
