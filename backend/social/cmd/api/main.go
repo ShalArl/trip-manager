@@ -46,7 +46,6 @@ func main() {
 
 	// Like endpoints
 	mux.HandleFunc("GET /api/trips/{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	//	mux.HandleFunc("GET /api/trips/{tripId}/likes", like.GetTripLikesHandler(likeService))
 	mux.HandleFunc("POST /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService)))
 	mux.HandleFunc("DELETE /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
 
