@@ -73,7 +73,7 @@ jobs:
           has_services=false
           
           for service in $services; do
-            { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared directory itself
+            { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared & nginx
           
             path="backend/$service"
             if [ ! -f "$path/go.mod" ] || [ ! -f "$path/Dockerfile" ]; then
@@ -86,9 +86,7 @@ jobs:
             has_services=true
           done
           
-          services_json=$(echo "$services" | jq -R . | jq -s .)
-          matrix=$(jq -n --argjson services "$services_json" '{include: ($services | map({service: .}))}')
-          echo "Final Matrix: $matrix"
+          echo "Final matrix: $matrix"
           
           {
             echo "matrix<<EOF"
