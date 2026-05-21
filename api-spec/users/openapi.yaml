@@ -1,0 +1,151 @@
+openapi: 3.0.0
+info:
+  title: Users Service API
+  description: API for user provisioning and profile management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8001/api
+    description: Development server
+
+security:
+  - firebaseAuth: []
+
+paths:
+  /users/provision:
+    post:
+      summary: Provision internal user record for authenticated Firebase user
+      description: |
+        Creates an internal user record for a user that has authenticated with Firebase
+        but does not yet exist in the application's database. Idempotent: if the user
+        already exists (matched by Firebase UID), the existing record is returned with
+        200 OK. If a new record is created, 201 Created is returned.
+      operationId: provisionMe
+      tags:
+        - users
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProvisionUserRequest'
+      responses:
+        '200':
+          description: User was already provisioned; existing record returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '201':
+          description: User was newly provisioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid Firebase token
+        '500':
+          description: Internal server error
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      operationId: getMe
+      tags:
+        - users
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+    put:
+      summary: Update current user profile
+      operationId: updateMe
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    ProvisionUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        bio:
+          type: string
+        avatarKey:
+          type: string
+          nullable: true

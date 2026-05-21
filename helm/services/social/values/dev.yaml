@@ -1,0 +1,24 @@
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+
+env:
+  - name: PORT
+    value: "8081"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: FIRESTORE_PROJECT_ID
+    value: "trip-manager-dev"
+  - name: FIRESTORE_EMULATOR_HOST
+    value: firebase-emulator:8080
+  - name: AUTH_CLIENT_CONNECTION_STRING
+    value: "http://auth.trip-manager-dev.svc.cluster.local:8082"

@@ -1,0 +1,1418 @@
+openapi: 3.0.3
+info:
+  title: Users Service API
+  description: API for user provisioning and profile management
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:8001/api'
+    description: Development server
+security:
+  - firebaseAuth: []
+paths:
+  /users/provision:
+    post:
+      summary: Provision internal user record for authenticated Firebase user
+      description: >
+        Creates an internal user record for a user that has authenticated with
+        Firebase
+
+        but does not yet exist in the application's database. Idempotent: if the
+        user
+
+        already exists (matched by Firebase UID), the existing record is
+        returned with
+
+        200 OK. If a new record is created, 201 Created is returned.
+      operationId: provisionMe
+      tags:
+        - users
+      security:
+        - firebaseAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProvisionUserRequest'
+      responses:
+        '200':
+          description: User was already provisioned; existing record returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '201':
+          description: User was newly provisioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid Firebase token
+        '500':
+          description: Internal server error
+  /users/me:
+    get:
+      summary: Get current user profile
+      operationId: getMe
+      tags:
+        - users
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+    put:
+      summary: Update current user profile
+      operationId: updateMe
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  /trips:
+    get:
+      summary: List all trips for current user
+      operationId: listTrips
+      tags:
+        - trips
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated list of trips
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripListResponse'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create a new trip
+      operationId: createTrip
+      tags:
+        - trips
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripRequest'
+      responses:
+        '201':
+          description: Trip created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  /trips/recent:
+    get:
+      summary: List recent trips across all users
+      operationId: listRecentTrips
+      tags:
+        - trips
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of recent trips
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripListResponse'
+  /trips/search:
+    get:
+      summary: Search trips
+      operationId: searchTrips
+      tags:
+        - trips
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripListResponse'
+  '/trips/{tripId}':
+    get:
+      summary: Get trip details
+      operationId: getTrip
+      tags:
+        - trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+        '404':
+          description: Trip not found
+    put:
+      summary: Update trip
+      operationId: updateTrip
+      tags:
+        - trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripRequest'
+      responses:
+        '200':
+          description: Trip updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Trip not found
+    delete:
+      summary: Delete trip
+      operationId: deleteTrip
+      tags:
+        - trips
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trip deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Trip not found
+  '/trips/{tripId}/transports':
+    get:
+      summary: List transports for a trip
+      operationId: listTransports
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of transports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportListResponse'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add transport to a trip
+      operationId: createTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransportRequest'
+      responses:
+        '201':
+          description: Transport created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/transports/{transportId}':
+    put:
+      summary: Update a transport
+      operationId: updateTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: transportId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransportRequest'
+      responses:
+        '200':
+          description: Transport updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transport not found
+    delete:
+      summary: Delete a transport
+      operationId: deleteTransport
+      tags:
+        - transports
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: transportId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Transport deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Transport not found
+  '/trips/{tripId}/accommodations':
+    get:
+      summary: List accommodations for a trip
+      operationId: listAccommodations
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of accommodations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationListResponse'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add accommodation to a trip
+      operationId: createAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccommodationRequest'
+      responses:
+        '201':
+          description: Accommodation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/accommodations/{accommodationId}':
+    put:
+      summary: Update an accommodation
+      operationId: updateAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccommodationRequest'
+      responses:
+        '200':
+          description: Accommodation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Accommodation not found
+    delete:
+      summary: Delete an accommodation
+      operationId: deleteAccommodation
+      tags:
+        - accommodations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accommodationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Accommodation deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Accommodation not found
+  '/trips/{tripId}/locations':
+    get:
+      summary: List trip locations
+      operationId: listLocations
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated list of locations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationListResponse'
+    post:
+      summary: Add location to trip
+      operationId: addLocation
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
+      responses:
+        '201':
+          description: Location added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/locations/{locationId}':
+    put:
+      summary: Update location
+      operationId: updateLocation
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLocationRequest'
+      responses:
+        '200':
+          description: Location updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Location not found
+    delete:
+      summary: Remove location from trip
+      operationId: deleteLocation
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Location removed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Location not found
+  '/trips/{tripId}/locations/{locationId}/images':
+    post:
+      summary: Add image to location
+      operationId: addLocationImage
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLocationImageRequest'
+      responses:
+        '201':
+          description: Image added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationImageResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Location not found
+  '/trips/{tripId}/locations/{locationId}/images/{imageId}':
+    delete:
+      summary: Remove image from location
+      operationId: deleteLocationImage
+      tags:
+        - locations
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Image deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Image not found
+  '/trips/{tripId}/likes':
+    get:
+      summary: Get like count and like status for a trip
+      operationId: getTripLikes
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Like info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripLikeResponse'
+    post:
+      summary: Like a trip
+      operationId: likeTrip
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Trip liked
+        '401':
+          description: Unauthorized
+        '409':
+          description: Already liked
+    delete:
+      summary: Unlike a trip
+      operationId: unlikeTrip
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Trip unliked
+        '401':
+          description: Unauthorized
+        '404':
+          description: Like not found
+  '/trips/{tripId}/comments':
+    get:
+      summary: List comments for a trip
+      operationId: listTripComments
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentListResponse'
+    post:
+      summary: Add a comment to a trip
+      operationId: createTripComment
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCommentResponse'
+        '401':
+          description: Unauthorized
+  '/trips/{tripId}/comments/{commentId}':
+    delete:
+      summary: Delete a comment
+      operationId: deleteTripComment
+      tags:
+        - social
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Comment deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
+components:
+  schemas:
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+    ProvisionUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        bio:
+          type: string
+        avatarKey:
+          type: string
+          nullable: true
+    UserSummary:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          nullable: true
+    TripResponse:
+      type: object
+      required:
+        - id
+        - createdBy
+        - createdAt
+        - updatedAt
+        - title
+        - shortDescription
+        - startDate
+        - endDate
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        shortDescription:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - planned
+            - ongoing
+            - completed
+            - cancelled
+    TripListResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripResponse'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateTripRequest:
+      type: object
+      required:
+        - title
+        - shortDescription
+        - startDate
+        - endDate
+      properties:
+        title:
+          type: string
+          minLength: 1
+        shortDescription:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+    UpdateTripRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        shortDescription:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+            - planned
+            - ongoing
+            - completed
+            - cancelled
+    TransportResponse:
+      type: object
+      required:
+        - id
+        - createdBy
+        - createdAt
+        - updatedAt
+        - fromLocationId
+        - toLocationId
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+          nullable: true
+        arrivalTime:
+          type: string
+          format: date-time
+          nullable: true
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - car
+            - bus
+        notes:
+          type: string
+          nullable: true
+    TransportListResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransportResponse'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateTransportRequest:
+      type: object
+      required:
+        - fromLocationId
+        - toLocationId
+        - type
+      properties:
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - car
+            - bus
+        notes:
+          type: string
+    UpdateTransportRequest:
+      type: object
+      properties:
+        fromLocationId:
+          type: string
+          format: uuid
+        toLocationId:
+          type: string
+          format: uuid
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+            - flight
+            - train
+            - car
+            - bus
+        notes:
+          type: string
+    AccommodationResponse:
+      type: object
+      required:
+        - id
+        - createdBy
+        - createdAt
+        - updatedAt
+        - locationId
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        checkIn:
+          type: string
+          format: date-time
+          nullable: true
+        checkOut:
+          type: string
+          format: date-time
+          nullable: true
+        pricePerNight:
+          type: number
+          format: float
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+    AccommodationListResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccommodationResponse'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateAccommodationRequest:
+      type: object
+      required:
+        - locationId
+        - name
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        pricePerNight:
+          type: number
+          format: float
+        notes:
+          type: string
+    UpdateAccommodationRequest:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        checkIn:
+          type: string
+          format: date-time
+        checkOut:
+          type: string
+          format: date-time
+        pricePerNight:
+          type: number
+          format: float
+        notes:
+          type: string
+    LocationImageResponse:
+      type: object
+      required:
+        - id
+        - locationId
+        - imageUrl
+      properties:
+        id:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        imageUrl:
+          type: string
+          format: uri
+        sequence:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    LocationResponse:
+      type: object
+      required:
+        - id
+        - createdBy
+        - createdAt
+        - updatedAt
+        - name
+        - city
+        - country
+        - shortDescription
+        - dateFrom
+        - dateTo
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdBy:
+          $ref: '#/components/schemas/UserSummary'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+        latitude:
+          type: number
+          format: float
+          nullable: true
+        longitude:
+          type: number
+          format: float
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        sequence:
+          type: integer
+          nullable: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationImageResponse'
+    LocationListResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationResponse'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+        - city
+        - country
+        - shortDescription
+        - dateFrom
+        - dateTo
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string
+        sequence:
+          type: integer
+    UpdateLocationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        shortDescription:
+          type: string
+        dateFrom:
+          type: string
+          format: date
+        dateTo:
+          type: string
+          format: date
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string
+        sequence:
+          type: integer
+    AddLocationImageRequest:
+      type: object
+      required:
+        - imageKey
+      properties:
+        imageKey:
+          type: string
+        sequence:
+          type: integer
+    TripLikeResponse:
+      type: object
+      required:
+        - likeCount
+        - hasLiked
+      properties:
+        likeCount:
+          type: integer
+        hasLiked:
+          type: boolean
+    CreateTripCommentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+    TripCommentResponse:
+      type: object
+      required:
+        - id
+        - tripId
+        - user
+        - text
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        tripId:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TripCommentListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripCommentResponse'
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

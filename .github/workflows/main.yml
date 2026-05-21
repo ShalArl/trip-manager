@@ -1,0 +1,297 @@
+name: Dynamic Microservice CI/CD
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Service discovery and matrix setup
+  discover-services:
+    runs-on: ubuntu-latest
+    outputs:
+      backend-matrix: ${{ steps.set-matrix.outputs.matrix }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Filter paths
+        uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - name: Set build matrix
+        id: set-matrix
+        if: steps.filter.outputs.backend == 'true'
+        run: |
+          echo "Detecting changed backend services..."
+          
+          # Ensure jq is available
+          command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
+          
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=origin/${{ github.base_ref }}
+          else
+            BASE=${{ github.event.before }}
+          fi
+          
+          if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            BASE=$(git rev-parse HEAD^)
+          fi
+          
+          HEAD=${{ github.sha }}
+          echo "Diffing $BASE..$HEAD"
+          
+          # Get changed files
+          files=$(git diff --name-only "$BASE" "$HEAD")
+          
+          if echo "$files" | grep -q '^backend/shared/'; then
+            echo "Shared changed → build all services"
+            services=$(find backend -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {})
+          else
+            services=$(echo "$files" \
+              | grep '^backend/' \
+              | cut -d/ -f2 \
+              | sort -u)
+          fi
+          
+          echo "Changed services:"
+          echo "$services"
+          
+          # Build JSON matrix
+          matrix=$(jq -n '{include: []}')
+          has_services=false
+          
+          for service in $services; do
+            { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared & nginx
+          
+            path="backend/$service"
+            if [ ! -f "$path/go.mod" ] || [ ! -f "$path/Dockerfile" ]; then
+              echo "❌ ERROR: $service is missing go.mod or Dockerfile"
+              exit 1
+            fi
+          
+            echo "✅ $service"
+            matrix=$(echo "$matrix" | jq ".include += [{\"service\": \"$service\"}]")
+            has_services=true
+          done
+          
+          echo "Final matrix: $matrix"
+          
+          {
+            echo "matrix<<EOF"
+            echo "$matrix"
+            echo "EOF"
+            echo "changed=$has_services"
+          } >> "$GITHUB_OUTPUT"
+
+  # Backend
+  lint-and-test-backend:
+    needs: discover-services
+    if: needs.discover-services.outputs.backend-changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      matrix: ${{ fromJson(needs.discover-services.outputs.backend-matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/${{ matrix.service }}/go.mod
+          cache-dependency-path: backend/${{ matrix.service }}/go.sum
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: backend/${{ matrix.service }}
+
+      - name: Test
+        working-directory: backend/${{ matrix.service }}
+        run: go test ./... -race -coverprofile=coverage.out
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/coverage.out
+          retention-days: 3
+
+  build-backend:
+    needs: [ discover-services, lint-and-test-backend ]
+    if: needs.discover-services.outputs.backend-matrix != ''
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      matrix: ${{ fromJson(needs.discover-services.outputs.backend-matrix) }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate to Google Cloud
+        id: gcp-middleware
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ vars.GCP_AR_HOST }}
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend/${{ matrix.service }}
+            ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend/${{ matrix.service }}
+          file: ./backend/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=backend-${{ matrix.service }}
+
+      - name: Record backend built
+        run: |
+          mkdir -p /tmp/build-meta
+          echo "${{ matrix.service }}" > /tmp/build-meta/backend-${{ matrix.service }}-built.txt
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-meta-backend-${{ matrix.service }}
+          path: /tmp/build-meta/
+
+  # Frontend
+  lint-and-test-frontend:
+    needs: discover-services
+    if: needs.discover-services.outputs.frontend-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - run: pnpm lint
+        working-directory: frontend
+
+      - run: pnpm test --passWithNoTests
+        working-directory: frontend
+
+  build-frontend:
+    needs: [ discover-services, lint-and-test-frontend ]
+    if: needs.discover-services.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Authenticate to Google Cloud
+        id: gcp-middleware
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ vars.GCP_AR_HOST }}
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ vars.GCP_AR_HOST }}/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL_GCP }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Record frontend built
+        run: |
+          mkdir -p /tmp/build-meta
+          echo "true" > /tmp/build-meta/frontend-built.txt
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-meta-frontend
+          path: /tmp/build-meta/
+
+  # Merge metadata
+  merge-build-meta:
+    needs: [ build-backend, build-frontend ]
+    if: always() && (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact/merge@v4
+        with:
+          name: build-meta
+          pattern: build-meta-*
+          delete-merged: true
