@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 // ── Errors ────────────────────────────────────────────────────────────────────
@@ -29,59 +28,90 @@ type UserSummary struct {
 	Email string
 }
 
+type Place struct {
+	Name    string
+	City    string
+	Country string
+	Lat     *float64
+	Lng     *float64
+}
+
 type Transport struct {
-	ID             string
-	TripID         string
-	CreatedBy      UserSummary
-	FromLocationID string
-	ToLocationID   string
-	DepartureTime  *time.Time
-	ArrivalTime    *time.Time
-	Type           string
-	Notes          string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID            string
+	TripID        string
+	CreatedBy     UserSummary
+	From          Place
+	To            Place
+	DepartureTime *time.Time
+	ArrivalTime   *time.Time
+	Type          string
+	Notes         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // ── Record ────────────────────────────────────────────────────────────────────
 
 type transportRecord struct {
-	ID             uuid.UUID  `db:"id"`
-	TripID         uuid.UUID  `db:"trip_id"`
-	UserID         uuid.UUID  `db:"user_id"`
-	UserName       string     `db:"user_name"`
-	UserEmail      string     `db:"user_email"`
-	FromLocationID uuid.UUID  `db:"from_location_id"`
-	ToLocationID   uuid.UUID  `db:"to_location_id"`
-	DepartureTime  *time.Time `db:"departure_time"`
-	ArrivalTime    *time.Time `db:"arrival_time"`
-	Type           string     `db:"type"`
-	Notes          *string    `db:"notes"`
-	CreatedAt      time.Time  `db:"created_at"`
-	UpdatedAt      time.Time  `db:"updated_at"`
+	ID            uuid.UUID  `db:"id"`
+	TripID        uuid.UUID  `db:"trip_id"`
+	UserID        uuid.UUID  `db:"user_id"`
+	UserName      string     `db:"user_name"`
+	UserEmail     string     `db:"user_email"`
+	FromName      *string    `db:"from_name"`
+	FromCity      *string    `db:"from_city"`
+	FromCountry   *string    `db:"from_country"`
+	FromLat       *float64   `db:"from_lat"`
+	FromLng       *float64   `db:"from_lng"`
+	ToName        *string    `db:"to_name"`
+	ToCity        *string    `db:"to_city"`
+	ToCountry     *string    `db:"to_country"`
+	ToLat         *float64   `db:"to_lat"`
+	ToLng         *float64   `db:"to_lng"`
+	DepartureTime *time.Time `db:"departure_time"`
+	ArrivalTime   *time.Time `db:"arrival_time"`
+	Type          string     `db:"type"`
+	Notes         *string    `db:"notes"`
+	CreatedAt     time.Time  `db:"created_at"`
+	UpdatedAt     time.Time  `db:"updated_at"`
 }
 
-func (r *transportRecord) toDomain() *Transport {
-	notes := ""
-	if r.Notes != nil {
-		notes = *r.Notes
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
 	}
+	return *s
+}
+
+func (rec *transportRecord) toDomain() *Transport {
 	return &Transport{
-		ID:     r.ID.String(),
-		TripID: r.TripID.String(),
+		ID:     rec.ID.String(),
+		TripID: rec.TripID.String(),
 		CreatedBy: UserSummary{
-			ID:    r.UserID.String(),
-			Name:  r.UserName,
-			Email: r.UserEmail,
+			ID:    rec.UserID.String(),
+			Name:  rec.UserName,
+			Email: rec.UserEmail,
 		},
-		FromLocationID: r.FromLocationID.String(),
-		ToLocationID:   r.ToLocationID.String(),
-		DepartureTime:  r.DepartureTime,
-		ArrivalTime:    r.ArrivalTime,
-		Type:           r.Type,
-		Notes:          notes,
-		CreatedAt:      r.CreatedAt,
-		UpdatedAt:      r.UpdatedAt,
+		From: Place{
+			Name:    derefStr(rec.FromName),
+			City:    derefStr(rec.FromCity),
+			Country: derefStr(rec.FromCountry),
+			Lat:     rec.FromLat,
+			Lng:     rec.FromLng,
+		},
+		To: Place{
+			Name:    derefStr(rec.ToName),
+			City:    derefStr(rec.ToCity),
+			Country: derefStr(rec.ToCountry),
+			Lat:     rec.ToLat,
+			Lng:     rec.ToLng,
+		},
+		DepartureTime: rec.DepartureTime,
+		ArrivalTime:   rec.ArrivalTime,
+		Type:          rec.Type,
+		Notes:         derefStr(rec.Notes),
+		CreatedAt:     rec.CreatedAt,
+		UpdatedAt:     rec.UpdatedAt,
 	}
 }
 
@@ -123,14 +153,6 @@ func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, 
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-	fromID, err := uuid.Parse(t.FromLocationID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: invalid from_location_id", ErrInvalidInput)
-	}
-	toID, err := uuid.Parse(t.ToLocationID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: invalid to_location_id", ErrInvalidInput)
-	}
 
 	var notesPtr *string
 	if t.Notes != "" {
@@ -138,29 +160,27 @@ func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, 
 	}
 
 	var id uuid.UUID
-	var createdAt, updatedAt time.Time
-
 	query := `
-		INSERT INTO transports (trip_id, user_id, user_name, user_email, from_location_id, to_location_id, departure_time, arrival_time, type, notes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, created_at, updated_at`
+		INSERT INTO transports (
+			trip_id, user_id, user_name, user_email,
+			from_name, from_city, from_country, from_lat, from_lng,
+			to_name, to_city, to_country, to_lat, to_lng,
+			departure_time, arrival_time, type, notes
+		) VALUES (
+			$1, $2, $3, $4,
+			$5, $6, $7, $8, $9,
+			$10, $11, $12, $13, $14,
+			$15, $16, $17, $18
+		) RETURNING id`
 	err = r.db.QueryRowContext(ctx, query,
 		tripID, userID, t.CreatedBy.Name, t.CreatedBy.Email,
-		fromID, toID, t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
-	).Scan(&id, &createdAt, &updatedAt)
+		t.From.Name, t.From.City, t.From.Country, t.From.Lat, t.From.Lng,
+		t.To.Name, t.To.City, t.To.Country, t.To.Lat, t.To.Lng,
+		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
+	).Scan(&id)
 	if err != nil {
-		var pgErr *pq.Error
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case "23503":
-				return nil, fmt.Errorf("%w: referenced trip or location not found", ErrInvalidInput)
-			case "23505":
-				return nil, fmt.Errorf("%w: conflict", ErrInternal)
-			}
-		}
 		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
 	}
-
 	return r.GetByID(ctx, id.String())
 }
 
@@ -173,14 +193,6 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-	fromID, err := uuid.Parse(t.FromLocationID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: invalid from_location_id", ErrInvalidInput)
-	}
-	toID, err := uuid.Parse(t.ToLocationID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: invalid to_location_id", ErrInvalidInput)
-	}
 
 	var notesPtr *string
 	if t.Notes != "" {
@@ -189,12 +201,16 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 
 	query := `
 		UPDATE transports
-		SET from_location_id = $1, to_location_id = $2, departure_time = $3,
-		    arrival_time = $4, type = $5, notes = $6, updated_at = NOW()
-		WHERE id = $7 AND user_id = $8
+		SET from_name = $1, from_city = $2, from_country = $3, from_lat = $4, from_lng = $5,
+		    to_name = $6, to_city = $7, to_country = $8, to_lat = $9, to_lng = $10,
+		    departure_time = $11, arrival_time = $12, type = $13, notes = $14,
+		    updated_at = NOW()
+		WHERE id = $15 AND user_id = $16
 		RETURNING updated_at`
 	err = r.db.QueryRowContext(ctx, query,
-		fromID, toID, t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
+		t.From.Name, t.From.City, t.From.Country, t.From.Lat, t.From.Lng,
+		t.To.Name, t.To.City, t.To.Country, t.To.Lat, t.To.Lng,
+		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
 		id, userID,
 	).Scan(&t.UpdatedAt)
 	if err != nil {
@@ -203,7 +219,7 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 		}
 		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
 	}
-	return t, nil
+	return r.GetByID(ctx, t.ID)
 }
 
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Transport, int, error) {
