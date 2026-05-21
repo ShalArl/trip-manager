@@ -2,53 +2,48 @@
 
 import { useState } from "react";
 import { CreateAccommodationRequest } from "@/types/accommodation";
-
-type Location = {
-    id: string;
-    name: string;
-};
+import PlaceAutocomplete, { PlaceValue } from "@/components/shared/PlaceAutocomplete";
 
 type Props = {
     isOpen: boolean;
-    locations: Location[];
     onCloseAction: () => void;
     onAddAction: (accommodation: CreateAccommodationRequest) => void;
 };
 
-export default function AddAccommodationModal({ isOpen, locations, onCloseAction, onAddAction }: Props) {
-    const [formData, setFormData] = useState({
-        locationId: "",
-        name: "",
-        address: "",
-        checkIn: "",
-        checkOut: "",
-        pricePerNight: "",
-        notes: "",
-    });
+export default function AddAccommodationModal({ isOpen, onCloseAction, onAddAction }: Props) {
+    const [name, setName] = useState("");
+    const [location, setLocation] = useState<PlaceValue | null>(null);
+    const [address, setAddress] = useState("");
+    const [checkIn, setCheckIn] = useState("");
+    const [checkOut, setCheckOut] = useState("");
+    const [pricePerNight, setPricePerNight] = useState("");
+    const [notes, setNotes] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formData.locationId) {
-            alert("Bitte einen Ort auswählen");
-            return;
-        }
-        if (!formData.name.trim()) {
-            alert("Bitte einen Namen eingeben");
-            return;
-        }
+        if (!name.trim()) { setError("Bitte einen Namen eingeben"); return; }
+        if (!location) { setError("Bitte einen Ort auswählen"); return; }
+        setError(null);
 
         onAddAction({
-            locationId: formData.locationId,
-            name: formData.name,
-            address: formData.address || undefined,
-            checkIn: formData.checkIn || undefined,
-            checkOut: formData.checkOut || undefined,
-            pricePerNight: formData.pricePerNight ? parseFloat(formData.pricePerNight) : undefined,
-            notes: formData.notes || undefined,
+            location,
+            name,
+            address: address || undefined,
+            checkIn: checkIn ? new Date(checkIn).toISOString() : undefined,
+            checkOut: checkOut ? new Date(checkOut).toISOString() : undefined,
+            pricePerNight: pricePerNight ? parseFloat(pricePerNight) : undefined,
+            notes: notes || undefined,
         });
 
-        setFormData({ locationId: "", name: "", address: "", checkIn: "", checkOut: "", pricePerNight: "", notes: "" });
+        // Reset
+        setName("");
+        setLocation(null);
+        setAddress("");
+        setCheckIn("");
+        setCheckOut("");
+        setPricePerNight("");
+        setNotes("");
         onCloseAction();
     };
 
@@ -56,7 +51,7 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
 
     return (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800 max-h-[90vh] overflow-y-auto">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
                     Unterkunft hinzufügen
                 </h2>
@@ -65,33 +60,25 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
                     {/* Name */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Name *
+                            Name <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder="z.B. Hotel Muster"
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
                     </div>
 
                     {/* Location */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Ort *
-                        </label>
-                        <select
-                            value={formData.locationId}
-                            onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        >
-                            <option value="">Auswählen</option>
-                            {locations.map((loc) => (
-                                <option key={loc.id} value={loc.id}>{loc.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <PlaceAutocomplete
+                        label="Ort"
+                        value={location}
+                        onChange={setLocation}
+                        placeholder="z.B. Paris, Amsterdam..."
+                        required
+                    />
 
                     {/* Address */}
                     <div>
@@ -100,8 +87,8 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
                         </label>
                         <input
                             type="text"
-                            value={formData.address}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
                             placeholder="z.B. Musterstraße 1, 12345 Musterstadt"
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
@@ -110,30 +97,26 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
                     {/* Check-in & Check-out */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Check-in
-                            </label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Check-in</label>
                             <input
                                 type="datetime-local"
-                                value={formData.checkIn}
-                                onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
+                                value={checkIn}
+                                onChange={(e) => setCheckIn(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Check-out
-                            </label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Check-out</label>
                             <input
                                 type="datetime-local"
-                                value={formData.checkOut}
-                                onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
+                                value={checkOut}
+                                onChange={(e) => setCheckOut(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
                     </div>
 
-                    {/* Price per night */}
+                    {/* Price */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             Preis pro Nacht (€)
@@ -142,8 +125,8 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
                             type="number"
                             min="0"
                             step="0.01"
-                            value={formData.pricePerNight}
-                            onChange={(e) => setFormData({ ...formData, pricePerNight: e.target.value })}
+                            value={pricePerNight}
+                            onChange={(e) => setPricePerNight(e.target.value)}
                             placeholder="z.B. 89.99"
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
@@ -151,17 +134,18 @@ export default function AddAccommodationModal({ isOpen, locations, onCloseAction
 
                     {/* Notes */}
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Notizen
-                        </label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Notizen</label>
                         <textarea
-                            value={formData.notes}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                             placeholder="z.B. Buchungsnummer AB1234"
                             rows={3}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                         />
                     </div>
+
+                    {/* Error */}
+                    {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
                     {/* Buttons */}
                     <div className="flex gap-3 pt-4">

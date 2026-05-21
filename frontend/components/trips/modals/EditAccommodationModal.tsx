@@ -2,50 +2,48 @@
 
 import { useState } from "react";
 import { AccommodationResponse, UpdateAccommodationRequest } from "@/types/accommodation";
-
-type Location = {
-    id: string;
-    name: string;
-};
+import PlaceAutocomplete, { PlaceValue } from "@/components/shared/PlaceAutocomplete";
 
 type Props = {
     isOpen: boolean;
     accommodation: AccommodationResponse;
-    locations: Location[];
     onCloseAction: () => void;
     onSaveAction: (req: UpdateAccommodationRequest) => void;
     onDeleteAction: () => void;
 };
 
-export default function EditAccommodationModal({ isOpen, accommodation, locations, onCloseAction, onSaveAction, onDeleteAction }: Props) {
-    const [formData, setFormData] = useState({
-        locationId: accommodation.locationId ?? "",
-        name: accommodation.name ?? "",
-        address: accommodation.address ?? "",
-        checkIn: accommodation.checkIn ?? "",
-        checkOut: accommodation.checkOut ?? "",
-        pricePerNight: accommodation.pricePerNight?.toString() ?? "",
-        notes: accommodation.notes ?? "",
-    });
+export default function EditAccommodationModal({ isOpen, accommodation, onCloseAction, onSaveAction, onDeleteAction }: Props) {
+    const [name, setName] = useState(accommodation.name ?? "");
+    const [location, setLocation] = useState<PlaceValue | null>(
+        accommodation.location ?? null
+    );
+    const [address, setAddress] = useState(accommodation.address ?? "");
+    const [checkIn, setCheckIn] = useState(
+        accommodation.checkIn ? new Date(accommodation.checkIn).toISOString().slice(0, 16) : ""
+    );
+    const [checkOut, setCheckOut] = useState(
+        accommodation.checkOut ? new Date(accommodation.checkOut).toISOString().slice(0, 16) : ""
+    );
+    const [pricePerNight, setPricePerNight] = useState(
+        accommodation.pricePerNight?.toString() ?? ""
+    );
+    const [notes, setNotes] = useState(accommodation.notes ?? "");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.locationId) {
-            alert("Bitte einen Ort auswählen");
-            return;
-        }
-        if (!formData.name.trim()) {
-            alert("Bitte einen Namen eingeben");
-            return;
-        }
+        if (!name.trim()) { setError("Bitte einen Namen eingeben"); return; }
+        if (!location) { setError("Bitte einen Ort auswählen"); return; }
+        setError(null);
+
         onSaveAction({
-            locationId: formData.locationId,
-            name: formData.name,
-            address: formData.address || undefined,
-            checkIn: formData.checkIn || undefined,
-            checkOut: formData.checkOut || undefined,
-            pricePerNight: formData.pricePerNight ? parseFloat(formData.pricePerNight) : undefined,
-            notes: formData.notes || undefined,
+            location,
+            name,
+            address: address || undefined,
+            checkIn: checkIn ? new Date(checkIn).toISOString() : undefined,
+            checkOut: checkOut ? new Date(checkOut).toISOString() : undefined,
+            pricePerNight: pricePerNight ? parseFloat(pricePerNight) : undefined,
+            notes: notes || undefined,
         });
     };
 
@@ -53,7 +51,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
 
     return (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800 max-h-[90vh] overflow-y-auto">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
                     Unterkunft bearbeiten
                 </h2>
@@ -61,37 +59,33 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Name *</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            Name <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
                     </div>
 
                     {/* Location */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Ort *</label>
-                        <select
-                            value={formData.locationId}
-                            onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        >
-                            <option value="">Auswählen</option>
-                            {locations.map((loc) => (
-                                <option key={loc.id} value={loc.id}>{loc.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <PlaceAutocomplete
+                        label="Ort"
+                        value={location}
+                        onChange={setLocation}
+                        placeholder="z.B. Paris, Amsterdam..."
+                        required
+                    />
 
                     {/* Address */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Adresse</label>
                         <input
                             type="text"
-                            value={formData.address}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
                     </div>
@@ -102,8 +96,8 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Check-in</label>
                             <input
                                 type="datetime-local"
-                                value={formData.checkIn}
-                                onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
+                                value={checkIn}
+                                onChange={(e) => setCheckIn(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
@@ -111,22 +105,22 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Check-out</label>
                             <input
                                 type="datetime-local"
-                                value={formData.checkOut}
-                                onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
+                                value={checkOut}
+                                onChange={(e) => setCheckOut(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
                     </div>
 
-                    {/* Price per night */}
+                    {/* Price */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Preis pro Nacht (€)</label>
                         <input
                             type="number"
                             min="0"
                             step="0.01"
-                            value={formData.pricePerNight}
-                            onChange={(e) => setFormData({ ...formData, pricePerNight: e.target.value })}
+                            value={pricePerNight}
+                            onChange={(e) => setPricePerNight(e.target.value)}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                         />
                     </div>
@@ -135,12 +129,15 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Notizen</label>
                         <textarea
-                            value={formData.notes}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                             rows={3}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                         />
                     </div>
+
+                    {/* Error */}
+                    {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
                     {/* Buttons */}
                     <div className="flex gap-3 pt-4">

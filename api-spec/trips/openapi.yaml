@@ -379,6 +379,47 @@ components:
           type: string
           nullable: true
 
+    # ── Shared Place Types ────────────────────────────────────────────────────
+
+    PlaceInput:
+      type: object
+      required: [name, city, country]
+      properties:
+        name:
+          type: string
+          description: Vollständiger Ortsname (z.B. "Flughafen Frankfurt", "Paris")
+        city:
+          type: string
+        country:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+
+    PlaceSummary:
+      type: object
+      required: [name, city, country]
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+
     # ── Trips ─────────────────────────────────────────────────────────────────
 
     TripResponse:
@@ -472,7 +513,7 @@ components:
 
     TransportResponse:
       type: object
-      required: [id, createdBy, createdAt, updatedAt, fromLocationId, toLocationId, type]
+      required: [id, createdBy, createdAt, updatedAt, from, to, type]
       properties:
         id:
           type: string
@@ -485,12 +526,10 @@ components:
         updatedAt:
           type: string
           format: date-time
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceSummary'
+        to:
+          $ref: '#/components/schemas/PlaceSummary'
         departureTime:
           type: string
           format: date-time
@@ -522,14 +561,12 @@ components:
 
     CreateTransportRequest:
       type: object
-      required: [fromLocationId, toLocationId, type]
+      required: [from, to, type]
       properties:
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceInput'
+        to:
+          $ref: '#/components/schemas/PlaceInput'
         departureTime:
           type: string
           format: date-time
@@ -545,12 +582,10 @@ components:
     UpdateTransportRequest:
       type: object
       properties:
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceInput'
+        to:
+          $ref: '#/components/schemas/PlaceInput'
         departureTime:
           type: string
           format: date-time
@@ -567,7 +602,7 @@ components:
 
     AccommodationResponse:
       type: object
-      required: [id, createdBy, createdAt, updatedAt, locationId, name]
+      required: [id, createdBy, createdAt, updatedAt, location, name]
       properties:
         id:
           type: string
@@ -580,9 +615,8 @@ components:
         updatedAt:
           type: string
           format: date-time
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceSummary'
         name:
           type: string
         address:
@@ -620,11 +654,10 @@ components:
 
     CreateAccommodationRequest:
       type: object
-      required: [locationId, name]
+      required: [location, name]
       properties:
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceInput'
         name:
           type: string
         address:
@@ -644,9 +677,8 @@ components:
     UpdateAccommodationRequest:
       type: object
       properties:
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceInput'
         name:
           type: string
         address:
