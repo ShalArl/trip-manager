@@ -9,8 +9,8 @@ export type PlaceValue = {
     name: string;
     city: string;
     country: string;
-    lat?: number;
-    lng?: number;
+    lat?: number | null;
+    lng?: number | null;
 };
 
 type NominatimResult = {

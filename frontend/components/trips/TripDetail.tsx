@@ -242,6 +242,8 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
             </Link>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                {/* ── Left: Main Content ───────────────────────────────────── */}
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* ── Trip Header ─────────────────────────────────────── */}
@@ -293,11 +295,10 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                             <button
                                 onClick={handleLike}
                                 disabled={!currentUser}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                                    likeInfo.hasLiked
-                                        ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
-                                        : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${likeInfo.hasLiked
+                                    ? "bg-sky-100 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                                    : "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-sky-300 dark:hover:border-sky-700"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 <span>{likeInfo.hasLiked ? "❤️" : "🤍"}</span>
                                 <span>{likeInfo.likeCount} {likeInfo.likeCount === 1 ? "Like" : "Likes"}</span>
@@ -382,46 +383,97 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                     {/* ── Transports ───────────────────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                                Transporte ({transports.length})
-                            </h2>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">🚀</span>
+                                <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                    Transporte
+                                    <span className="ml-2 text-sm font-normal text-zinc-400 dark:text-zinc-500">
+                                        ({transports.length})
+                                    </span>
+                                </h2>
+                            </div>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddTransportModal(true)}
-                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
                                 >
-                                    + Transport
+                                    <span>+</span> Transport
                                 </button>
                             )}
                         </div>
+
                         {transports.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Kein Transport hinzugefügt</p>
+                            <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500">
+                                <span className="text-4xl mb-3 opacity-30">🚌</span>
+                                <p className="text-sm">Kein Transport hinzugefügt</p>
+                            </div>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {transports.map((t) => {
-                                    const fromLocation = locations.find((l) => l.id === t.fromLocationId);
-                                    const toLocation = locations.find((l) => l.id === t.toLocationId);
                                     const typeEmoji = { flight: "✈️", train: "🚂", car: "🚗", bus: "🚌" }[t.type ?? "flight"] ?? "🚗";
                                     return (
-                                        <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">{typeEmoji}</span>
-                                                    <div>
-                                                        <p className="font-medium text-zinc-900 dark:text-white">
-                                                            {fromLocation?.name ?? t.fromLocationId} → {toLocation?.name ?? t.toLocationId}
-                                                        </p>
-                                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                            {t.departureTime ?? "Keine Abfahrtszeit"}
-                                                        </p>
+                                        <div key={t.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-sky-200 dark:hover:border-sky-800 transition-colors">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xl shadow-sm">
+                                                        {typeEmoji}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                                                                {t.from?.name || "–"}
+                                                            </span>
+                                                            <span className="text-zinc-400 dark:text-zinc-500 shrink-0">→</span>
+                                                            <span className="font-semibold text-zinc-900 dark:text-white truncate">
+                                                                {t.to?.name || "–"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                                                {t.from?.city && t.from?.country ? `${t.from.city}, ${t.from.country}` : ""}
+                                                            </span>
+                                                            {t.from?.city && t.to?.city && (
+                                                                <span className="text-xs text-zinc-300 dark:text-zinc-600">·</span>
+                                                            )}
+                                                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                                                {t.to?.city && t.to?.country ? `${t.to.city}, ${t.to.country}` : ""}
+                                                            </span>
+                                                        </div>
+                                                        {(t.departureTime || t.arrivalTime) && (
+                                                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                                                {t.departureTime && (
+                                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                        🕐 {new Date(t.departureTime).toLocaleString("de-DE", {
+                                                                            day: "2-digit", month: "2-digit", year: "numeric",
+                                                                            hour: "2-digit", minute: "2-digit"
+                                                                        })}
+                                                                    </span>
+                                                                )}
+                                                                {t.departureTime && t.arrivalTime && (
+                                                                    <span className="text-xs text-zinc-300 dark:text-zinc-600">→</span>
+                                                                )}
+                                                                {t.arrivalTime && (
+                                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                        {new Date(t.arrivalTime).toLocaleString("de-DE", {
+                                                                            day: "2-digit", month: "2-digit", year: "numeric",
+                                                                            hour: "2-digit", minute: "2-digit"
+                                                                        })}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {isEditable && (
                                                     <button
                                                         onClick={() => { setDetailTransport(t); setShowEditTransportModal(true); }}
-                                                        className="p-2 text-zinc-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                        className="shrink-0 p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                        aria-label="Transport bearbeiten"
                                                     >
-                                                        ✏️
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                        </svg>
                                                     </button>
                                                 )}
                                             </div>
@@ -435,59 +487,96 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                     {/* ── Accommodations ───────────────────────────────────── */}
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                                Unterkünfte ({accommodations.length})
-                            </h2>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">🏨</span>
+                                <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                    Unterkünfte
+                                    <span className="ml-2 text-sm font-normal text-zinc-400 dark:text-zinc-500">
+                                        ({accommodations.length})
+                                    </span>
+                                </h2>
+                            </div>
                             {isEditable && (
                                 <button
                                     onClick={() => setShowAddAccommodationModal(true)}
-                                    className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
                                 >
-                                    + Unterkunft
+                                    <span>+</span> Unterkunft
                                 </button>
                             )}
                         </div>
+
                         {accommodations.length === 0 ? (
-                            <p className="text-zinc-500 dark:text-zinc-400 text-center py-8">Keine Unterkunft hinzugefügt</p>
+                            <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500">
+                                <span className="text-4xl mb-3 opacity-30">🏨</span>
+                                <p className="text-sm">Keine Unterkunft hinzugefügt</p>
+                            </div>
                         ) : (
-                            <div className="space-y-2">
-                                {accommodations.map((a) => {
-                                    const location = locations.find((l) => l.id === a.locationId);
-                                    return (
-                                        <div key={a.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">🏨</span>
-                                                    <div>
-                                                        <p className="font-medium text-zinc-900 dark:text-white">{a.name}</p>
-                                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                            {location?.name ?? "Unbekannter Ort"}
-                                                            {a.checkIn && ` · Check-in: ${new Date(a.checkIn).toLocaleDateString("de-DE")}`}
-                                                            {a.checkOut && ` · Check-out: ${new Date(a.checkOut).toLocaleDateString("de-DE")}`}
-                                                        </p>
-                                                        {a.pricePerNight && (
-                                                            <p className="text-sm text-zinc-400 dark:text-zinc-500">
-                                                                {a.pricePerNight} € / Nacht
-                                                            </p>
-                                                        )}
-                                                    </div>
+                            <div className="space-y-3">
+                                {accommodations.map((a) => (
+                                    <div key={a.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-sky-200 dark:hover:border-sky-800 transition-colors">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xl shadow-sm">
+                                                    🏨
                                                 </div>
-                                                {isEditable && (
-                                                    <button
-                                                        onClick={() => { setDetailAccommodation(a); setShowEditAccommodationModal(true); }}
-                                                        className="p-2 text-zinc-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
-                                                    >
-                                                        ✏️
-                                                    </button>
-                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-zinc-900 dark:text-white truncate">
+                                                        {a.name}
+                                                    </p>
+                                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                                                        📍 {a.location?.name
+                                                            ? `${a.location.name}, ${a.location.city}, ${a.location.country}`
+                                                            : "Kein Ort angegeben"}
+                                                    </p>
+                                                    {(a.checkIn || a.checkOut) && (
+                                                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                                            {a.checkIn && (
+                                                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                    🛬 Check-in: {new Date(a.checkIn).toLocaleDateString("de-DE", {
+                                                                        day: "2-digit", month: "2-digit", year: "numeric"
+                                                                    })}
+                                                                </span>
+                                                            )}
+                                                            {a.checkIn && a.checkOut && (
+                                                                <span className="text-xs text-zinc-300 dark:text-zinc-600">·</span>
+                                                            )}
+                                                            {a.checkOut && (
+                                                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                    🛫 Check-out: {new Date(a.checkOut).toLocaleDateString("de-DE", {
+                                                                        day: "2-digit", month: "2-digit", year: "numeric"
+                                                                    })}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {a.pricePerNight && (
+                                                        <p className="text-xs text-sky-600 dark:text-sky-400 mt-1 font-medium">
+                                                            {a.pricePerNight} € / Nacht
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
+                                            {isEditable && (
+                                                <button
+                                                    onClick={() => { setDetailAccommodation(a); setShowEditAccommodationModal(true); }}
+                                                    className="shrink-0 p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                    aria-label="Unterkunft bearbeiten"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
-                </div>
+
+                </div>{/* end lg:col-span-2 */}
 
                 {/* ── Right: Activities ────────────────────────────────────── */}
                 {activeLocation && (
@@ -522,7 +611,8 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                         )}
                     </div>
                 )}
-            </div>
+
+            </div>{/* end grid */}
 
             {/* ── Modals ───────────────────────────────────────────────────── */}
             <AddActivityModal
@@ -541,13 +631,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
             />
             <AddTransportModal
                 isOpen={showAddTransportModal}
-                locations={locations}
                 onCloseAction={() => setShowAddTransportModal(false)}
                 onAddAction={handleAddTransport}
             />
             <AddAccommodationModal
                 isOpen={showAddAccommodationModal}
-                locations={locations}
                 onCloseAction={() => setShowAddAccommodationModal(false)}
                 onAddAction={handleAddAccommodation}
             />
@@ -555,7 +643,6 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                 <EditTransportModal
                     isOpen={showEditTransportModal}
                     transport={detailTransport}
-                    locations={locations}
                     onCloseAction={() => setShowEditTransportModal(false)}
                     onSaveAction={handleUpdateTransport}
                     onDeleteAction={handleDeleteTransport}
@@ -565,12 +652,12 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                 <EditAccommodationModal
                     isOpen={showEditAccommodationModal}
                     accommodation={detailAccommodation}
-                    locations={locations}
                     onCloseAction={() => setShowEditAccommodationModal(false)}
                     onSaveAction={handleUpdateAccommodation}
                     onDeleteAction={handleDeleteAccommodation}
                 />
             )}
-        </div>
+
+        </div> // end max-w-5xl
     );
 }
