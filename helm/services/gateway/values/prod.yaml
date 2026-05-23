@@ -1,0 +1,3 @@
+ingress:
+  className: gke-l7-global-external-managed
+  host: api.neatnode.xyz

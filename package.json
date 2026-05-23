@@ -6,14 +6,23 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,go,md}\"",
-    "gen": "turbo run gen",
-    "gen:ts": "mkdirp ./frontend/generated && openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts",
-    "gen:go": "mkdirp ./backend/internal/generated && rm -rf ./backend/internal/generated/*.go && oapi-codegen --config=oapi-codegen.yaml ./api-spec/openapi.yaml",
+    "gen": "pnpm gen:go && pnpm gen:ts",
+    
+    "gen:ts": "mkdirp ./frontend/generated && openapi-merge-cli --config merge-config.json && openapi-typescript ./api-spec/merged/openapi.yaml -o ./frontend/generated/types.ts",
+    "gen:go:users": "mkdirp ./backend/users/generated && oapi-codegen --config=oapi-codegen-users.yaml ./api-spec/users/openapi.yaml",
+    "gen:go:trips": "mkdirp ./backend/trips/generated && oapi-codegen --config=oapi-codegen-trips.yaml ./api-spec/trips/openapi.yaml",
+    "gen:go:locations": "mkdirp ./backend/locations/generated && oapi-codegen --config=oapi-codegen-locations.yaml ./api-spec/locations/openapi.yaml",
+    "gen:go:social": "mkdirp ./backend/social/generated && oapi-codegen --config=oapi-codegen-social.yaml ./api-spec/social/openapi.yaml",
+
+    "gen:go": "pnpm gen:go:users && pnpm gen:go:trips && pnpm gen:go:locations && pnpm gen:go:social",
+    "merge-schemas": "openapi-merge-cli --config merge-config.json",
+
     "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/generated/{src,docs,.openapi-generator} ./frontend/generated/{*.json,*.md}",
     "clean:turbo": "rm -rf .turbo frontend/.turbo backend/.turbo"
   },
   "devDependencies": {
     "mkdirp": "^3.0.1",
+    "openapi-merge-cli": "^1.3.2",
     "openapi-typescript": "^7.13.0",
     "prettier": "latest",
     "turbo": "^2.8.21"

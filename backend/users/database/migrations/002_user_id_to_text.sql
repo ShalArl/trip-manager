@@ -1,0 +1,1 @@
+ALTER TABLE users ALTER COLUMN firebase_uid TYPE TEXT;

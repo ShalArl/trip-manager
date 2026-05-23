@@ -28,9 +28,9 @@ gcloud run services delete "${APP_NAME}-frontend" \
 
 echo ""
 echo "=== Phase 2: Domain Mappings ==="
-gcloud beta run domain-mappings delete "api.${DOMAIN}" \
+gcloud beta run shared-mappings delete "api.${DOMAIN}" \
     --region="$REGION" --quiet 2>/dev/null || echo "API domain mapping not found, skipping"
-gcloud beta run domain-mappings delete "app.${DOMAIN}" \
+gcloud beta run shared-mappings delete "app.${DOMAIN}" \
     --region="$REGION" --quiet 2>/dev/null || echo "App domain mapping not found, skipping"
 
 echo ""

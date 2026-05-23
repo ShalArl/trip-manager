@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: firebase-emulator
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: firebase-emulator
+  ports:
+    - name: auth
+      port: 9099
+      targetPort: 9099
+    - name: firestore
+      port: 8080
+      targetPort: 8080

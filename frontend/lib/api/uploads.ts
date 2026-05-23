@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
  * The storage backend (GCS in prod, MinIO locally) is opaque to the client.
  */
 export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
-    const response = await fetch(`${API_URL}/api/uploads/presigned`, {
+    const response = await fetch(`${API_URL}/api/presign/uploads/presigned`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify(req),

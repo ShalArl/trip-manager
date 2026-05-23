@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firebase-emulator
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: firebase-emulator
+  template:
+    metadata:
+      labels:
+        app: firebase-emulator
+    spec:
+      containers:
+        - name: firebase-emulator
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - firebase
+            - emulators:start
+            - --only=auth,firestore
+            - --project={{ .Values.projectId }}
+          ports:
+            - containerPort: 9099
+              name: auth
+            - containerPort: 8080
+              name: firestore
+          volumeMounts:
+            - name: firebase-config
+              mountPath: /home/node/firebase.json
+              subPath: firebase.json
+      volumes:
+        - name: firebase-config
+          configMap:
+            name: firebase-config

@@ -5,7 +5,7 @@ export type UserResponse = components["schemas"]["UserResponse"];
 export type UpdateUserRequest = components["schemas"]["UpdateUserRequest"];
 export type ProvisionUserRequest = components["schemas"]["ProvisionUserRequest"]
 
-// types/user.ts (oder types/auth.ts, wo auch immer es passt)
+// types/user.ts (oder types/middleware.ts, wo auch immer es passt)
 
 export interface CreateUserRequest {
     email: string;

@@ -8,7 +8,7 @@ for f in lib/lib.sh lib/cloudsql.sh lib/artifactory.sh \
     source "$f"
 done
 
-# gcloud auth login --quiet
+# gcloud middleware login --quiet
 
 # === Phase 1: Project & APIs ===
 ensure_project "$PROJECT_ID"

@@ -136,7 +136,7 @@ crontab -e
 ### 4. Verify Domain Resolution
 
 ```bash
-# Test that your domain resolves to your server's IP
+# Test that your shared resolves to your server's IP
 nslookup travel-nugget.duckdns.org
 
 # Should output something like:
@@ -220,7 +220,7 @@ sudo mv /tmp/caddy /usr/local/bin/caddy
 sudo chmod +x /usr/local/bin/caddy
 
 # 5. Setup Duck DNS (for dynamic IP tracking)
-# Complete guide: See [DuckDNS Domain Setup](#duckdns-domain-setup) section above
+# Complete guide: See [DuckDNS Domain Setup](#duckdns-shared-setup) section above
 # Get your token from https://www.duck.dns.org/
 crontab -e
 # Add the following line:
