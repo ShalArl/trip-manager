@@ -201,7 +201,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: ./backend/${{ matrix.service }}
+          context: ./backend
           file: ./backend/${{ matrix.service }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
