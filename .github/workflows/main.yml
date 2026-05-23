@@ -6,6 +6,15 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      force_backend:
+        description: 'Force run Backend-Jobs'
+        type: boolean
+        default: false
+      force_frontend:
+        description: 'Force run Frontend-Jobs'
+        type: boolean
+        default: false
 
 jobs:
   # Service discovery and matrix setup
@@ -14,6 +23,8 @@ jobs:
     outputs:
       backend-matrix: ${{ steps.set-matrix.outputs.matrix }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      backend-changed: ${{ steps.set-matrix.outputs.changed }}
+      frontend-changed: ${{ steps.set-frontend.outputs.frontend_changed }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -32,62 +43,68 @@ jobs:
 
       - name: Set build matrix
         id: set-matrix
-        if: steps.filter.outputs.backend == 'true'
+        if: ${{ steps.filter.outputs.backend == 'true' || github.event.inputs.force_backend == 'true' }}
+        env:
+          FORCE_BACKEND: ${{ github.event.inputs.force_backend }}
         run: |
           echo "Detecting changed backend services..."
-          
+
           # Ensure jq is available
           command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
-          
+
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE=origin/${{ github.base_ref }}
           else
             BASE=${{ github.event.before }}
           fi
-          
+
           if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
             BASE=$(git rev-parse HEAD^)
           fi
-          
+
           HEAD=${{ github.sha }}
           echo "Diffing $BASE..$HEAD"
-          
-          # Get changed files
-          files=$(git diff --name-only "$BASE" "$HEAD")
-          
-          if echo "$files" | grep -q '^backend/shared/'; then
-            echo "Shared changed → build all services"
+
+          if [ "$FORCE_BACKEND" = "true" ]; then
+            echo "⚠️ Manual override active: all Backend-Services will be build!"
             services=$(find backend -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {})
           else
-            services=$(echo "$files" \
-              | grep '^backend/' \
-              | cut -d/ -f2 \
-              | sort -u)
+            files=$(git diff --name-only "$BASE" "$HEAD")
+
+            if echo "$files" | grep -q '^backend/shared/'; then
+              echo "Shared changed → build all services"
+              services=$(find backend -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {})
+            else
+              services=$(echo "$files" \
+                | grep '^backend/' \
+                | cut -d/ -f2 \
+                | sort -u)
+            fi
           fi
-          
+
           echo "Changed services:"
           echo "$services"
-          
+
           # Build JSON matrix
           matrix=$(jq -n '{include: []}')
           has_services=false
-          
+
           for service in $services; do
             { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared & nginx
-          
+
             path="backend/$service"
             if [ ! -f "$path/go.mod" ] || [ ! -f "$path/Dockerfile" ]; then
               echo "❌ ERROR: $service is missing go.mod or Dockerfile"
               exit 1
             fi
-          
+
             echo "✅ $service"
             matrix=$(echo "$matrix" | jq ".include += [{\"service\": \"$service\"}]")
             has_services=true
           done
-          
+
           echo "Final matrix: $matrix"
-          
+
           {
             echo "matrix<<EOF"
             echo "$matrix"
@@ -95,10 +112,22 @@ jobs:
             echo "changed=$has_services"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Set Frontend Output
+        id: set-frontend
+        run: |
+          if [ "${{ steps.filter.outputs.frontend }}" = "true" ] || [ "${{ github.event.inputs.force_frontend }}" = "true" ]; then
+            echo "frontend_changed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Frontend-Build active."
+          else
+            echo "frontend_changed=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️ Frontend skipped."
+          fi
+
   # Backend
   lint-and-test-backend:
     needs: discover-services
-    if: needs.discover-services.outputs.backend-changed == 'true'
+    if: |
+      needs.discover-services.outputs.backend-changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 3
