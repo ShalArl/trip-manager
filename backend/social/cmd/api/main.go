@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,11 +17,13 @@ import (
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
 	"github.com/ShalArl/trip-manager/backend/social/internal/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/like"
+	"github.com/ShalArl/trip-manager/backend/social/kafka"
 )
 
 func main() {
 	ctx := context.Background()
 	cfg := config.LoadConfig()
+
 	log.Printf("Starting Social Service on port %s\n", cfg.Port)
 
 	firestoreClient, err := config.ConnectFirestore(ctx, cfg.FirestoreProject)
@@ -32,6 +35,16 @@ func main() {
 			log.Fatalf("Failed to close Firestore client: %v", err)
 		}
 	}(firestoreClient)
+
+	// Kafka Producer
+	var kafkaProducer *kafka.Producer
+	if brokers := cfg.KafkaBrokers; brokers != "" {
+		kafkaProducer = kafka.NewProducer(strings.Split(brokers, ","))
+		defer kafkaProducer.Close()
+		log.Printf("kafka producer connected to %s", brokers)
+	} else {
+		log.Println("warn: KAFKA_BROKERS not set, trip.liked/commented events will not be published")
+	}
 
 	authClient := authclient.NewClient(cfg.AuthClientConnectionString)
 	usersClient := client.NewUsersClient(cfg.UsersServiceURL)
@@ -46,20 +59,19 @@ func main() {
 
 	// Like endpoints
 	mux.HandleFunc("GET /api/trips/{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	mux.HandleFunc("POST /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService)))
+	mux.HandleFunc("POST /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService, kafkaProducer)))
 	mux.HandleFunc("DELETE /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
 
 	// Comment endpoints
 	mux.HandleFunc("GET /api/trips/{tripId}/comments", comment.ListTripCommentsHandler(commentService))
-	mux.HandleFunc("POST /api/trips/{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient)))
+	mux.HandleFunc("POST /api/trips/{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient, kafkaProducer)))
 	mux.HandleFunc("DELETE /api/trips/{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte(`{"status":"ok"}`))
-		if err != nil {
+		if _, err := w.Write([]byte(`{"status":"ok"}`)); err != nil {
 			return
 		}
 	})
@@ -84,6 +96,5 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Server error: %v", err)
 	}
-
 	log.Println("Server stopped")
 }

@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/firestore v1.22.0
 	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
+	github.com/oapi-codegen/runtime v1.4.1
 	google.golang.org/api v0.274.0
 	google.golang.org/grpc v1.80.0
 )

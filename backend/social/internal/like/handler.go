@@ -2,10 +2,13 @@ package like
 
 import (
 	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
+	"github.com/ShalArl/trip-manager/backend/social/kafka"
 )
 
 // GetTripLikesHandler handles GET /trips/{tripId}/likes (optional authclient)
@@ -16,35 +19,30 @@ func GetTripLikesHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusBadRequest, "Trip ID is required")
 			return
 		}
-
-		// userID is optional for this endpoint
 		userID, _ := authclient.GetUserID(r)
-
 		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, tripID, TargetTypeTrip)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 		shared.RespondJSON(w, http.StatusOK, resp)
 	}
 }
 
 // LikeTripHandler handles POST /trips/{tripId}/likes (authclient required)
-func LikeTripHandler(svc Service) http.HandlerFunc {
+// Publisht trip.liked Event nach erfolgreichem Like.
+func LikeTripHandler(svc Service, producer *kafka.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
 			shared.RespondError(w, http.StatusBadRequest, "Trip ID is required")
 			return
 		}
-
 		err := svc.LikeEntity(r.Context(), userID, tripID, TargetTypeTrip)
 		if err != nil {
 			if errors.Is(err, shared.ErrConflict) {
@@ -53,6 +51,17 @@ func LikeTripHandler(svc Service) http.HandlerFunc {
 			}
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		// Kafka Event – fire-and-forget
+		if producer != nil {
+			if err := producer.PublishTripLiked(r.Context(), kafka.TripLikedEvent{
+				TripID:    tripID,
+				UserID:    userID, // Firebase UID
+				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("warn: failed to publish trip.liked for trip %s: %v", tripID, err)
+			}
 		}
 
 		w.WriteHeader(http.StatusCreated)
@@ -67,19 +76,16 @@ func UnlikeTripHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
 			shared.RespondError(w, http.StatusBadRequest, "Trip ID is required")
 			return
 		}
-
 		err := svc.UnlikeEntity(r.Context(), userID, tripID, TargetTypeTrip)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -92,15 +98,12 @@ func GetCommentLikesHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusBadRequest, "Comment ID is required")
 			return
 		}
-
 		userID, _ := authclient.GetUserID(r)
-
 		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, commentID, TargetTypeComment)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 		shared.RespondJSON(w, http.StatusOK, resp)
 	}
 }
@@ -113,13 +116,11 @@ func LikeCommentHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-
 		commentID := r.PathValue("commentId")
 		if commentID == "" {
 			shared.RespondError(w, http.StatusBadRequest, "Comment ID is required")
 			return
 		}
-
 		err := svc.LikeEntity(r.Context(), userID, commentID, TargetTypeComment)
 		if err != nil {
 			if errors.Is(err, shared.ErrConflict) {
@@ -129,7 +130,6 @@ func LikeCommentHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -142,19 +142,16 @@ func UnlikeCommentHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-
 		commentID := r.PathValue("commentId")
 		if commentID == "" {
 			shared.RespondError(w, http.StatusBadRequest, "Comment ID is required")
 			return
 		}
-
 		err := svc.UnlikeEntity(r.Context(), userID, commentID, TargetTypeComment)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
