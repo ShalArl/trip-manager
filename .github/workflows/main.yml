@@ -172,6 +172,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: docker/setup-buildx-action@v4
 
+      - name: Install oapi-codegen CLI
+        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+
+      - name: Add GOPATH to PATH
+        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
       - name: Enable Corepack
         run: corepack enable
 
@@ -183,9 +189,6 @@ jobs:
 
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install oapi-codegen CLI
-        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
       - name: Run code generation
         run: pnpm gen
