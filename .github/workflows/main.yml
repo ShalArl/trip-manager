@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend-matrix: ${{ steps.set-matrix.outputs.matrix }}
-      frontend: ${{ steps.filter.outputs.frontend }}
+      backend-changed: ${{ steps.set-matrix.outputs.changed }}
+      frontend-changed: ${{ steps.filter.outputs.frontend }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -129,7 +130,7 @@ jobs:
 
   build-backend:
     needs: [ discover-services, lint-and-test-backend ]
-    if: needs.discover-services.outputs.backend-matrix != ''
+    if: needs.discover-services.outputs.backend-changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 3
@@ -222,7 +223,7 @@ jobs:
 
   build-frontend:
     needs: [ discover-services, lint-and-test-frontend ]
-    if: needs.discover-services.outputs.frontend == 'true'
+    if: needs.discover-services.outputs.frontend-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
