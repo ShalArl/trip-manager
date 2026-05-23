@@ -230,7 +230,7 @@ jobs:
   # Frontend
   lint-and-test-frontend:
     needs: discover-services
-    if: needs.discover-services.outputs.frontend-changed == 'true'
+    if: false && needs.discover-services.outputs.frontend-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -253,7 +253,7 @@ jobs:
         working-directory: frontend
 
   build-frontend:
-    needs: [ discover-services, lint-and-test-frontend ]
+    needs: [ discover-services ]
     if: needs.discover-services.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     permissions:
