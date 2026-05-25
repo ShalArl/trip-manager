@@ -1,0 +1,42 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8081
+
+replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80
+
+env:
+  - name: PORT
+    value: "8081"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: AUTH_CLIENT_CONNECTION_STRING
+  - value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
+
+
+envFrom: []
+
+serviceAccount:
+  gcpServiceAccount: ""

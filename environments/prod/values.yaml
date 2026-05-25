@@ -1,0 +1,4 @@
+imageRegistry: "europe-west3-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager"
+imagePrefix: "backend/"
+imageTag: "latest"
+projectId: "project-32c60644-299b-4b05-8cf"

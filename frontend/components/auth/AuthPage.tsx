@@ -42,7 +42,7 @@ export default function AuthPage({ onLoginAction, onRegisterAction }: Props) {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
             <span className="text-2xl">🌍</span>
-            <span className="text-xl font-bold tracking-tight text-white">TravelBuddy</span>
+            <span className="text-xl font-bold tracking-tight text-white">Trip Manager</span>
           </div>
           <h2 className="text-4xl font-bold text-white leading-snug mb-6">
             Deine nächste Reise<br />wartet auf dich.
@@ -71,7 +71,7 @@ export default function AuthPage({ onLoginAction, onRegisterAction }: Props) {
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
             <span className="text-2xl">🌍</span>
-            <span className="text-xl font-bold text-zinc-900 dark:text-white">TravelBuddy</span>
+            <span className="text-xl font-bold text-zinc-900 dark:text-white">Trip Manager</span>
           </div>
 
           {mode === "login" ? (

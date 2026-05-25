@@ -1,0 +1,14 @@
+image:
+  repository: quay.io/minio/minio
+  tag: latest
+
+credentials:
+  rootUser: minioadmin
+  rootPassword: minioadmin
+
+bucket:
+  name: trip-manager
+
+service:
+  apiPort: 9000
+  consolePort: 9001

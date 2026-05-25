@@ -1,0 +1,4 @@
+imageRegistry: "localhost"
+imagePrefix: ""
+imageTag: "latest"
+projectId: ""
