@@ -24,6 +24,8 @@ RUN go work sync
 
 # Source Code
 COPY shared/authclient/ shared/authclient/
+COPY shared/middleware/ shared/middleware/
+
 COPY users/ users/
 
 # Aus dem users-Verzeichnis bauen

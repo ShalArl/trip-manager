@@ -26,6 +26,8 @@ RUN go work sync
 
 # Source Code
 COPY shared/authclient/ shared/authclient/
+COPY shared/middleware/ shared/middleware/
+
 COPY social/ social/
 
 # Aus dem social-Verzeichnis bauen

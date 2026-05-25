@@ -4,7 +4,8 @@ go 1.25.8
 
 require (
 	cloud.google.com/go/storage v1.62.1
-	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0-00010101000000-000000000000
+	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
@@ -15,7 +16,10 @@ require (
 	google.golang.org/api v0.278.0
 )
 
-replace github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
+replace (
+	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
+	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
+)
 
 require (
 	cel.dev/expr v0.25.2 // indirect

@@ -4,13 +4,17 @@ go 1.25.8
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0-00010101000000-000000000000
+    github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
 	github.com/google/uuid v1.6.0
 	google.golang.org/api v0.278.0
 	google.golang.org/grpc v1.81.0
 )
 
-replace github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
+replace (
+	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
+	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
+)
 
 require (
 	cloud.google.com/go v0.123.0 // indirect
