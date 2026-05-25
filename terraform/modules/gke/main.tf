@@ -47,5 +47,9 @@ resource "google_container_cluster" "primary" {
     channel = "REGULAR"
   }
 
+  gateway_api_config {
+    channel = "CHANNEL_STANDARD"
+  }
+
   deletion_protection = false
 }

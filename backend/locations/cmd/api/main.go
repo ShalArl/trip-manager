@@ -54,19 +54,19 @@ func main() {
 	})
 
 	// Locations
-	mux.HandleFunc("GET /api/trips/{tripId}/locations",
+	mux.HandleFunc("GET /{tripId}",
 		optionalAuth(location.ListHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("POST /api/trips/{tripId}/locations",
+	mux.HandleFunc("POST /{tripId}",
 		requireAuth(location.CreateHandler(svc, usersClient, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("PUT /api/trips/{tripId}/locations/{locationId}",
+	mux.HandleFunc("PUT /{tripId}/{locationId}",
 		requireAuth(location.UpdateHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/locations/{locationId}",
+	mux.HandleFunc("DELETE /{tripId}/{locationId}",
 		requireAuth(location.DeleteHandler(svc)))
 
 	// Location images
-	mux.HandleFunc("POST /api/trips/{tripId}/locations/{locationId}/images",
+	mux.HandleFunc("POST /{tripId}/{locationId}/images",
 		requireAuth(location.AddImageHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/locations/{locationId}/images/{imageId}",
+	mux.HandleFunc("DELETE /{tripId}/{locationId}/images/{imageId}",
 		requireAuth(location.DeleteImageHandler(svc)))
 
 	// Server

@@ -268,7 +268,7 @@ jobs:
 
   build-frontend:
     needs: [ discover-services ]
-    if: needs.discover-services.outputs.frontend == 'true'
+    if: needs.discover-services.outputs.frontend-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -341,3 +341,4 @@ jobs:
           name: build-meta
           pattern: build-meta-*
           delete-merged: true
+

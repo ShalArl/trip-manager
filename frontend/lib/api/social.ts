@@ -9,7 +9,7 @@ type CreateTripCommentRequest = components["schemas"]["CreateTripCommentRequest"
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getTripLikes(tripId: string): Promise<TripLikeResponse> {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/likes`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/likes`, {
         method: "GET",
         headers: await getAuthHeaders(),
     });
@@ -20,7 +20,7 @@ export async function getTripLikes(tripId: string): Promise<TripLikeResponse> {
 }
 
 export async function likeTrip(tripId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/likes`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/likes`, {
         method: "POST",
         headers: await getAuthHeaders(),
     });
@@ -32,7 +32,7 @@ export async function likeTrip(tripId: string): Promise<void> {
 }
 
 export async function unlikeTrip(tripId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/likes`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/likes`, {
         method: "DELETE",
         headers: await getAuthHeaders(),
     });
@@ -44,7 +44,7 @@ export async function unlikeTrip(tripId: string): Promise<void> {
 }
 
 export async function getTripComments(tripId: string): Promise<TripCommentListResponse> {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/comments`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/comments`, {
         method: "GET",
     });
     if (!response.ok) {
@@ -55,7 +55,7 @@ export async function getTripComments(tripId: string): Promise<TripCommentListRe
 
 export async function createTripComment(tripId: string, text: string): Promise<TripCommentResponse> {
     const body: CreateTripCommentRequest = { text };
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/comments`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/comments`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify(body),
@@ -69,7 +69,7 @@ export async function createTripComment(tripId: string, text: string): Promise<T
 }
 
 export async function deleteTripComment(tripId: string, commentId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/comments/${commentId}`, {
+    const response = await fetch(`${API_URL}/api/social/${tripId}/comments/${commentId}`, {
         method: "DELETE",
         headers: await getAuthHeaders(),
     });

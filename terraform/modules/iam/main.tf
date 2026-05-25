@@ -12,7 +12,7 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner", "users", "trips", "external-secrets"
+    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations"
   ]
 }
 
@@ -24,7 +24,7 @@ resource "google_service_account" "services" {
   project      = var.project_id
 }
 
-# Berechtigungen
+# Firestore + Firebase Related Roles
 resource "google_project_iam_member" "social_firestore" {
   member  = "serviceAccount:${google_service_account.services["social"].email}"
   project = var.project_id
@@ -37,12 +37,20 @@ resource "google_project_iam_member" "auth_firebase" {
   role    = "roles/firebase.sdkAdminServiceAgent"
 }
 
+# GCS Related Roles
 resource "google_project_iam_member" "presigner_storage" {
   member  = "serviceAccount:${google_service_account.services["presigner"].email}"
   project = var.project_id
   role    = "roles/storage.objectAdmin"
 }
 
+resource "google_project_iam_member" "locations_storage" {
+  member  = "serviceAccount:${google_service_account.services["locations"].email}"
+  project = var.project_id
+  role    = "roles/storage.objectAdmin"
+}
+
+# General Roles + Infrastructure
 resource "google_project_iam_member" "external_secrets_secretmanager" {
   member  = "serviceAccount:${google_service_account.services["external-secrets"].email}"
   project = var.project_id
@@ -127,4 +135,12 @@ resource "google_service_account_iam_member" "github_wif" {
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repo}"
 }
 
+# Artifact Registry Reader Role for all Services otherwise they can't pull the images from the Artifact Registry Repository
+resource "google_project_iam_member" "ar_reader" {
+  for_each = toset(local.services)
+
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${each.value}-sa@${var.project_id}.iam.gserviceaccount.com"
+}
 

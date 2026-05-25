@@ -2,15 +2,15 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: DATABASE_URL
-      remoteKey: trips-database-url
+      remoteKey: locations-database-url
 
 envFrom:
   - secretRef:
-      name: trips-secrets
+      name: locations-secrets
 
 env:
   - name: PORT
-    value: "8084"
+    value: "8086"
   - name: LOG_LEVEL
     value: "info"
   - name: AUTH_SERVICE_URL
@@ -19,3 +19,10 @@ env:
     value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+  - name: S3_ENDPOINT
+    value: "https://storage.googleapis.com"
+  - name: S3_BUCKET
+    value: "trip-manager-bucket"
+
+serviceAccount:
+  gcpServiceAccount: "locations-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

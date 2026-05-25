@@ -4,7 +4,7 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  port: 8084
+  port: 8086
 
 replicaCount: 1
 
@@ -35,7 +35,7 @@ env:
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager.svc.cluster.local:8082"
   - name: DATABASE_URL
-    value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+    value: "postgres://locations:locations@locations-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-dev.svc.cluster.local:8083"
 

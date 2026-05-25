@@ -45,14 +45,14 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Like endpoints
-	mux.HandleFunc("GET /api/trips/{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	mux.HandleFunc("POST /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
+	mux.HandleFunc("GET /{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
+	mux.HandleFunc("POST /{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService)))
+	mux.HandleFunc("DELETE /{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
 
 	// Comment endpoints
-	mux.HandleFunc("GET /api/trips/{tripId}/comments", comment.ListTripCommentsHandler(commentService))
-	mux.HandleFunc("POST /api/trips/{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
+	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService))
+	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient)))
+	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {

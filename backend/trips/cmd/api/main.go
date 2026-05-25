@@ -64,25 +64,25 @@ func main() {
 	})
 
 	// Trips
-	mux.HandleFunc("GET /api/trips", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
-	mux.HandleFunc("POST /api/trips", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
-	mux.HandleFunc("GET /api/trips/recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /api/trips/search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /api/trips/{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
-	mux.HandleFunc("PUT /api/trips/{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
+	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
+	mux.HandleFunc("PUT /{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("DELETE /{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
 
 	// Transports
-	mux.HandleFunc("GET /api/trips/{tripId}/transports", optionalAuth(transport.ListHandler(transportSvc)))
-	mux.HandleFunc("POST /api/trips/{tripId}/transports", requireAuth(transport.CreateHandler(transportSvc, usersClient)))
-	mux.HandleFunc("PUT /api/trips/{tripId}/transports/{transportId}", requireAuth(transport.UpdateHandler(transportSvc, usersClient)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/transports/{transportId}", requireAuth(transport.DeleteHandler(transportSvc, usersClient)))
+	mux.HandleFunc("GET /{tripId}/transports", optionalAuth(transport.ListHandler(transportSvc)))
+	mux.HandleFunc("POST /{tripId}/transports", requireAuth(transport.CreateHandler(transportSvc, usersClient)))
+	mux.HandleFunc("PUT /{tripId}/transports/{transportId}", requireAuth(transport.UpdateHandler(transportSvc, usersClient)))
+	mux.HandleFunc("DELETE /{tripId}/transports/{transportId}", requireAuth(transport.DeleteHandler(transportSvc, usersClient)))
 
 	// Accommodations
-	mux.HandleFunc("GET /api/trips/{tripId}/accommodations", optionalAuth(accommodation.ListHandler(accommodationSvc)))
-	mux.HandleFunc("POST /api/trips/{tripId}/accommodations", requireAuth(accommodation.CreateHandler(accommodationSvc, usersClient)))
-	mux.HandleFunc("PUT /api/trips/{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.UpdateHandler(accommodationSvc, usersClient)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.DeleteHandler(accommodationSvc, usersClient)))
+	mux.HandleFunc("GET /{tripId}/accommodations", optionalAuth(accommodation.ListHandler(accommodationSvc)))
+	mux.HandleFunc("POST /{tripId}/accommodations", requireAuth(accommodation.CreateHandler(accommodationSvc, usersClient)))
+	mux.HandleFunc("PUT /{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.UpdateHandler(accommodationSvc, usersClient)))
+	mux.HandleFunc("DELETE /{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.DeleteHandler(accommodationSvc, usersClient)))
 
 	// Server
 	server := &http.Server{

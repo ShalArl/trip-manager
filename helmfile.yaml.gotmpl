@@ -183,7 +183,7 @@ releases:
       - helm/services/frontend/values/{{ .Environment.Name }}.yaml
     set:
       - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}frontend"
+        value: "{{ .Values.imageRegistry }}/frontend"
       - name: image.tag
         value: "{{ .Values.imageTag }}"
     needs:
