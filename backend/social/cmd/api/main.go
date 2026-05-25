@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/social/client"
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
 	"github.com/ShalArl/trip-manager/backend/social/internal/config"
@@ -22,6 +23,12 @@ func main() {
 	ctx := context.Background()
 	cfg := config.LoadConfig()
 	log.Printf("Starting Social Service on port %s\n", cfg.Port)
+
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	firestoreClient, err := config.ConnectFirestore(ctx, cfg.FirestoreProject)
 	if err != nil {
@@ -66,7 +73,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	go func() {

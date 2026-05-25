@@ -5,6 +5,7 @@ use (
 	./locations
 	./presigner
 	./shared/authclient
+	./shared/middleware
 	./social
 	./trips
 	./users

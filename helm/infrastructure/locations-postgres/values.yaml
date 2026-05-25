@@ -6,8 +6,8 @@ replicaCount: 1
 
 postgres:
   db: locations
-  user: locations_user
-  password: locations_password
+  user: locations
+  password: locations
 
 service:
   port: 5432
@@ -19,3 +19,4 @@ persistence:
 
 externalSecrets:
   enabled: false
+  secrets: []

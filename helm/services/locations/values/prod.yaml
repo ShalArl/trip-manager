@@ -14,11 +14,9 @@ env:
   - name: LOG_LEVEL
     value: "info"
   - name: AUTH_SERVICE_URL
-    value: "http://auth.trip-manager.svc.cluster.local:8082"
-  - name: DATABASE_URL
-    value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: USERS_SERVICE_URL
-    value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+    value: "http://users.trip-manager-prod.svc.cluster.local:8083"
   - name: S3_ENDPOINT
     value: "https://storage.googleapis.com"
   - name: S3_BUCKET

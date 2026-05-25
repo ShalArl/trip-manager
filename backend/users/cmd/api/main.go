@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
@@ -21,6 +22,11 @@ import (
 func main() {
 	ctx := context.Background()
 	cfg := config.Load()
+
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
@@ -49,7 +55,10 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			return
+		}
 	})
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
@@ -58,7 +67,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	// Graceful shutdown
