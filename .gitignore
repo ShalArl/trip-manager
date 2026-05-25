@@ -49,6 +49,9 @@ backend/.turbo/           # Turbo cache
 
 **/generated/
 
+# Helm
+*.tgz
+
 
 # tests
 .venv/

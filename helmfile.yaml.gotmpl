@@ -95,6 +95,14 @@ releases:
       - helm/infrastructure/trips-postgres/values.yaml
       - helm/infrastructure/trips-postgres/values/{{ .Environment.Name }}.yaml
 
+  - name: locations-postgres
+    namespace: trip-manager-{{ .Environment.Name }}
+    createNamespace: true
+    chart: ./helm/infrastructure/locations-postgres
+    values:
+      - helm/infrastructure/locations-postgres/values.yaml
+      - helm/infrastructure/locations-postgres/values/{{ .Environment.Name }}.yaml
+
   # Services
 
   - name: auth
@@ -175,6 +183,22 @@ releases:
       - trip-manager-{{ .Environment.Name }}/auth
       - trip-manager-{{ .Environment.Name }}/trips-postgres
 
+  - name: locations
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/services/locations
+    values:
+      - helm/services/locations/values.yaml
+      - helm/services/locations/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}locations"
+      - name: image.tag
+        value: "{{ .Values.imageTag }}"
+    needs:
+      - trip-manager-{{ .Environment.Name }}/auth
+      - trip-manager-{{ .Environment.Name }}/users
+      - trip-manager-{{ .Environment.Name }}/locations-postgres
+
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/frontend
@@ -205,5 +229,6 @@ releases:
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/users
       - trip-manager-{{ .Environment.Name }}/trips
+      - trip-manager-{{ .Environment.Name }}/locations
       - trip-manager-{{ .Environment.Name }}/frontend
 
