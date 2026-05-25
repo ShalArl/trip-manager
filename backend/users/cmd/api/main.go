@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
@@ -21,6 +22,12 @@ import (
 func main() {
 	ctx := context.Background()
 	cfg := config.Load()
+
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
@@ -51,9 +58,9 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
-	mux.HandleFunc("POST /api/users/provision", requireAuth(handler.ProvisionHandler(svc)))
-	mux.HandleFunc("GET /api/users/me", requireAuth(handler.GetMeHandler(svc)))
-	mux.HandleFunc("PUT /api/users/me", requireAuth(handler.UpdateMeHandler(svc)))
+	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
+	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
+	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
 
 	// Server
 	server := &http.Server{
