@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
 )
 
 func GetFeedHandler(svc Service) http.HandlerFunc {
@@ -19,10 +21,10 @@ func GetFeedHandler(svc Service) http.HandlerFunc {
 
 		// Leere Liste statt null
 		if trips == nil {
-			trips = []FeedTrip{}
+			trips = []generated.FeedTrip{}
 		}
 
-		respondJSON(w, http.StatusOK, FeedResponse{
+		respondJSON(w, http.StatusOK, generated.FeedResponse{
 			Data:   trips,
 			Total:  total,
 			Limit:  limit,

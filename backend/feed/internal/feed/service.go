@@ -1,9 +1,13 @@
 package feed
 
-import "context"
+import (
+	"context"
+
+	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
+)
 
 type Service interface {
-	GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error)
+	GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error)
 }
 
 type service struct {
@@ -14,7 +18,7 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error) {
+func (s *service) GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error) {
 	if limit <= 0 {
 		limit = 20
 	}
