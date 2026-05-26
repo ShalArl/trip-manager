@@ -15,6 +15,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/presigner/internal/provider"
 	"github.com/ShalArl/trip-manager/backend/presigner/internal/service"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 )
 
 func main() {
@@ -23,6 +24,12 @@ func main() {
 	// Load config
 	cfg := config.LoadConfig()
 	log.Printf("Starting Presigner Service on port %s\n", cfg.Port)
+
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	// Load storage provider configuration
 	storageCfg := config.LoadStorageConfig()
@@ -54,7 +61,7 @@ func main() {
 	// Start server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	// Graceful shutdown

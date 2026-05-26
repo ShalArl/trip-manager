@@ -10,3 +10,11 @@ output "name_servers" {
 output "service_accounts" {
   value = module.iam.service_account_emails
 }
+
+output "wif_provider" {
+  value = module.iam.wif_provider
+}
+
+output "github_actions_sa" {
+  value = module.iam.github_actions_sa_email
+}

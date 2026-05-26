@@ -19,7 +19,9 @@ env:
   - name: STORAGE_PROVIDER
     value: "s3"
   - name: S3_ENDPOINT
-    value: "http://host.docker.internal:9000"
+    value: "http://minio.trip-manager-dev.svc.cluster.local:9000"
+  - name: S3_PUBLIC_URL
+    value: "http://192.168.49.2:30900"
   - name: STORAGE_BUCKET
     value: "my-bucket"
   - name: S3_REGION
@@ -30,3 +32,5 @@ env:
     value: "minioadmin"
   - name: S3_USE_SSL
     value: "false"
+  - name: AUTH_SERVICE_URL
+    value: "http://auth.trip-manager-dev.svc.cluster.local:8082"

@@ -5,11 +5,19 @@ resources:
     cpu: 200m
     memory: 128Mi
   requests:
-    cpu: 50m
+    cpu: 100m
     memory: 64Mi
 
 hpa:
   enabled: false
+
+env:
+  - name: PORT
+    value: "8083"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: AUTH_SERVICE_URL
+    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
 
 externalSecrets:
   enabled: true
@@ -20,3 +28,6 @@ externalSecrets:
 envFrom:
   - secretRef:
       name: users-secrets
+
+serviceAccount:
+  gcpServiceAccount: "users-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

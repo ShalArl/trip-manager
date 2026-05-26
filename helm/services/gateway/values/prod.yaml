@@ -1,3 +1,5 @@
 ingress:
+  enabled: false
   className: gke-l7-global-external-managed
-  host: api.neatnode.xyz
+  host: neatnode.xyz
+  apiHost: api.neatnode.xyz

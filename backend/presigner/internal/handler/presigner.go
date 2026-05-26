@@ -50,9 +50,9 @@ func GetPresignedUploadURLHandler(svc service.Service, authClient *authclient.Cl
 		}
 
 		shared.RespondJSON(w, http.StatusOK, PresignedURLResponse{
-			URL:       ticket.UploadURL,
-			ExpiresIn: int(ticket.ExpiresIn.Seconds()),
-			Key:       ticket.Key,
+			PresignedUrl: ticket.UploadURL,
+			ExpiresIn:    int(ticket.ExpiresIn.Seconds()),
+			Key:          ticket.Key,
 		})
 	}
 }
@@ -97,7 +97,7 @@ type PresignedDownloadRequest struct {
 
 // PresignedURLResponse Response with presigned upload URL
 type PresignedURLResponse struct {
-	URL       string `json:"url"`
-	ExpiresIn int    `json:"expiresIn"` // in seconds
-	Key       string `json:"key"`       // Object key for DB
+	PresignedUrl string `json:"presignedUrl"`
+	ExpiresIn    int    `json:"expiresIn"` // in seconds
+	Key          string `json:"key"`       // Object key for DB
 }

@@ -11,6 +11,8 @@ COPY presigner/go.mod presigner/go.mod
 COPY presigner/go.sum presigner/go.sum
 COPY shared/authclient/go.mod shared/authclient/go.mod
 COPY shared/authclient/go.sum shared/authclient/go.sum
+COPY shared/middleware/go.mod shared/middleware/go.mod
+COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY social/go.mod social/go.mod
 COPY social/go.sum social/go.sum
 COPY users/go.mod users/go.mod
@@ -28,6 +30,8 @@ RUN go work sync
 
 # Source Code
 COPY shared/authclient/ shared/authclient/
+COPY shared/middleware/ shared/middleware/
+
 COPY social/ social/
 
 # Aus dem social-Verzeichnis bauen

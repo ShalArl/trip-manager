@@ -39,13 +39,19 @@ spec:
               mountPath: /var/lib/postgresql/data
               subPath: postgres
           {{- end }}
-      {{- if .Values.persistence.enabled }}
+      {{- if not .Values.persistence.enabled }}
       volumes:
         - name: data
-          persistentVolumeClaim:
-            claimName: users-postgres-pvc
-      {{- else}}
-      volumes:
-        - name: data
-          emptyDir: { }
+          emptyDir: {}
       {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

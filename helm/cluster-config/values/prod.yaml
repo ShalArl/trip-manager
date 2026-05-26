@@ -1,4 +1,4 @@
 gcp:
-  ProjectID: "project-32c60644-299b-4b05-8cf"
+  projectID: "project-32c60644-299b-4b05-8cf"
   region: "europe-west1"
   clusterName: "trip-manager-prod"

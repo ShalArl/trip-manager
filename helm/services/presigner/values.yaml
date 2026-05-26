@@ -34,6 +34,8 @@ env:
     value: "info"
   - name: PRESIGNER_URL_EXPIRATION
     value: "15m"
+  - name: AUTH_SERVICE_URL
+    value: "http://auth.trip-manager.svc.cluster.local:8082"
 
 envFrom: []
 

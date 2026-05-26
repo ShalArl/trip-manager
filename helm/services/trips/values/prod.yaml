@@ -1,3 +1,18 @@
+replicaCount: 2
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+
 externalSecrets:
   enabled: true
   secrets:
@@ -14,8 +29,9 @@ env:
   - name: LOG_LEVEL
     value: "info"
   - name: AUTH_SERVICE_URL
-    value: "http://auth.trip-manager.svc.cluster.local:8082"
-  - name: DATABASE_URL
-    value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: USERS_SERVICE_URL
-    value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+    value: "http://users.trip-manager-prod.svc.cluster.local:8083"
+
+serviceAccount:
+  gcpServiceAccount: "trips-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
