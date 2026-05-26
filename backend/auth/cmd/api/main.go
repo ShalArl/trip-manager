@@ -25,7 +25,7 @@ func main() {
 		"https://www.neatnode.xyz",
 	}
 
-	// Load config
+	// Load cache
 	cfg := config.LoadConfig()
 	log.Printf("Starting Auth Service on port %s\n", cfg.Port)
 

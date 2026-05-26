@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ShalArl/trip-manager/backend/presigner/internal/config"
+	"github.com/ShalArl/trip-manager/backend/presigner/config"
 	"github.com/ShalArl/trip-manager/backend/presigner/internal/handler"
 	"github.com/ShalArl/trip-manager/backend/presigner/internal/provider"
 	"github.com/ShalArl/trip-manager/backend/presigner/internal/service"
@@ -21,7 +21,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Load config
+	// Load cache
 	cfg := config.LoadConfig()
 	log.Printf("Starting Presigner Service on port %s\n", cfg.Port)
 

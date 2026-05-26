@@ -4,18 +4,14 @@ ingress:
   host: ""
 
 routes:
-  auth:
-    service: auth
-    port: 8082
-    path: /api/auth
-  presigner:
-    service: presigner
-    port: 8085
-    path: /api/presign
   social:
     service: social
     port: 8081
     path: /api/social
+  auth:
+    service: auth
+    port: 8082
+    path: /api/auth
   users:
     service: users
     port: 8083
@@ -24,11 +20,20 @@ routes:
     service: trips
     port: 8084
     path: /api/trips
+  presigner:
+    service: presigner
+    port: 8085
+    path: /api/presign
   locations:
     service: locations
     port: 8086
-    path: /api/trips
-    subpath: /locations
+    path: /api/locations
+  travelWarning:
+    service: travel-warning
+    port: 8087
+    path: /api/warnings
+
+
   frontend:
     service: frontend
     port: 3000

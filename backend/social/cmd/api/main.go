@@ -14,8 +14,8 @@ import (
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/social/client"
+	"github.com/ShalArl/trip-manager/backend/social/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
-	"github.com/ShalArl/trip-manager/backend/social/internal/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/like"
 )
 

@@ -19,21 +19,21 @@ spec:
   rules:
     - http:
         paths:
-          - path: /api/auth(/|$)(.*)
+          - path: {{ .Values.routes.auth.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ .Values.routes.auth.service }}
                 port:
                   number: {{ .Values.routes.auth.port }}
-          - path: /api/presign(/|$)(.*)
+          - path: {{ .Values.routes.presigner.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ .Values.routes.presigner.service }}
                 port:
                   number: {{ .Values.routes.presigner.port }}
-          - path: /api/social(/|$)(.*)
+          - path: {{ .Values.routes.social.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
@@ -47,13 +47,6 @@ spec:
                 name: {{ .Values.routes.users.service }}
                 port:
                   number: {{ .Values.routes.users.port }}
-          - path: /api/trips(/|$)(.*)/locations(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: locations
-                port:
-                  number: 8086
           - path: {{ .Values.routes.trips.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -61,4 +54,17 @@ spec:
                 name: {{ .Values.routes.trips.service }}
                 port:
                   number: {{ .Values.routes.trips.port }}
+          - path: {{ .Values.routes.locations.path }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.locations.service }}
+                port:
+                  number: {{ .Values.routes.locations.port }}
+          - path: {{ .Values.routes.travelWarning.path }}(/|$)(.*)
+            backend:
+              service:
+                name: {{ .Values.routes.travelWarning.service }}
+                port:
+                  number: {{ .Values.routes.travelWarning.port }}
          {{- end }}

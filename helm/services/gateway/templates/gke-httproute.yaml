@@ -12,40 +12,96 @@ spec:
     - {{ .Values.ingress.apiHost }}
   rules:
     - matches:
-        - path:
-            type: PathPrefix
-            value: /auth
+      - path:
+          type: PathPrefix
+          value: /auth
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
-        - name: {{ .Values.routes.auth.service }}
-          port: {{ .Values.routes.auth.port }}
+         - name: {{ .Values.routes.auth.service }}
+           port: {{ .Values.routes.auth.port }}
     - matches:
-        - path:
-            type: PathPrefix
-            value: /presign
-      backendRefs:
-        - name: {{ .Values.routes.presigner.service }}
-          port: {{ .Values.routes.presigner.port }}
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /social
-      backendRefs:
-        - name: {{ .Values.routes.social.service }}
-          port: {{ .Values.routes.social.port }}
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /users
+      - path:
+          type: PathPrefix
+          value: /users
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - name: {{ .Values.routes.users.service }}
           port: {{ .Values.routes.users.port }}
     - matches:
-        - path:
-            type: PathPrefix
-            value: /trips
+      - path:
+          type: PathPrefix
+          value: /presign
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.presigner.service }}
+          port: {{ .Values.routes.presigner.port }}
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /social
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.social.service }}
+          port: {{ .Values.routes.social.port }}
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /trips
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - name: {{ .Values.routes.trips.service }}
           port: {{ .Values.routes.trips.port }}
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /locations
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.locations.service }}
+          port: {{ .Values.routes.locations.port }}
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /warnings
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.travelWarning.service }}
+          port: {{ .Values.routes.travelWarning.port }}
 ---
 # Frontend Route
 apiVersion: gateway.networking.k8s.io/v1

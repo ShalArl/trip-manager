@@ -37,7 +37,7 @@ type S3Config struct {
 }
 
 func NewS3Storage(cfg S3Config) (*S3Storage, error) {
-	println("NewS3Storage called with config: ", cfg.Endpoint, cfg.PublicURL, cfg.Bucket, cfg.Region)
+	println("NewS3Storage called with cache: ", cfg.Endpoint, cfg.PublicURL, cfg.Bucket, cfg.Region)
 	if cfg.Bucket == "" {
 		return nil, fmt.Errorf("bucket name is required")
 	}
@@ -58,7 +58,7 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, fmt.Errorf("failed to load AWS cache: %w", err)
 	}
 
 	// Internal Client for Server-Side Ops (Read, Write, Delete)
