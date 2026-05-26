@@ -54,16 +54,16 @@ func LikeTripHandler(svc Service, producer *kafka.Producer) http.HandlerFunc {
 		}
 
 		// Kafka Event – fire-and-forget
+		log.Printf("DEBUG: attempting to publish trip.liked for trip %s, producer nil: %v", tripID, producer == nil)
 		if producer != nil {
 			if err := producer.PublishTripLiked(r.Context(), kafka.TripLikedEvent{
 				TripID:    tripID,
-				UserID:    userID, // Firebase UID
+				UserID:    userID,
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
 			}); err != nil {
-				log.Printf("warn: failed to publish trip.liked for trip %s: %v", tripID, err)
+				log.Fatalf("ERROR publishing trip.liked: %v", err)
 			}
 		}
-
 		w.WriteHeader(http.StatusCreated)
 	}
 }

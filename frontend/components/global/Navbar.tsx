@@ -9,7 +9,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/lib/context/UserContext";
 
@@ -48,6 +48,13 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                         className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
                     >
                         Reisen entdecken
+                    </button>
+                    <button
+                        onClick={() => router.push("/feed")}
+                        className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                    >
+                        <TrendingUp className="h-4 w-4" />
+                        Feed
                     </button>
                 </div>
 

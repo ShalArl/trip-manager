@@ -2,10 +2,12 @@ package feed
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
+	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 )
 
 func GetFeedHandler(svc Service) http.HandlerFunc {
@@ -13,13 +15,16 @@ func GetFeedHandler(svc Service) http.HandlerFunc {
 		limit := queryInt(r, "limit", 20)
 		offset := queryInt(r, "offset", 0)
 
-		trips, total, err := svc.GetFeed(r.Context(), limit, offset)
+		// Firebase UID – leer wenn nicht eingeloggt
+		userID, _ := authclient.GetUserID(r)
+
+		trips, total, err := svc.GetFeed(r.Context(), userID, limit, offset)
 		if err != nil {
+			log.Printf("feed: error getting feed: %v", err)
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// Leere Liste statt null
 		if trips == nil {
 			trips = []generated.FeedTrip{}
 		}
