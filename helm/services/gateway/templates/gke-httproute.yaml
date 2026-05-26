@@ -1,0 +1,70 @@
+{{- if eq .Values.ingress.className "gke-l7-global-external-managed" }}
+# API Routes
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: trip-manager-api-route
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+    - name: trip-manager-gateway
+  hostnames:
+    - {{ .Values.ingress.apiHost }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      backendRefs:
+        - name: {{ .Values.routes.auth.service }}
+          port: {{ .Values.routes.auth.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /presign
+      backendRefs:
+        - name: {{ .Values.routes.presigner.service }}
+          port: {{ .Values.routes.presigner.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /social
+      backendRefs:
+        - name: {{ .Values.routes.social.service }}
+          port: {{ .Values.routes.social.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /users
+      backendRefs:
+        - name: {{ .Values.routes.users.service }}
+          port: {{ .Values.routes.users.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /trips
+      backendRefs:
+        - name: {{ .Values.routes.trips.service }}
+          port: {{ .Values.routes.trips.port }}
+---
+# Frontend Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: trip-manager-frontend-route
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+    - name: trip-manager-gateway
+  hostnames:
+    - {{ .Values.ingress.host }}
+    - www.{{ .Values.ingress.host }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .Values.routes.frontend.service }}
+          port: {{ .Values.routes.frontend.port }}
+{{- end }}

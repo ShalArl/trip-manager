@@ -13,10 +13,17 @@ import (
 	"github.com/ShalArl/trip-manager/backend/auth/internal/config"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/handler"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/service"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 )
 
 func main() {
 	ctx := context.Background()
+
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	// Load config
 	cfg := config.LoadConfig()
@@ -49,7 +56,7 @@ func main() {
 	// Start server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	// Graceful shutdown

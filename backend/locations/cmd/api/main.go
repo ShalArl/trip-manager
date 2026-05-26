@@ -15,18 +15,31 @@ import (
 	"github.com/ShalArl/trip-manager/backend/locations/database"
 	"github.com/ShalArl/trip-manager/backend/locations/internal/location"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
 	ctx := context.Background()
 	cfg := config.Load()
 
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
+
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database connection: %v", err)
+		}
+	}(db)
 
 	// Migrations
 	if err := database.RunMigrations(db); err != nil {
@@ -50,29 +63,32 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			return
+		}
 	})
 
 	// Locations
-	mux.HandleFunc("GET /api/trips/{tripId}/locations",
+	mux.HandleFunc("GET /{tripId}",
 		optionalAuth(location.ListHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("POST /api/trips/{tripId}/locations",
+	mux.HandleFunc("POST /{tripId}",
 		requireAuth(location.CreateHandler(svc, usersClient, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("PUT /api/trips/{tripId}/locations/{locationId}",
+	mux.HandleFunc("PUT /{tripId}/{locationId}",
 		requireAuth(location.UpdateHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/locations/{locationId}",
+	mux.HandleFunc("DELETE /{tripId}/{locationId}",
 		requireAuth(location.DeleteHandler(svc)))
 
 	// Location images
-	mux.HandleFunc("POST /api/trips/{tripId}/locations/{locationId}/images",
+	mux.HandleFunc("POST /{tripId}/{locationId}/images",
 		requireAuth(location.AddImageHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
-	mux.HandleFunc("DELETE /api/trips/{tripId}/locations/{locationId}/images/{imageId}",
+	mux.HandleFunc("DELETE /{tripId}/{locationId}/images/{imageId}",
 		requireAuth(location.DeleteImageHandler(svc)))
 
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	// Graceful shutdown
