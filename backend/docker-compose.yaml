@@ -386,27 +386,27 @@ services:
       neo4j:
         condition: service_healthy
 
-  newsletter-worker:
-    build:
-      context: .
-      dockerfile: newsletter-worker/Dockerfile
-    container_name: trip_manager_newsletter_worker
-    restart: always
-    ports:
-      - "8008:8008"
-    environment:
-      PORT: 8008
-      SMTP_HOST: mailhog
-      SMTP_PORT: 1025
-      USERS_SERVICE_URL: http://users:8001
-      TRIPS_SERVICE_URL: http://trips:8002
-    depends_on:
-      mailhog:
-        condition: service_healthy
-      users:
-        condition: service_healthy
-      trips:
-        condition: service_healthy
+#  newsletter-worker:
+#    build:
+#      context: .
+#      dockerfile: newsletter-worker/Dockerfile
+#   container_name: trip_manager_newsletter_worker
+#    restart: always
+#    ports:
+#      - "8008:8008"
+#    environment:
+#      PORT: 8008
+#      SMTP_HOST: mailhog
+#      SMTP_PORT: 1025
+#      USERS_SERVICE_URL: http://users:8001
+#      TRIPS_SERVICE_URL: http://trips:8002
+#    depends_on:
+#      mailhog:
+#        condition: service_healthy
+#      users:
+#        condition: service_healthy
+#      trips:
+#        condition: service_healthy
 
   # ── Gateway ──────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,6 @@
-import React, {useEffect, useState} from "react";
-import { UserResponse as User } from "@/types/user";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import React, {useEffect} from "react";
+import {UserResponse as User} from "@/types/user";
+import {Badge} from "@/components/ui/badge";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,10 +8,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useUserContext } from "@/lib/context/UserContext";
-import {getDownloadUrl} from "@/lib/api/uploads";
+import {LogOut, Settings, TrendingUp} from "lucide-react";
+import {useRouter} from "next/navigation";
+import {useUserContext} from "@/lib/context/UserContext";
 import {UserAvatar} from "@/components/global/UserAvatar";
 
 type Props = {
@@ -50,6 +48,13 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                         className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
                     >
                         Reisen entdecken
+                    </button>
+                    <button
+                        onClick={() => router.push("/feed")}
+                        className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                    >
+                        <TrendingUp className="h-4 w-4" />
+                        Feed
                     </button>
                 </div>
 
