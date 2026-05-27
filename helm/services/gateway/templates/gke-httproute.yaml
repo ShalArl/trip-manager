@@ -12,9 +12,9 @@ spec:
     - {{ .Values.ingress.apiHost }}
   rules:
     - matches:
-      - path:
-          type: PathPrefix
-          value: /auth
+        - path:
+            type: PathPrefix
+            value: /api/auth/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -22,12 +22,12 @@ spec:
               type: ReplacePrefixMatch
               replacePrefixMatch: /
       backendRefs:
-         - name: {{ .Values.routes.auth.service }}
-           port: {{ .Values.routes.auth.port }}
+        - name: {{ .Values.routes.auth.service }}
+          port: {{ .Values.routes.auth.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /users
+        - path:
+            type: PathPrefix
+            value: /api/users/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -38,9 +38,9 @@ spec:
         - name: {{ .Values.routes.users.service }}
           port: {{ .Values.routes.users.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /presign
+        - path:
+            type: PathPrefix
+            value: /api/presign/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -51,9 +51,9 @@ spec:
         - name: {{ .Values.routes.presigner.service }}
           port: {{ .Values.routes.presigner.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /social
+        - path:
+            type: PathPrefix
+            value: /api/social/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -64,9 +64,9 @@ spec:
         - name: {{ .Values.routes.social.service }}
           port: {{ .Values.routes.social.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /trips
+        - path:
+            type: PathPrefix
+            value: /api/trips/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -77,9 +77,9 @@ spec:
         - name: {{ .Values.routes.trips.service }}
           port: {{ .Values.routes.trips.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /locations
+        - path:
+            type: PathPrefix
+            value: /api/locations/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -90,9 +90,9 @@ spec:
         - name: {{ .Values.routes.locations.service }}
           port: {{ .Values.routes.locations.port }}
     - matches:
-      - path:
-          type: PathPrefix
-          value: /warnings
+        - path:
+            type: PathPrefix
+            value: /api/warnings/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -102,6 +102,19 @@ spec:
       backendRefs:
         - name: {{ .Values.routes.travelWarning.service }}
           port: {{ .Values.routes.travelWarning.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/weather/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.weatherInfo.service }}
+          port: {{ .Values.routes.weatherInfo.port }}
 ---
 # Frontend Route
 apiVersion: gateway.networking.k8s.io/v1

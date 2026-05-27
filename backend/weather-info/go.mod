@@ -1,16 +1,12 @@
-module github.com/ShalArl/trip-manager/backend/travel-warning
+module github.com/ShalArl/trip-manager/backend/weather-info
 
 go 1.25.8
 
 require (
-	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/lib/pq v1.12.3
 	github.com/redis/go-redis/v9 v9.19.0
-)
-
-replace (
-	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
-	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
 )
 
 require (
@@ -21,3 +17,5 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
 )
+
+replace github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
