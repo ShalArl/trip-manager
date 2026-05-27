@@ -9,4 +9,5 @@ use (
 	./social
 	./trips
 	./users
+	./travel-warning
 )

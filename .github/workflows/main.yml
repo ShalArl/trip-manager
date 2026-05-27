@@ -90,7 +90,7 @@ jobs:
           has_services=false
 
           for service in $services; do
-            { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared & nginx
+            { [ "$service" = "shared" ] || [ "$service" = "nginx" ] || [ "$service" = "go.work" ] || [ "$service" = "go.work.sum" ]; } && continue  # Skip shared & nginx
 
             path="backend/$service"
             if [ ! -f "$path/go.mod" ] || [ ! -f "$path/Dockerfile" ]; then

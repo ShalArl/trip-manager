@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ShalArl/trip-manager/backend/presigner/internal/config"
+	"github.com/ShalArl/trip-manager/backend/presigner/config"
 )
 
 func NewFromEnv(ctx context.Context, cfg config.StorageConfig) (Storage, error) {
