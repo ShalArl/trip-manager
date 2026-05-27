@@ -1,5 +1,5 @@
 imageRegistry: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager"
 imagePrefix: "backend/"
-imageTag: "sha-184e880e1c8a78f8030878203dc659664e69c24c"
+imageTag: "dev"
 projectId: "project-32c60644-299b-4b05-8cf"
 
