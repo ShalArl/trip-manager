@@ -1,0 +1,57 @@
+openapi: 3.0.0
+info:
+  title: Presigner Service API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8004/api
+    description: Development server
+
+security:
+  - firebaseAuth: []
+
+paths:
+  /uploads/presigned:
+    post:
+      summary: Get a presigned URL for direct file upload
+      operationId: getPresignedUrl
+      tags: [presigner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PresignedURLRequest' }
+      responses:
+        '200':
+          description: Presigned URL
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PresignedURLResponse' }
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PresignedURLRequest:
+      type: object
+      required: [fileName, mediaType]
+      properties:
+        fileName:
+          type: string
+        mediaType:
+          type: string
+
+    PresignedURLResponse:
+      type: object
+      required: [presignedUrl, key]
+      properties:
+        presignedUrl:
+          type: string
+        key:
+          type: string

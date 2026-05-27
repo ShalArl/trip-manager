@@ -815,6 +815,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeedResponse'
+  /uploads/presigned:
+    post:
+      summary: Get a presigned URL for direct file upload
+      operationId: getPresignedUrl
+      tags:
+        - presigner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequest'
+      responses:
+        '200':
+          description: Presigned URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedURLResponse'
+        '401':
+          description: Unauthorized
 components:
   schemas:
     UserResponse:
@@ -1518,6 +1539,26 @@ components:
           type: integer
         offset:
           type: integer
+    PresignedURLRequest:
+      type: object
+      required:
+        - fileName
+        - mediaType
+      properties:
+        fileName:
+          type: string
+        mediaType:
+          type: string
+    PresignedURLResponse:
+      type: object
+      required:
+        - presignedUrl
+        - key
+      properties:
+        presignedUrl:
+          type: string
+        key:
+          type: string
   securitySchemes:
     firebaseAuth:
       type: http

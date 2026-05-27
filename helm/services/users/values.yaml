@@ -39,3 +39,7 @@ envFrom: []
 
 serviceAccount:
   gcpServiceAccount: ""
+
+externalSecrets:
+  enabled: false
+  secrets: []
