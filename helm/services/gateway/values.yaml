@@ -32,6 +32,11 @@ routes:
     service: travel-warning
     port: 8087
     path: /api/warnings
+  weatherInfo:
+    service: weather-info
+    port: 8088
+    path: /api/weather
+
 
 
   frontend:

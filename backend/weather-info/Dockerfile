@@ -26,11 +26,10 @@ COPY shared/middleware/go.sum shared/middleware/go.sum
 RUN go work sync
 
 COPY shared/ shared/
-COPY travel-warning/ travel-warning/
+COPY weather-info/ weather-info/
 
-# Beide Binaries bauen
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./travel-warning/cmd/api
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/worker ./travel-warning/cmd/worker
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./weather-info/cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/worker ./weather-info/cmd/worker
 
 FROM alpine:3.21
 RUN addgroup -S app && adduser -S -G app app
@@ -39,5 +38,5 @@ USER app
 COPY --from=builder /bin/api /bin/api
 COPY --from=builder /bin/worker /bin/worker
 
-EXPOSE 8090
+EXPOSE 8091
 CMD ["/bin/api"]

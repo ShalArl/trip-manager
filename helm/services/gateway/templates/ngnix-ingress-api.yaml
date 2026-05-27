@@ -67,4 +67,11 @@ spec:
                 name: {{ .Values.routes.travelWarning.service }}
                 port:
                   number: {{ .Values.routes.travelWarning.port }}
+          - path: {{ .Values.routes.weatherInfo.path }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.weatherInfo.service }}
+                port:
+                  number: {{ .Values.routes.weatherInfo.port }}
          {{- end }}
