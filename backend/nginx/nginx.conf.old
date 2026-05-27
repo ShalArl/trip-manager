@@ -28,13 +28,13 @@ http {
     server {
         listen 8000;
 
+        # Health
         location /health {
             add_header Content-Type application/json;
             return 200 '{"status":"ok"}';
         }
 
-        # ── Auth ────────────────────────────────────────────────────────────────
-        # auth registriert volle Pfade /api/auth/... → kein rewrite
+        # Auth
         location /api/auth/ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -51,8 +51,7 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Users ───────────────────────────────────────────────────────────────
-        # users registriert /provision, /me → rewrite /api/users/X → /X
+        # Users ohne trailing slash
         location = /api/users {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -64,12 +63,12 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/users$ / break;
             proxy_pass http://users;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
+        # Users
         location /api/users/ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -81,15 +80,13 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/users/(.*) /$1 break;
             proxy_pass http://users;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Social – Likes ──────────────────────────────────────────────────────
-        # social registriert /{tripId}/likes → rewrite /api/trips/X/likes → /X/likes
-        location ~ ^/api/trips/([^/]+)/likes(/.*)?$ {
+        # Social - Likes (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/likes(/.*)?$ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
                 add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
@@ -100,14 +97,13 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/(.*) /$1 break;
             proxy_pass http://social;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Social – Comments ───────────────────────────────────────────────────
-        location ~ ^/api/trips/([^/]+)/comments(/.*)?$ {
+        # Social - Comments (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/comments(/.*)?$ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
                 add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
@@ -118,15 +114,13 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/(.*) /$1 break;
             proxy_pass http://social;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Locations ───────────────────────────────────────────────────────────
-        # locations registriert /{tripId} → rewrite /api/trips/X/locations/... → /X/...
-        location ~ ^/api/trips/([^/]+)/locations(/.*)?$ {
+        # Locations (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/locations(/.*)?$ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
                 add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
@@ -137,48 +131,12 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/([^/]+)/locations(/.*)?$ /$1$2 break;
             proxy_pass http://locations;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Trips – recent + search (explizit wegen fehlendem trailing slash) ───
-        location = /api/trips/recent {
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
-                add_header 'Access-Control-Max-Age' 1728000;
-                return 204;
-            }
-            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/(.+)$ /$1 break;
-            proxy_pass http://trips;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
-
-        location /api/trips/search {
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
-                add_header 'Access-Control-Max-Age' 1728000;
-                return 204;
-            }
-            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/(.+)$ /$1 break;
-            proxy_pass http://trips;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
-
-        # ── Trips ohne trailing slash ────────────────────────────────────────────
+        # Trips ohne trailing slash
         location = /api/trips {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -190,13 +148,12 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips$ / break;
             proxy_pass http://trips;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Trips ────────────────────────────────────────────────────────────────
+        # Trips
         location /api/trips/ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -208,14 +165,12 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/trips/(.*) /$1 break;
             proxy_pass http://trips;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Presigner ────────────────────────────────────────────────────────────
-        # presigner registriert volle Pfade /api/uploads/... → kein rewrite
+        # Presigner
         location /api/uploads/ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -232,7 +187,7 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        # ── Social direkter Pfad ─────────────────────────────────────────────────
+        # Social (direkter Pfad)
         location /api/social/ {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
@@ -244,50 +199,13 @@ http {
             add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
             add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/social/(.*) /$1 break;
             proxy_pass http://social;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
-        # u2500u2500 Locations direkter Pfad u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500
-        location ~ ^/api/locations(/.*)?$ {
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
-                add_header 'Access-Control-Max-Age' 1728000;
-                return 204;
-            }
-            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            rewrite ^/api/locations/(.*) /$1 break;
-            proxy_pass http://locations;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
 
-
-        # ── Feed Personal (vor /api/feed) ────────────────────────────────────────
-        # feed registriert /api/feed/personal → kein rewrite
-        location = /api/feed/personal {
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
-                add_header 'Access-Control-Max-Age' 1728000;
-                return 204;
-            }
-            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-            proxy_pass http://feed;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
-
-        # ── Feed Global ──────────────────────────────────────────────────────────
-        location = /api/feed {
+        # Feed
+        location /api/feed {
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
                 add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';

@@ -14,8 +14,9 @@
     "gen:go:locations": "mkdirp ./backend/locations/generated && oapi-codegen --config=oapi-codegen-locations.yaml ./api-spec/locations/openapi.yaml",
     "gen:go:social": "mkdirp ./backend/social/generated && oapi-codegen --config=oapi-codegen-social.yaml ./api-spec/social/openapi.yaml",
     "gen:go:feed": "mkdirp ./backend/feed/generated && oapi-codegen --config=oapi-codegen-feed.yaml ./api-spec/feed/openapi.yaml",
-    
-    "gen:go": "pnpm gen:go:users && pnpm gen:go:trips && pnpm gen:go:locations && pnpm gen:go:social && pnpm gen:go:feed",
+    "gen:go:presigner": "mkdirp ./backend/presigner/generated && oapi-codegen --config=oapi-codegen-presigner.yaml ./api-spec/presigner/openapi.yaml",
+
+    "gen:go": "pnpm gen:go:presigner && pnpm gen:go:users && pnpm gen:go:trips && pnpm gen:go:locations && pnpm gen:go:social && pnpm gen:go:feed",
     "merge-schemas": "openapi-merge-cli --config merge-config.json",
     
     "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/generated/{src,docs,.openapi-generator} ./frontend/generated/{*.json,*.md}",

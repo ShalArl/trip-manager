@@ -1,9 +1,10 @@
-package userclient
+package client
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 )
@@ -34,14 +35,19 @@ func (c *UsersClient) GetMe(ctx context.Context, token string) (*UserResponse, e
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-
 	resp, err := c.httpClient.Do(req)
+
 	if err != nil {
 		log.Printf("[UsersClient] error: %v", err)
 		return nil, fmt.Errorf("failed to call users service: %w", err)
 	}
 	log.Printf("[UsersClient] status: %d", resp.StatusCode)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("[UsersClient] failed to close response body: %v", err)
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)
@@ -64,7 +70,12 @@ func (c *UsersClient) GetByID(ctx context.Context, id string) (*UserResponse, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to call users service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("[UsersClient] error closing response body: %v", err)
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)

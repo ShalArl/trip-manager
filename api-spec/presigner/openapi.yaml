@@ -4,11 +4,11 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8005/api
+  - url: http://localhost:8004/api
     description: Development server
 
 security:
-  - firebaseAuth: [ ]
+  - firebaseAuth: []
 
 paths:
   /uploads/presigned:
@@ -43,6 +43,12 @@ paths:
 
 
 components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     PresignedURLRequest:
       description: Request for a presigned URL to upload files directly to S3/MinIO
