@@ -65,7 +65,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	// Graceful shutdown
