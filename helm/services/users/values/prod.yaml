@@ -21,6 +21,8 @@ env:
     value: "info"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
+  - name: STORAGE_BUCKET_URL
+    value: "https://storage.googleapis.com/trip-manager-bucket"
 
 externalSecrets:
   enabled: true
