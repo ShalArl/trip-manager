@@ -5,7 +5,6 @@ import {useUserContext} from "@/lib/context/UserContext";
 import {logout} from "@/lib/api/auth";
 import {getRecentPublicTrips, searchTrips} from "@/lib/api/trips";
 import {components} from "@/generated/types";
-import Navbar from "@/components/global/Navbar";
 import Link from "next/link";
 import {Input} from "@/components/ui/input";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
