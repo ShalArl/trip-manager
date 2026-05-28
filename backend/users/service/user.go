@@ -94,7 +94,7 @@ func (s *serviceImpl) Provision(ctx context.Context, input ProvisionInput) (*Use
 }
 
 func (s *serviceImpl) Update(ctx context.Context, input UpdateInput) (*User, error) {
-	existing, err := s.repo.GetByID(ctx, input.ID)
+	existing, err := s.repo.GetByFirebaseUID(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
