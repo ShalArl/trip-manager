@@ -223,6 +223,21 @@ releases:
     needs:
       - trip-manager-{{ .Environment.Name }}/redis
 
+  - name: weather-info
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/services/weather-info
+    values:
+      - helm/services/weather-info/values.yaml
+      - helm/services/weather-info/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}weather-info"
+      - name: image.tag
+        value: "{{ .Values.imageTag }}"
+    needs:
+      - trip-manager-{{ .Environment.Name }}/redis
+      - trip-manager-{{ .Environment.Name }}/locations-postgres
+
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/frontend
