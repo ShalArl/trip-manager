@@ -1,5 +1,8 @@
 replicaCount: 1
 
+service:
+  healthPath: /health
+
 resources:
   limits:
     cpu: 500m
@@ -10,15 +13,11 @@ resources:
 
 env:
   - name: PORT
-    value: "8088"
+    value: "8087"
   - name: LOG_LEVEL
     value: "info"
   - name: API_URL
-    value: "https://api.open-meteo.com/v1/forecast"
-  - name: FORECAST_DAYS
-    value: "3"
-  - name: CACHE_TTL_HOURS
-    value: "25"
+    value: "https://www.auswaertiges-amt.de/opendata/travelwarning"
   - name: CORS_ALLOWED_ORIGINS
     value: "https://neatnode.xyz,https://www.neatnode.xyz"
 
@@ -27,8 +26,6 @@ externalSecrets:
   secrets:
     - secretKey: REDIS_URL
       remoteKey: redis-url
-    - secretKey: LOCATIONS_DB_URL
-      remoteKey: locations-database-url
 
 
 envFrom:

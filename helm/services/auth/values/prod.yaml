@@ -1,5 +1,8 @@
 replicaCount: 2
 
+service:
+  healthPath: /health
+
 resources:
   limits:
     cpu: 500m

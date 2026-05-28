@@ -8,34 +8,42 @@ routes:
     service: social
     port: 8081
     path: /api/social
+    healthPath: /health
   auth:
     service: auth
     port: 8082
     path: /api/auth
+    healthPath: /health
   users:
     service: users
     port: 8083
     path: /api/users
+    healthPath: /health
   trips:
     service: trips
     port: 8084
     path: /api/trips
+    healthPath: /health
   presigner:
     service: presigner
     port: 8085
     path: /api/presign
+    healthPath: /health
   locations:
     service: locations
     port: 8086
     path: /api/locations
+    healthPath: /health
   travelWarning:
     service: travel-warning
     port: 8087
     path: /api/warnings
+    healthPath: /health
   weatherInfo:
     service: weather-info
     port: 8088
     path: /api/weather
+    healthPath: /health
 
 
 

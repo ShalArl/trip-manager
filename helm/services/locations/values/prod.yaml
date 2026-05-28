@@ -1,3 +1,6 @@
+service:
+  healthPath: /health
+
 externalSecrets:
   enabled: true
   secrets:
