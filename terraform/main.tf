@@ -35,6 +35,10 @@ module "iam" {
   ]
 }
 
+module "storage" {
+  source = "./modules/storage"
+}
+
 module "dns" {
   source     = "./modules/dns"
   project_id = var.project_id
