@@ -10,5 +10,5 @@ variable "region" {
 
 variable "cors_origins" {
   type    = list(string)
-  default = ["https://neatnode.xyz", "https://www.api.neatnode.xyz"]
+  default = ["https://neatnode.xyz", "https://www.neatnode.xyz"]
 }

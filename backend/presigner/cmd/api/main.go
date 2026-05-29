@@ -50,6 +50,8 @@ func main() {
 	// Presigner endpoints
 	mux.HandleFunc("POST /uploads/presigned",
 		authclient.RequireAuth(authClient)(handler.GetPresignedUploadURLHandler(presignerService, authClient)))
+	mux.HandleFunc("POST /uploads/download-url",
+		handler.GetPresignedDownloadURLHandler(presignerService))
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
