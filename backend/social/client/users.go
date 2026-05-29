@@ -27,8 +27,8 @@ func NewUsersClient(baseURL string) *UsersClient {
 }
 
 func (c *UsersClient) GetMe(ctx context.Context, token string) (*UserResponse, error) {
-	log.Printf("[UsersClient] calling %s/api/users/me", c.baseURL)
-	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/api/users/me", nil)
+	log.Printf("[UsersClient] calling %s/me", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/me", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
