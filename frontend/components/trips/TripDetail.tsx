@@ -23,6 +23,7 @@ import AddTransportModal from "./modals/AddTransportModal";
 import EditTransportModal from "./modals/EditTransportModal";
 import AddAccommodationModal from "./modals/AddAccommodationModal";
 import EditAccommodationModal from "./modals/EditAccommodationModal";
+import {UserAvatar} from "@/components/global/UserAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -322,13 +323,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                         {comments.map((comment) => (
                                             <div key={comment.id} className="flex items-start justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden">
-                                                        {comment.user.avatarUrl ? (
-                                                            <img src={comment.user.avatarUrl} alt={comment.user.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            comment.user.name.charAt(0).toUpperCase()
-                                                        )}
-                                                    </div>
+                                                    <UserAvatar name={comment.user.name} avatarKey={comment.user.avatarUrl} />
                                                     <div>
                                                         <p className="text-sm font-medium text-zinc-900 dark:text-white">{comment.user.name}</p>
                                                         <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{comment.text}</p>

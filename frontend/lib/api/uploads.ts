@@ -61,3 +61,22 @@ export async function uploadAvatar(file: File): Promise<string> {
 
     return ticket.key;
 }
+
+/**
+ * Get a presigned URL for downloading/viewing a file.
+ */
+export async function getDownloadUrl(key: string): Promise<string> {
+    const response = await fetch(`${API_URL}/api/presign/uploads/download-url`, {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ key }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to get download URL: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.url;
+}
