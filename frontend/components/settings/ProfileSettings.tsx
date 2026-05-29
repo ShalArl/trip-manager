@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { UserResponse, UpdateUserRequest } from "@/types/user";
 import { updateMe } from "@/lib/api/auth";
-import { uploadAvatar } from "@/lib/api/uploads";
+import {getDownloadUrl, uploadAvatar} from "@/lib/api/uploads";
 import { useUserContext } from "@/lib/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,12 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (user.avatarUrl && !avatarFile) {
+            getDownloadUrl(user.avatarUrl).then(setAvatarPreview);
+        }
+    }, [avatarFile, setAvatarPreview, user.avatarUrl]);
 
     const { updateUser: updateUserContext } = useUserContext();
 
@@ -60,50 +66,6 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
             fileInputRef.current.value = "";
         }
     };
-
-    /*const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        setSuccess(false);
-        setLoading(true);
-
-        try {
-            let avatarKey: string | undefined;
-
-            if (avatarFile) {
-                console.log("[ProfileSettings] Starting presigned avatar upload...");
-                avatarKey = await uploadAvatar(avatarFile);
-                console.log("[ProfileSettings] Avatar uploaded, key:", avatarKey);
-                setAvatarFile(null);
-            }
-
-            const updateData: UpdateUserRequest = {
-                name,
-                email,
-                bio,
-                ...(avatarKey && { avatarKey }),
-            };
-
-            console.log("[ProfileSettings] Updating user profile...");
-            const data = await updateMe(updateData);
-            console.log("[ProfileSettings] Profile updated:", data);
-
-            updateUserContext(data);
-            setSuccess(true);
-            //setAvatarPreview(data.avatarUrl || null);
-            if (!avatarFile) {
-                setAvatarPreview(data.avatarUrl ? `${data.avatarUrl}&t=${Date.now()}` : null);
-            }
-            setAvatarFile(null);
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : "Fehler beim Aktualisieren des Profils"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };*/
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

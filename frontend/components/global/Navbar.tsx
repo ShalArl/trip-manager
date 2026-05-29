@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import { UserResponse as User } from "@/types/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import {
 import { LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/lib/context/UserContext";
+import {getDownloadUrl} from "@/lib/api/uploads";
+import {UserAvatar} from "@/components/global/UserAvatar";
 
 type Props = {
     user?: User | null;
@@ -24,7 +26,7 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
 
     const displayUser = user || initialUser;
 
-    React.useEffect(() => {
+    useEffect(() => {
         console.log("[Navbar] User context user:", user);
         if (displayUser) {
             console.log("[Navbar] DisplayUser.avatarUrl:", displayUser.avatarUrl);
@@ -64,14 +66,9 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <div className="relative cursor-pointer">
-                                        <Avatar className="h-10 w-10">
-                                            {displayUser.avatarUrl && (
-                                                <AvatarImage src={displayUser.avatarUrl} alt={displayUser.name} />
-                                            )}
-                                            <AvatarFallback className="bg-blue-500 text-white">
-                                                {displayUser.name.charAt(0).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        <UserAvatar name={displayUser.name}
+                                                    className={"bg-blue-500 text-white"}
+                                                    avatarKey={displayUser.avatarUrl} />
                                         <Badge className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                                             ✓
                                         </Badge>

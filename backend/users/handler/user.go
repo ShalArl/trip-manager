@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	generated "github.com/ShalArl/trip-manager/backend/users/generated"
@@ -27,13 +26,9 @@ func respondError(w http.ResponseWriter, status int, msg string) {
 }
 
 func toResponse(u *service.User) generated.UserResponse {
-	var storageBucketURL = os.Getenv("STORAGE_BUCKET_URL")
-	// z.B. "https://storage.googleapis.com/trip-manager-bucket"
-
 	var avatarUrl *string
-	if u.AvatarKey != "" && storageBucketURL != "" {
-		url := storageBucketURL + "/" + u.AvatarKey
-		avatarUrl = &url
+	if u.AvatarKey != "" {
+		avatarUrl = &u.AvatarKey
 	}
 	id := openapi_types.UUID{}
 	if u.ID != "" {
