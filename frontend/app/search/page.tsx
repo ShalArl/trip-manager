@@ -15,6 +15,7 @@ import {Skeleton} from "@/components/ui/skeleton";
 import {ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search} from "lucide-react";
 import {formatDay, formatMonth, formatYear, getDuration} from "@/utils/date"
 import {router} from "next/client";
+import {UserAvatar} from "@/components/global/UserAvatar";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -235,16 +236,7 @@ export default function SearchPage() {
 
                                                 {/* Author inline */}
                                                 <div className="flex items-center gap-2 mt-2">
-                                                    <Avatar className="h-5 w-5">
-                                                        {trip.createdBy.avatarUrl && (
-                                                            <AvatarImage src={trip.createdBy.avatarUrl}
-                                                                         alt={trip.createdBy.name}/>
-                                                        )}
-                                                        <AvatarFallback
-                                                            className="bg-sky-500 text-white text-[10px] font-semibold">
-                                                            {trip.createdBy.name.charAt(0).toUpperCase()}
-                                                        </AvatarFallback>
-                                                    </Avatar>
+                                                    <UserAvatar name={trip.createdBy.name} avatarKey={trip.createdBy.avatarUrl} />
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
