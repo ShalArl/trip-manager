@@ -21,10 +21,12 @@ env:
     value: "8081"
   - name: LOG_LEVEL
     value: "info"
-  - name: AUTH_CLIENT_CONNECTION_STRING
-    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: FIRESTORE_PROJECT_ID
     value: "project-32c60644-299b-4b05-8cf"
+  - name: AUTH_CLIENT_CONNECTION_STRING
+    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
+  - name: USERS_SERVICE_URL
+    value: "http://users.trip-manager-prod.svc.cluster.local:8083"
 
 serviceAccount:
   gcpServiceAccount: "social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

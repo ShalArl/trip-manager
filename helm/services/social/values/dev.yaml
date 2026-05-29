@@ -22,3 +22,5 @@ env:
     value: firebase-emulator:8080
   - name: AUTH_CLIENT_CONNECTION_STRING
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
+  - name: USERS_SERVICE_URL
+    value: "http://users.trip-manager-dev.svc.cluster.local:8083"
