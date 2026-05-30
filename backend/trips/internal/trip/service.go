@@ -17,6 +17,7 @@ type CreateInput struct {
 	UserID           string
 	UserName         string
 	UserEmail        string
+	UserAvatarKey    string
 }
 
 type UpdateInput struct {
@@ -78,9 +79,10 @@ func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Trip, err
 		EndDate:          input.EndDate,
 		Status:           "planned",
 		CreatedBy: UserSummary{
-			ID:    input.UserID,
-			Name:  input.UserName,
-			Email: input.UserEmail,
+			ID:        input.UserID,
+			Name:      input.UserName,
+			Email:     input.UserEmail,
+			AvatarKey: &input.UserAvatarKey,
 		},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
