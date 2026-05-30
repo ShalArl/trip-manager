@@ -17,6 +17,9 @@ import (
 type tripRecord struct {
 	ID               uuid.UUID `db:"id"`
 	UserID           uuid.UUID `db:"user_id"`
+	UserName         string    `db:"user_name"`
+	UserEmail        string    `db:"user_email"`
+	UserAvatarKey    *string   `db:"user_avatar_key"`
 	Title            string    `db:"title"`
 	ShortDescription string    `db:"short_description"`
 	Description      *string   `db:"description"`
@@ -71,7 +74,10 @@ func (r *tripRecord) toTrip() *Trip {
 		EndDate:          r.EndDate,
 		Status:           r.Status,
 		CreatedBy: UserSummary{
-			ID: r.UserID.String(),
+			ID:        r.UserID.String(),
+			Name:      r.UserName,
+			Email:     r.UserEmail,
+			AvatarKey: r.UserAvatarKey,
 		},
 		CreatedAt: r.CreatedAt,
 		UpdatedAt: r.UpdatedAt,
@@ -94,6 +100,9 @@ func toRecord(t *Trip) (*tripRecord, error) {
 	return &tripRecord{
 		ID:               id,
 		UserID:           userID,
+		UserName:         t.CreatedBy.Name,
+		UserEmail:        t.CreatedBy.Email,
+		UserAvatarKey:    t.CreatedBy.AvatarKey,
 		Title:            t.Title,
 		ShortDescription: t.ShortDescription,
 		Description:      toPtr(t.Description),
@@ -157,11 +166,11 @@ func (r *repositoryImpl) Create(ctx context.Context, trip *Trip) (*Trip, error) 
 		return nil, fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
 	query := `
-		INSERT INTO trips (user_id, title, short_description, description, start_date, end_date, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO trips (user_id, user_name, user_email, user_avatar_key, title, short_description, description, start_date, end_date, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at`
 	err = r.db.QueryRowContext(ctx, query,
-		rec.UserID,
+		rec.UserID, rec.UserName, rec.UserEmail, rec.UserAvatarKey,
 		rec.Title, rec.ShortDescription, rec.Description,
 		rec.StartDate, rec.EndDate, rec.Status,
 	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)

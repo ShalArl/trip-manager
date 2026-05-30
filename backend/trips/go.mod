@@ -14,6 +14,7 @@ require (
 replace (
 	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
 	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
+	github.com/ShalArl/trip-manager/backend/shared/userclient => ../shared/userclient
 )
 
 require (

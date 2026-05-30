@@ -115,7 +115,7 @@ func CreateTripCommentHandler(svc Service, usersClient *userclient.UsersClient) 
 			return
 		}
 
-		resp, err := svc.CreateComment(r.Context(), userID, user.ID, tripID, req.Text)
+		resp, err := svc.CreateComment(r.Context(), userID, user.ID, user.Name, user.Email, user.AvatarUrl, tripID, req.Text)
 		if err != nil {
 			if errors.Is(err, shared.ErrInvalidInput) {
 				shared.RespondError(w, http.StatusBadRequest, err.Error())
