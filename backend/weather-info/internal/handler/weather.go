@@ -42,6 +42,7 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "invalid lng")
 		return
 	}
+	date := r.URL.Query().Get("date")
 
 	// Cache prüfen
 	weather, err := h.cache.Get(r.Context(), lat, lng)
@@ -57,7 +58,7 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 
 	// Cache Miss – On-Demand von Open-Meteo holen
 	log.Printf("cache miss for lat=%.2f lng=%.2f – fetching from Open-Meteo", lat, lng)
-	weather, err = h.fetcher.FetchForecast(r.Context(), lat, lng)
+	weather, err = h.fetcher.FetchForecast(r.Context(), lat, lng, date)
 	if err != nil {
 		log.Printf("fetch forecast error: %v", err)
 		respondError(w, http.StatusServiceUnavailable, "failed to fetch weather data")

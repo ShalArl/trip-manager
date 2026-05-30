@@ -52,13 +52,23 @@ func NewClient(baseURL string, forecastDays int) *Client {
 	}
 }
 
-func (c *Client) FetchForecast(ctx context.Context, lat, lng float64) (*WeatherResponse, error) {
+func (c *Client) FetchForecast(ctx context.Context, lat, lng float64, startDate string) (*WeatherResponse, error) {
 	params := url.Values{}
 	params.Set("latitude", strconv.FormatFloat(lat, 'f', 2, 64))
 	params.Set("longitude", strconv.FormatFloat(lng, 'f', 2, 64))
 	params.Set("daily", "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode")
 	params.Set("timezone", "auto")
 	params.Set("forecast_days", strconv.Itoa(c.forecastDays))
+
+	if startDate != "" {
+		params.Set("start_date", startDate)
+		params.Set("end_date", startDate)
+		params.Del("forecast_days")
+		t, err := time.Parse("2006-01-02", startDate)
+		if err == nil {
+			params.Set("end_date", t.AddDate(0, 0, 2).Format("2006-01-02"))
+		}
+	}
 
 	reqURL := fmt.Sprintf("%s?%s", c.baseURL, params.Encode())
 
