@@ -25,6 +25,7 @@ type NominatimResult = {
         municipality?: string;
         county?: string;
         country?: string;
+        country_code?: string;
         aerodrome?: string;
         road?: string;
     };
@@ -115,12 +116,14 @@ export default function PlaceAutocomplete({ label, value, onChange, placeholder 
     const handleSelect = (result: NominatimResult) => {
         const city = extractCity(result.address);
         const country = result.address.country ?? "";
+        const countryCode = result.address.country_code ?? "";
         const name = extractName(result);
 
         const place: PlaceValue = {
             name,
             city,
             country,
+            countryCode,
             lat: parseFloat(result.lat),
             lng: parseFloat(result.lon),
         };
