@@ -15,7 +15,12 @@ type Props = {
 export default function EditAccommodationModal({ isOpen, accommodation, onCloseAction, onSaveAction, onDeleteAction }: Props) {
     const [name, setName] = useState(accommodation.name ?? "");
     const [location, setLocation] = useState<PlaceValue | null>(
-        accommodation.location ?? null
+        accommodation.location ? {
+            ...accommodation.location,
+            lat: accommodation.location.lat ?? undefined,
+            lng: accommodation.location.lng ?? undefined,
+            countryCode: accommodation.location.countryCode ?? "",
+        } : null
     );
     const [address, setAddress] = useState(accommodation.address ?? "");
     const [checkIn, setCheckIn] = useState(

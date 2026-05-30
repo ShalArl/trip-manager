@@ -44,6 +44,7 @@ export default function LocationDetailModal({
         country: location.country,
         lat: location.latitude ?? undefined,
         lng: location.longitude ?? undefined,
+        countryCode: location.countryCode ?? "",
     });
 
     const [shortDescription, setShortDescription] = useState(location.shortDescription);

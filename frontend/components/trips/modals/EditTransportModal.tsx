@@ -16,11 +16,22 @@ export default function EditTransportModal({ isOpen, transport, onCloseAction, o
     const [type, setType] = useState<"flight" | "train" | "car" | "bus">(
         (transport.type as "flight" | "train" | "car" | "bus") ?? "flight"
     );
+
+    const mapPlace = (place: typeof transport.from): PlaceValue | null =>
+        place
+            ? {
+                ...place,
+                lat: place.lat ?? undefined,
+                lng: place.lng ?? undefined,
+                countryCode: place.countryCode ?? "",
+            }
+            : null;
+
     const [from, setFrom] = useState<PlaceValue | null>(
-        transport.from ?? null
+        mapPlace(transport.from)
     );
     const [to, setTo] = useState<PlaceValue | null>(
-        transport.to ?? null
+        mapPlace(transport.to)
     );
     const [departureTime, setDepartureTime] = useState(
         transport.departureTime
