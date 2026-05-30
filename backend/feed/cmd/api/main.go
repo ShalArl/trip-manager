@@ -40,6 +40,7 @@ func main() {
 
 	// Auth
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
+	requireAuth := authclient.RequireAuth(authClient)
 	optionalAuth := authclient.OptionalAuth(authClient)
 
 	// Router
@@ -51,8 +52,11 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Feed ist öffentlich (optionalAuth damit man später hasLiked einbauen kann)
-	mux.HandleFunc("GET /api/feed", optionalAuth(feed.GetFeedHandler(feedSvc)))
+	// Globaler Feed – öffentlich, Gäste + eingeloggte User
+	mux.HandleFunc("GET /api/feed", optionalAuth(feed.GetGlobalFeedHandler(feedSvc)))
+
+	// Personalisierter Feed – nur für eingeloggte User
+	mux.HandleFunc("GET /api/feed/personal", requireAuth(feed.GetPersonalFeedHandler(feedSvc)))
 
 	// Server
 	server := &http.Server{

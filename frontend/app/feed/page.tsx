@@ -1,19 +1,33 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getFeed } from "@/lib/api/feed";
+import { getFeed, getPersonalFeed } from "@/lib/api/feed";
 import { components } from "@/generated/types";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, MessageCircle, TrendingUp } from "lucide-react";
+import { useUserContext } from "@/lib/context/UserContext";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Heart,
+  MessageCircle,
+  TrendingUp,
+  User,
+} from "lucide-react";
 
 type FeedTrip = components["schemas"]["FeedTrip"];
+
+type FeedMode = "global" | "personal";
 
 const PAGE_SIZE = 20;
 
 export default function FeedPage() {
+  const { user } = useUserContext();
+  const [mode, setMode] = useState<FeedMode>("global");
   const [trips, setTrips] = useState<FeedTrip[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -23,7 +37,10 @@ export default function FeedPage() {
     const fetchFeed = async () => {
       setIsLoading(true);
       try {
-        const result = await getFeed(PAGE_SIZE, page * PAGE_SIZE);
+        const result =
+          mode === "personal" && user
+            ? await getPersonalFeed(PAGE_SIZE, page * PAGE_SIZE)
+            : await getFeed(PAGE_SIZE, page * PAGE_SIZE);
         setTrips(result.data);
         setTotal(result.total);
       } catch (error) {
@@ -33,7 +50,12 @@ export default function FeedPage() {
       }
     };
     fetchFeed();
-  }, [page]);
+  }, [page, mode, user]);
+
+  const handleModeChange = (newMode: FeedMode) => {
+    setMode(newMode);
+    setPage(0);
+  };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const firstVisibleItem = total === 0 ? 0 : page * PAGE_SIZE + 1;
@@ -44,15 +66,45 @@ export default function FeedPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
 
         {/* Header */}
-        <div className="mb-10">
+        <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="h-7 w-7 text-sky-500" />
             <h1 className="text-3xl font-bold tracking-tight">Feed</h1>
           </div>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Die beliebtesten Reisen der Community
+            {mode === "personal"
+              ? "Reisen basierend auf deinen Interaktionen"
+              : "Die beliebtesten Reisen der Community"}
           </p>
         </div>
+
+        {/* Mode Toggle – nur für eingeloggte User */}
+        {user && (
+          <div className="flex items-center gap-2 mb-8 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl w-fit">
+            <button
+              onClick={() => handleModeChange("global")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                mode === "global"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Global
+            </button>
+            <button
+              onClick={() => handleModeChange("personal")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                mode === "personal"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+              }`}
+            >
+              <User className="h-4 w-4" />
+              Für dich
+            </button>
+          </div>
+        )}
 
         {/* Pagination Header */}
         {total > 0 && (
@@ -89,13 +141,27 @@ export default function FeedPage() {
           </div>
         ) : trips.length === 0 ? (
           <Card className="p-12 text-center border-dashed">
-            <TrendingUp className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-500 dark:text-zinc-400">
-              Noch keine Reisen im Feed
-            </p>
-            <p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1">
-              Like oder kommentiere Reisen damit sie hier erscheinen
-            </p>
+            {mode === "personal" ? (
+              <>
+                <User className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
+                <p className="text-zinc-500 dark:text-zinc-400">
+                  Noch keine personalisierten Empfehlungen
+                </p>
+                <p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1">
+                  Like oder kommentiere Reisen damit wir dir passende empfehlen können
+                </p>
+              </>
+            ) : (
+              <>
+                <TrendingUp className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
+                <p className="text-zinc-500 dark:text-zinc-400">
+                  Noch keine Reisen im Feed
+                </p>
+                <p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1">
+                  Like oder kommentiere Reisen damit sie hier erscheinen
+                </p>
+              </>
+            )}
           </Card>
         ) : (
           <div className="flex flex-col gap-3">

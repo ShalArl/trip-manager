@@ -27,13 +27,12 @@ func NewUsersClient(baseURL string) *UsersClient {
 }
 
 func (c *UsersClient) GetMe(ctx context.Context, token string) (*UserResponse, error) {
-	log.Printf("[UsersClient] calling %s/api/users/me", c.baseURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/users/me", nil)
+	log.Printf("[UsersClient] calling %s/me", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/me", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Printf("[UsersClient] error: %v", err)
@@ -41,11 +40,9 @@ func (c *UsersClient) GetMe(ctx context.Context, token string) (*UserResponse, e
 	}
 	log.Printf("[UsersClient] status: %d", resp.StatusCode)
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)
 	}
-
 	var user UserResponse
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

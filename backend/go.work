@@ -1,12 +1,13 @@
 go 1.25.8
-
 use (
-	./auth
-	./locations
-	./presigner
-	./shared/authclient
-	./shared/middleware
-	./social
-	./trips
-	./users
+    ./auth
+    ./feed
+    ./feed-generator
+    ./locations
+    ./presigner
+    ./shared/authclient
+    ./shared/middleware
+    ./social
+    ./trips
+    ./users
 )
