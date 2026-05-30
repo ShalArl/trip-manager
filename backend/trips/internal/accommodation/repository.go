@@ -210,7 +210,7 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 		WHERE id = $13 AND user_id = $14
 		RETURNING updated_at`
 	err = r.db.QueryRowContext(ctx, query,
-		a.Location.Name, a.Location.City, a.Location.Country, a.Location.Lat, a.Location.Lng,
+		a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
 		a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
 		id, userID,
 	).Scan(&a.UpdatedAt)
