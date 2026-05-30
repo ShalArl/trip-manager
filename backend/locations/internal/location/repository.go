@@ -45,6 +45,7 @@ type Location struct {
 	Name             string
 	City             string
 	Country          string
+	CountryCode      string
 	ShortDescription string
 	DateFrom         time.Time
 	DateTo           time.Time
@@ -69,6 +70,7 @@ type locationRecord struct {
 	Name             string    `db:"name"`
 	City             string    `db:"city"`
 	Country          string    `db:"country"`
+	CountryCode      string    `db:"country_code"`
 	ShortDescription string    `db:"short_description"`
 	DateFrom         time.Time `db:"date_from"`
 	DateTo           time.Time `db:"date_to"`
@@ -101,6 +103,7 @@ func (r *locationRecord) toDomain(images []LocationImage) *Location {
 		Name:             r.Name,
 		City:             r.City,
 		Country:          r.Country,
+		CountryCode:      r.CountryCode,
 		ShortDescription: r.ShortDescription,
 		DateFrom:         r.DateFrom,
 		DateTo:           r.DateTo,
@@ -220,6 +223,7 @@ func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, er
 		Name:             l.Name,
 		City:             l.City,
 		Country:          l.Country,
+		CountryCode:      l.CountryCode,
 		ShortDescription: l.ShortDescription,
 		DateFrom:         l.DateFrom,
 		DateTo:           l.DateTo,
