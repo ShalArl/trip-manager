@@ -206,6 +206,7 @@ func CreateTripHandler(svc Service, usersClient *client.UsersClient) http.Handle
 			UserID:           user.ID,
 			UserName:         user.Name,
 			UserEmail:        user.Email,
+			UserAvatarKey:    user.AvatarURL,
 		})
 		if err != nil {
 			if errors.Is(err, ErrInvalidInput) {
