@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, entityID, text string) (*CommentResponse, error)
+	CreateComment(ctx context.Context, firebaseUID, postgresID, entityID, text string) (*CommentResponse, error)
 	ListComments(ctx context.Context, entityID string) (*CommentListResponse, error)
 	DeleteComment(ctx context.Context, firebaseUID, commentID string) error
 	UpdateComment(ctx context.Context, firebaseUID, commentID, text string) (*CommentResponse, error)
@@ -24,7 +24,7 @@ func NewServiceImpl(repository Repository) Service {
 	}
 }
 
-func (s *ServiceImpl) CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, entityID, text string) (*CommentResponse, error) {
+func (s *ServiceImpl) CreateComment(ctx context.Context, firebaseUID, postgresID, entityID, text string) (*CommentResponse, error) {
 	if text == "" {
 		return nil, fmt.Errorf("%w: comment text cannot be empty", shared.ErrInvalidInput)
 	}
@@ -32,10 +32,7 @@ func (s *ServiceImpl) CreateComment(ctx context.Context, firebaseUID, postgresID
 		EntityID:    entityID,
 		FirebaseUID: firebaseUID,
 		User: UserSummary{
-			ID:        postgresID,
-			Name:      userName,
-			Email:     userEmail,
-			AvatarUrl: userAvatarKey,
+			ID: postgresID,
 		},
 		Text: text,
 	}
