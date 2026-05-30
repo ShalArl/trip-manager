@@ -81,7 +81,7 @@ func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Location,
 		return nil, fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
 	if input.City == "" {
-		return nil, fmt.Errorf("%w: city is required", ErrInvalidInput)
+		input.City = input.Name
 	}
 	if input.Country == "" {
 		return nil, fmt.Errorf("%w: country is required", ErrInvalidInput)

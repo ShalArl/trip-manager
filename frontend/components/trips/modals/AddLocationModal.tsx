@@ -31,6 +31,8 @@ export default function AddLocationModal({ isOpen, onCloseAction, onAddAction }:
             country: place.country,
             latitude: place.lat ?? undefined,
             longitude: place.lng ?? undefined,
+            countryCode: place.countryCode ?? undefined,
+
             shortDescription,
             dateFrom,
             dateTo,
