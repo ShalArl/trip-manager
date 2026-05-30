@@ -791,6 +791,35 @@ paths:
           description: Forbidden
         '404':
           description: Comment not found
+  /uploads/presigned:
+    post:
+      summary: Get a presigned URL for direct file upload
+      description: >
+        Request a presigned URL to upload files directly to S3/MinIO without
+        routing through the backend. Presigned URLs are valid for 15 minutes and
+        can be used with PUT requests to upload files directly.
+      operationId: getPresignedUrl
+      tags:
+        - Uploads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequest'
+      responses:
+        '200':
+          description: Presigned URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedURLResponse'
+        '400':
+          description: Invalid mediaType or missing required fields
+        '401':
+          description: Unauthorized
+        '500':
+          description: Failed to generate presigned URL
 components:
   schemas:
     UserResponse:
@@ -862,6 +891,55 @@ components:
           format: email
         avatarUrl:
           type: string
+          nullable: true
+    PlaceInput:
+      type: object
+      required:
+        - name
+        - city
+        - country
+        - countryCode
+      properties:
+        name:
+          type: string
+          description: 'Vollständiger Ortsname (z.B. "Flughafen Frankfurt", "Paris")'
+        city:
+          type: string
+        country:
+          type: string
+        countryCode:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+    PlaceSummary:
+      type: object
+      required:
+        - name
+        - city
+        - country
+        - countryCode
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        countryCode:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
           nullable: true
     TripResponse:
       type: object
@@ -979,8 +1057,8 @@ components:
         - createdBy
         - createdAt
         - updatedAt
-        - fromLocationId
-        - toLocationId
+        - from
+        - to
         - type
       properties:
         id:
@@ -994,12 +1072,10 @@ components:
         updatedAt:
           type: string
           format: date-time
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceSummary'
+        to:
+          $ref: '#/components/schemas/PlaceSummary'
         departureTime:
           type: string
           format: date-time
@@ -1039,16 +1115,14 @@ components:
     CreateTransportRequest:
       type: object
       required:
-        - fromLocationId
-        - toLocationId
+        - from
+        - to
         - type
       properties:
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceInput'
+        to:
+          $ref: '#/components/schemas/PlaceInput'
         departureTime:
           type: string
           format: date-time
@@ -1067,12 +1141,10 @@ components:
     UpdateTransportRequest:
       type: object
       properties:
-        fromLocationId:
-          type: string
-          format: uuid
-        toLocationId:
-          type: string
-          format: uuid
+        from:
+          $ref: '#/components/schemas/PlaceInput'
+        to:
+          $ref: '#/components/schemas/PlaceInput'
         departureTime:
           type: string
           format: date-time
@@ -1095,7 +1167,7 @@ components:
         - createdBy
         - createdAt
         - updatedAt
-        - locationId
+        - location
         - name
       properties:
         id:
@@ -1109,9 +1181,8 @@ components:
         updatedAt:
           type: string
           format: date-time
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceSummary'
         name:
           type: string
         address:
@@ -1153,12 +1224,11 @@ components:
     CreateAccommodationRequest:
       type: object
       required:
-        - locationId
+        - location
         - name
       properties:
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceInput'
         name:
           type: string
         address:
@@ -1177,9 +1247,8 @@ components:
     UpdateAccommodationRequest:
       type: object
       properties:
-        locationId:
-          type: string
-          format: uuid
+        location:
+          $ref: '#/components/schemas/PlaceInput'
         name:
           type: string
         address:
@@ -1226,6 +1295,7 @@ components:
         - name
         - city
         - country
+        - countryCode
         - shortDescription
         - dateFrom
         - dateTo
@@ -1246,6 +1316,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string
@@ -1306,6 +1378,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string
@@ -1411,6 +1485,48 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TripCommentResponse'
+    PresignedURLRequest:
+      description: Request for a presigned URL to upload files directly to S3/MinIO
+      type: object
+      required:
+        - fileName
+        - mediaType
+      properties:
+        fileName:
+          type: string
+          description: 'Name of the file to upload (e.g., "avatar.jpg")'
+          example: avatar.jpg
+        mediaType:
+          type: string
+          enum:
+            - avatar
+            - trip
+            - location
+            - activity
+          description: Type of media being uploaded
+    PresignedURLResponse:
+      description: Presigned URL response for direct file uploads
+      type: object
+      required:
+        - presignedUrl
+        - expiresIn
+        - key
+      properties:
+        presignedUrl:
+          type: string
+          format: uri
+          description: URL that can be used to upload the file directly to S3/MinIO
+          example: >-
+            http://minio:9000/trip-manager/avatars/user-id.jpg?X-Amz-Algorithm=...
+        expiresIn:
+          type: integer
+          description: >-
+            Presigned URL expiration time in seconds (typically 900 = 15
+            minutes)
+          example: 900
+        key:
+          type: string
+          description: Object key to reference this upload in subsequent requests
   securitySchemes:
     firebaseAuth:
       type: http

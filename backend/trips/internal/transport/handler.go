@@ -43,9 +43,18 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
+func toPlaceSummary(p Place) generated.PlaceSummary {
+	return generated.PlaceSummary{
+		Name:    p.Name,
+		City:    p.City,
+		Country: p.Country,
+		Lat:     p.Lat,
+		Lng:     p.Lng,
+	}
+}
+
 func toResponse(t *Transport) generated.TransportResponse {
-	fromID, _ := uuid.Parse(t.FromLocationID)
-	toID, _ := uuid.Parse(t.ToLocationID)
+	id, _ := uuid.Parse(t.ID)
 	creatorID, _ := uuid.Parse(t.CreatedBy.ID)
 
 	var notes *string
@@ -53,21 +62,24 @@ func toResponse(t *Transport) generated.TransportResponse {
 		notes = &t.Notes
 	}
 
+	from := toPlaceSummary(t.From)
+	to := toPlaceSummary(t.To)
+
 	return generated.TransportResponse{
-		Id: openapi_types.UUID(uuid.MustParse(t.ID)),
+		Id: openapi_types.UUID(id),
 		CreatedBy: generated.UserSummary{
 			Id:    openapi_types.UUID(creatorID),
 			Name:  t.CreatedBy.Name,
 			Email: openapi_types.Email(t.CreatedBy.Email),
 		},
-		CreatedAt:      t.CreatedAt,
-		UpdatedAt:      t.UpdatedAt,
-		FromLocationId: openapi_types.UUID(fromID),
-		ToLocationId:   openapi_types.UUID(toID),
-		DepartureTime:  t.DepartureTime,
-		ArrivalTime:    t.ArrivalTime,
-		Type:           generated.TransportResponseType(t.Type),
-		Notes:          notes,
+		CreatedAt:     t.CreatedAt,
+		UpdatedAt:     t.UpdatedAt,
+		From:          from,
+		To:            to,
+		DepartureTime: t.DepartureTime,
+		ArrivalTime:   t.ArrivalTime,
+		Type:          generated.TransportResponseType(t.Type),
+		Notes:         notes,
 	}
 }
 

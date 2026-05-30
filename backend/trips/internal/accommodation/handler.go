@@ -43,9 +43,19 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
+func toPlaceSummary(p Place) generated.PlaceSummary {
+	return generated.PlaceSummary{
+		Name:        p.Name,
+		City:        p.City,
+		Country:     p.Country,
+		Lat:         p.Lat,
+		Lng:         p.Lng,
+		CountryCode: p.CountryCode,
+	}
+}
+
 func toResponse(a *Accommodation) generated.AccommodationResponse {
 	id, _ := uuid.Parse(a.ID)
-	locationID, _ := uuid.Parse(a.LocationID)
 	creatorID, _ := uuid.Parse(a.CreatedBy.ID)
 
 	var address *string
@@ -58,8 +68,7 @@ func toResponse(a *Accommodation) generated.AccommodationResponse {
 	}
 
 	return generated.AccommodationResponse{
-		Id:         openapi_types.UUID(id),
-		LocationId: openapi_types.UUID(locationID),
+		Id: openapi_types.UUID(id),
 		CreatedBy: generated.UserSummary{
 			Id:    openapi_types.UUID(creatorID),
 			Name:  a.CreatedBy.Name,
@@ -67,6 +76,7 @@ func toResponse(a *Accommodation) generated.AccommodationResponse {
 		},
 		CreatedAt:     a.CreatedAt,
 		UpdatedAt:     a.UpdatedAt,
+		Location:      toPlaceSummary(a.Location),
 		Name:          a.Name,
 		Address:       address,
 		CheckIn:       a.CheckIn,
