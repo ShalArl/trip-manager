@@ -898,6 +898,7 @@ components:
         - name
         - city
         - country
+        - countryCode
       properties:
         name:
           type: string
@@ -922,6 +923,7 @@ components:
         - name
         - city
         - country
+        - countryCode
       properties:
         name:
           type: string

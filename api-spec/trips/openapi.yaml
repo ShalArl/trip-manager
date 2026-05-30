@@ -383,7 +383,7 @@ components:
 
     PlaceInput:
       type: object
-      required: [name, city, country]
+      required: [name, city, country, countryCode]
       properties:
         name:
           type: string
@@ -405,7 +405,7 @@ components:
 
     PlaceSummary:
       type: object
-      required: [name, city, country]
+      required: [name, city, country, countryCode]
       properties:
         name:
           type: string
