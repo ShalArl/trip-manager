@@ -42,8 +42,8 @@ export default function EditAccommodationModal({ isOpen, accommodation, location
             locationId: formData.locationId,
             name: formData.name,
             address: formData.address || undefined,
-            checkIn: formData.checkIn || undefined,
-            checkOut: formData.checkOut || undefined,
+            checkIn: formData.checkIn ? formData.checkIn + ":00Z" : undefined,
+            checkOut: formData.checkOut ? formData.checkOut + ":00Z" : undefined,
             pricePerNight: formData.pricePerNight ? parseFloat(formData.pricePerNight) : undefined,
             notes: formData.notes || undefined,
         });
