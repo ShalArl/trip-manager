@@ -35,7 +35,7 @@ export async function createLocation(tripId: string, req: CreateLocationRequest)
 
 export async function updateLocation(tripId: string, locationId: string, req: UpdateLocationRequest): Promise<LocationResponse> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/location/${tripId}/${locationId}`, {
+    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}`, {
         method: "PUT",
         headers,
         body: JSON.stringify(req),
@@ -50,7 +50,7 @@ export async function updateLocation(tripId: string, locationId: string, req: Up
 
 export async function deleteLocation(tripId: string, locationId: string): Promise<void> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/location/${tripId}/${locationId}`, {
+    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}`, {
         method: "DELETE",
         headers,
     });

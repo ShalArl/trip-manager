@@ -21,7 +21,7 @@ type Props = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function weatherEmoji(description: string): string {
-    const d = description.toLowerCase();
+    const d = (description ?? "").toLowerCase();
     if (d.includes("thunder")) return "⛈️";
     if (d.includes("rain") || d.includes("drizzle")) return "🌧️";
     if (d.includes("snow")) return "❄️";
