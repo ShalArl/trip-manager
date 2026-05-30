@@ -150,6 +150,26 @@ func UpdateMeHandler(svc service.Service) http.HandlerFunc {
 	}
 }
 
+func GetByIDHandler(svc service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if id == "" {
+			respondError(w, http.StatusBadRequest, "id is required")
+			return
+		}
+		user, err := svc.GetByID(r.Context(), id)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				respondError(w, http.StatusNotFound, "user not found")
+				return
+			}
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, toResponse(user))
+	}
+}
+
 func toPtr(s string) *string {
 	if s == "" {
 		return nil

@@ -13,7 +13,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
-	"github.com/ShalArl/trip-manager/backend/social/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/ShalArl/trip-manager/backend/social/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
 	"github.com/ShalArl/trip-manager/backend/social/internal/like"
@@ -41,7 +41,7 @@ func main() {
 	}(firestoreClient)
 
 	authClient := authclient.NewClient(cfg.AuthClientConnectionString)
-	usersClient := client.NewUsersClient(cfg.UsersServiceURL)
+	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
 
 	likeRepo := like.NewLikeRepository(firestoreClient)
 	likeService := like.NewServiceImpl(likeRepo)
@@ -57,7 +57,7 @@ func main() {
 	mux.HandleFunc("DELETE /{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
 
 	// Comment endpoints
-	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService))
+	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService, usersClient))
 	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient)))
 	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
 

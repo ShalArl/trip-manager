@@ -61,6 +61,7 @@ func main() {
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
+	mux.HandleFunc("GET /{id}", handler.GetByIDHandler(svc))
 
 	// Server
 	server := &http.Server{

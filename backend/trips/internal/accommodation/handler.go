@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/trips/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -106,7 +106,7 @@ func ListHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -143,7 +143,7 @@ func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func UpdateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accommodationID := r.PathValue("accommodationId")
 		if accommodationID == "" {
@@ -184,7 +184,7 @@ func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func DeleteHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func DeleteHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accommodationID := r.PathValue("accommodationId")
 		if accommodationID == "" {

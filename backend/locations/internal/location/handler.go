@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/locations/client"
 	generated "github.com/ShalArl/trip-manager/backend/locations/generated"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -135,7 +135,7 @@ func ListHandler(svc Service, s3Endpoint, s3Bucket string) http.HandlerFunc {
 	}
 }
 
-func CreateHandler(svc Service, usersClient *client.UsersClient, s3Endpoint, s3Bucket string) http.HandlerFunc {
+func CreateHandler(svc Service, usersClient *userclient.UsersClient, s3Endpoint, s3Bucket string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -174,7 +174,7 @@ func CreateHandler(svc Service, usersClient *client.UsersClient, s3Endpoint, s3B
 			UserID:           user.ID,
 			UserName:         user.Name,
 			UserEmail:        user.Email,
-			UserAvatarKey:    user.AvatarKey,
+			UserAvatarKey:    &user.AvatarUrl,
 			Name:             req.Name,
 			City:             req.City,
 			Country:          req.Country,

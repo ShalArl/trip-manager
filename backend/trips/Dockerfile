@@ -19,6 +19,8 @@ COPY shared/authclient/go.mod shared/authclient/go.mod
 COPY shared/authclient/go.sum shared/authclient/go.sum
 COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
+COPY shared/userclient/go.mod shared/userclient/go.mod
+COPY shared/userclient/go.sum shared/userclient/go.sum
 COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
 COPY trips/go.mod trips/go.mod
@@ -30,6 +32,7 @@ RUN go work sync
 # Source Code
 COPY shared/authclient/ shared/authclient/
 COPY shared/middleware/ shared/middleware/
+COPY shared/userclient/ shared/userclient/
 
 COPY trips/ trips/
 

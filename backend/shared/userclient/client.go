@@ -1,10 +1,9 @@
-package client
+package userclient
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 )
@@ -13,7 +12,7 @@ type UserResponse struct {
 	ID        string `json:"id"`
 	Email     string `json:"email"`
 	Name      string `json:"name"`
-	AvatarURL string `json:"avatarUrl"`
+	AvatarUrl string `json:"avatarUrl"`
 }
 
 type UsersClient struct {
@@ -42,12 +41,30 @@ func (c *UsersClient) GetMe(ctx context.Context, token string) (*UserResponse, e
 		return nil, fmt.Errorf("failed to call users service: %w", err)
 	}
 	log.Printf("[UsersClient] status: %d", resp.StatusCode)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Printf("[UsersClient] error closing response body: %v", err)
-		}
-	}(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)
+	}
+
+	var user UserResponse
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &user, nil
+}
+
+func (c *UsersClient) GetByID(ctx context.Context, id string) (*UserResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/"+id, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call users service: %w", err)
+	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)
