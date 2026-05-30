@@ -32,6 +32,8 @@ RUN go work sync
 # Source Code
 COPY shared/authclient/ shared/authclient/
 COPY shared/middleware/ shared/middleware/
+COPY shared/userclient/ shared/userclient/
+
 
 COPY locations/ locations/
 

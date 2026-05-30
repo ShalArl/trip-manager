@@ -8,10 +8,12 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/oapi-codegen/runtime v1.4.0
 	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/userclient v0.0.0
 )
 
 replace (
 	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
+	github.com/ShalArl/trip-manager/backend/shared/userclient => ../shared/userclient
 )
 
 require (
