@@ -211,6 +211,13 @@ func GetTripHandler(svc Service, usersClient *userclient.UsersClient) http.Handl
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		// enrich with user info
+		user, err := usersClient.GetByID(r.Context(), trip.CreatedBy.ID)
+		if err == nil {
+			trip.CreatedBy.Name = user.Name
+			trip.CreatedBy.Email = user.Email
+			trip.CreatedBy.AvatarKey = &user.AvatarUrl
+		}
 		respondJSON(w, http.StatusOK, toResponse(trip))
 	}
 }
