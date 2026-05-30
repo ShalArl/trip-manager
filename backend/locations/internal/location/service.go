@@ -17,6 +17,7 @@ type CreateInput struct {
 	Name             string
 	City             string
 	Country          string
+	CountryCode      string
 	ShortDescription string
 	DateFrom         time.Time
 	DateTo           time.Time
@@ -31,6 +32,7 @@ type UpdateInput struct {
 	Name             *string
 	City             *string
 	Country          *string
+	CountryCode      *string
 	ShortDescription *string
 	DateFrom         *time.Time
 	DateTo           *time.Time
