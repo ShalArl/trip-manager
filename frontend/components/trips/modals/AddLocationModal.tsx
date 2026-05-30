@@ -46,6 +46,8 @@ export default function AddLocationModal({ isOpen, onCloseAction, onAddAction }:
         onCloseAction();
     };
 
+
+
     if (!isOpen) return null;
 
     return (

@@ -123,7 +123,7 @@ export default function PlaceAutocomplete({ label, value, onChange, placeholder 
             name,
             city,
             country,
-            countryCode,
+            countryCode: countryCode,
             lat: parseFloat(result.lat),
             lng: parseFloat(result.lon),
         };
