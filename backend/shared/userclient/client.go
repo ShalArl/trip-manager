@@ -76,11 +76,9 @@ func (c *UsersClient) GetByID(ctx context.Context, id string) (*UserResponse, er
 			log.Printf("[UsersClient] error closing response body: %v", err)
 		}
 	}(resp.Body)
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("users service returned %d", resp.StatusCode)
 	}
-
 	var user UserResponse
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
