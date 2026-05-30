@@ -54,7 +54,7 @@ func main() {
 	failed := 0
 
 	for _, loc := range locations {
-		weather, err := meteoClient.FetchForecast(ctx, loc.Lat, loc.Lng)
+		weather, err := meteoClient.FetchForecast(ctx, loc.Lat, loc.Lng, "")
 		if err != nil {
 			log.Printf("failed to fetch weather for lat=%.2f lng=%.2f: %v", loc.Lat, loc.Lng, err)
 			failed++
