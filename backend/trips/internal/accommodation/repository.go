@@ -29,11 +29,12 @@ type UserSummary struct {
 }
 
 type Place struct {
-	Name    string
-	City    string
-	Country string
-	Lat     *float64
-	Lng     *float64
+	Name        string
+	City        string
+	Country     string
+	CountryCode string
+	Lat         *float64
+	Lng         *float64
 }
 
 type Accommodation struct {
@@ -54,24 +55,25 @@ type Accommodation struct {
 // ── Record ────────────────────────────────────────────────────────────────────
 
 type accommodationRecord struct {
-	ID              uuid.UUID  `db:"id"`
-	TripID          uuid.UUID  `db:"trip_id"`
-	UserID          uuid.UUID  `db:"user_id"`
-	UserName        string     `db:"user_name"`
-	UserEmail       string     `db:"user_email"`
-	LocationName    *string    `db:"location_name"`
-	LocationCity    *string    `db:"location_city"`
-	LocationCountry *string    `db:"location_country"`
-	LocationLat     *float64   `db:"location_lat"`
-	LocationLng     *float64   `db:"location_lng"`
-	Name            string     `db:"name"`
-	Address         *string    `db:"address"`
-	CheckIn         *time.Time `db:"check_in"`
-	CheckOut        *time.Time `db:"check_out"`
-	PricePerNight   *float32   `db:"price_per_night"`
-	Notes           *string    `db:"notes"`
-	CreatedAt       time.Time  `db:"created_at"`
-	UpdatedAt       time.Time  `db:"updated_at"`
+	ID                  uuid.UUID  `db:"id"`
+	TripID              uuid.UUID  `db:"trip_id"`
+	UserID              uuid.UUID  `db:"user_id"`
+	UserName            string     `db:"user_name"`
+	UserEmail           string     `db:"user_email"`
+	LocationName        *string    `db:"location_name"`
+	LocationCity        *string    `db:"location_city"`
+	LocationCountry     *string    `db:"location_country"`
+	LocationCountryCode *string    `db:"location_country_code"`
+	LocationLat         *float64   `db:"location_lat"`
+	LocationLng         *float64   `db:"location_lng"`
+	Name                string     `db:"name"`
+	Address             *string    `db:"address"`
+	CheckIn             *time.Time `db:"check_in"`
+	CheckOut            *time.Time `db:"check_out"`
+	PricePerNight       *float32   `db:"price_per_night"`
+	Notes               *string    `db:"notes"`
+	CreatedAt           time.Time  `db:"created_at"`
+	UpdatedAt           time.Time  `db:"updated_at"`
 }
 
 func derefStr(s *string) string {
@@ -91,11 +93,12 @@ func (rec *accommodationRecord) toDomain() *Accommodation {
 			Email: rec.UserEmail,
 		},
 		Location: Place{
-			Name:    derefStr(rec.LocationName),
-			City:    derefStr(rec.LocationCity),
-			Country: derefStr(rec.LocationCountry),
-			Lat:     rec.LocationLat,
-			Lng:     rec.LocationLng,
+			Name:        derefStr(rec.LocationName),
+			City:        derefStr(rec.LocationCity),
+			Country:     derefStr(rec.LocationCountry),
+			CountryCode: derefStr(rec.LocationCountryCode),
+			Lat:         rec.LocationLat,
+			Lng:         rec.LocationLng,
 		},
 		Name:          rec.Name,
 		Address:       derefStr(rec.Address),
@@ -160,16 +163,16 @@ func (r *repositoryImpl) Create(ctx context.Context, a *Accommodation) (*Accommo
 	query := `
 		INSERT INTO accommodations (
 			trip_id, user_id, user_name, user_email,
-			location_name, location_city, location_country, location_lat, location_lng,
+			location_name, location_city, location_country, location_country_code, location_lat, location_lng,
 			name, address, check_in, check_out, price_per_night, notes
 		) VALUES (
 			$1, $2, $3, $4,
 			$5, $6, $7, $8, $9,
-			$10, $11, $12, $13, $14, $15
+			$10, $11, $12, $13, $14, $15, $16
 		) RETURNING id`
 	err = r.db.QueryRowContext(ctx, query,
 		tripID, userID, a.CreatedBy.Name, a.CreatedBy.Email,
-		a.Location.Name, a.Location.City, a.Location.Country, a.Location.Lat, a.Location.Lng,
+		a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
 		a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
 	).Scan(&id)
 	if err != nil {
@@ -200,10 +203,11 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 	query := `
 		UPDATE accommodations
 		SET location_name = $1, location_city = $2, location_country = $3,
-		    location_lat = $4, location_lng = $5,
-		    name = $6, address = $7, check_in = $8, check_out = $9,
-		    price_per_night = $10, notes = $11, updated_at = NOW()
-		WHERE id = $12 AND user_id = $13
+		    location_country_code = $4,
+		    location_lat = $5, location_lng = $6,
+		    name = $7, address = $8, check_in = $9, check_out = $10,
+		    price_per_night = $11, notes = $12, updated_at = NOW()
+		WHERE id = $13 AND user_id = $14
 		RETURNING updated_at`
 	err = r.db.QueryRowContext(ctx, query,
 		a.Location.Name, a.Location.City, a.Location.Country, a.Location.Lat, a.Location.Lng,

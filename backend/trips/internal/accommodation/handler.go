@@ -45,11 +45,12 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 
 func toPlaceSummary(p Place) generated.PlaceSummary {
 	return generated.PlaceSummary{
-		Name:    p.Name,
-		City:    p.City,
-		Country: p.Country,
-		Lat:     p.Lat,
-		Lng:     p.Lng,
+		Name:        p.Name,
+		City:        p.City,
+		Country:     p.Country,
+		Lat:         p.Lat,
+		Lng:         p.Lng,
+		CountryCode: p.CountryCode,
 	}
 }
 

@@ -877,6 +877,8 @@ components:
           type: string
         country:
           type: string
+        countryCode:
+          type: string
         lat:
           type: number
           format: double
@@ -897,6 +899,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         lat:
           type: number
@@ -1260,6 +1264,7 @@ components:
         - name
         - city
         - country
+        - countryCode
         - shortDescription
         - dateFrom
         - dateTo
@@ -1280,6 +1285,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string
@@ -1340,6 +1347,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string

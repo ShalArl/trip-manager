@@ -243,6 +243,8 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient) http.Ha
 			StartDate:        req.StartDate.Time,
 			EndDate:          req.EndDate.Time,
 			UserID:           user.ID,
+			UserName:         user.Name,
+			UserEmail:        user.Email,
 		})
 		if err != nil {
 			if errors.Is(err, ErrInvalidInput) {

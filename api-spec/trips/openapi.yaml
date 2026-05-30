@@ -392,6 +392,8 @@ components:
           type: string
         country:
           type: string
+        countryCode:
+          type: string
         lat:
           type: number
           format: double
@@ -410,6 +412,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         lat:
           type: number
