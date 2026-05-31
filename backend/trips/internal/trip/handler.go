@@ -1,13 +1,15 @@
 package trip
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/ShalArl/trip-manager/backend/trips/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -73,9 +75,43 @@ func toStringPtr(s string) *string {
 	return &s
 }
 
+func enrichWithUserInfo(ctx context.Context, trips []*Trip, usersClient *userclient.UsersClient) {
+	userIDs := make(map[string]struct{})
+	for _, t := range trips {
+		userIDs[t.CreatedBy.ID] = struct{}{}
+	}
+
+	users := make(map[string]*userclient.UserResponse)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for id := range userIDs {
+		wg.Add(1)
+		go func(userID string) {
+			defer wg.Done()
+			user, err := usersClient.GetByID(ctx, userID)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			users[userID] = user
+			mu.Unlock()
+		}(id)
+	}
+	wg.Wait()
+
+	for _, t := range trips {
+		if u, ok := users[t.CreatedBy.ID]; ok {
+			t.CreatedBy.Name = u.Name
+			t.CreatedBy.Email = u.Email
+			t.CreatedBy.AvatarKey = &u.AvatarUrl
+		}
+	}
+}
+
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
-func ListTripsHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func ListTripsHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {
@@ -94,6 +130,7 @@ func ListTripsHandler(svc Service, usersClient *client.UsersClient) http.Handler
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		enrichWithUserInfo(r.Context(), trips, usersClient)
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -107,7 +144,7 @@ func ListTripsHandler(svc Service, usersClient *client.UsersClient) http.Handler
 	}
 }
 
-func ListRecentTripsHandler(svc Service) http.HandlerFunc {
+func ListRecentTripsHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := getIntQuery(r, "limit", 25)
 		offset := getIntQuery(r, "offset", 0)
@@ -116,6 +153,7 @@ func ListRecentTripsHandler(svc Service) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		enrichWithUserInfo(r.Context(), trips, usersClient)
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -129,7 +167,7 @@ func ListRecentTripsHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-func SearchTripsHandler(svc Service) http.HandlerFunc {
+func SearchTripsHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query().Get("q")
 		if q == "" {
@@ -143,6 +181,7 @@ func SearchTripsHandler(svc Service) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		enrichWithUserInfo(r.Context(), trips, usersClient)
 		data := make([]generated.TripResponse, len(trips))
 		for i, t := range trips {
 			data[i] = toResponse(t)
@@ -156,7 +195,7 @@ func SearchTripsHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-func GetTripHandler(svc Service) http.HandlerFunc {
+func GetTripHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -172,11 +211,18 @@ func GetTripHandler(svc Service) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		// enrich with user info
+		user, err := usersClient.GetByID(r.Context(), trip.CreatedBy.ID)
+		if err == nil {
+			trip.CreatedBy.Name = user.Name
+			trip.CreatedBy.Email = user.Email
+			trip.CreatedBy.AvatarKey = &user.AvatarUrl
+		}
 		respondJSON(w, http.StatusOK, toResponse(trip))
 	}
 }
 
-func CreateTripHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateTripHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {
@@ -219,7 +265,7 @@ func CreateTripHandler(svc Service, usersClient *client.UsersClient) http.Handle
 	}
 }
 
-func UpdateTripHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func UpdateTripHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {
@@ -277,7 +323,7 @@ func UpdateTripHandler(svc Service, usersClient *client.UsersClient) http.Handle
 	}
 }
 
-func DeleteTripHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func DeleteTripHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {

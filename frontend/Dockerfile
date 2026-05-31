@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile
 COPY frontend ./frontend
 
 # Typen generieren aus der OpenAPI Spec
-RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/openapi.yaml -o ./frontend/generated/types.ts
+RUN mkdir -p ./frontend/generated && npx openapi-typescript ./api-spec/merged/openapi.yaml -o ./frontend/generated/types.ts
 
 # JETZT ERST die Build-Argumente definieren (Direkt vor dem Next.js Build!)
 ARG NEXT_PUBLIC_API_URL

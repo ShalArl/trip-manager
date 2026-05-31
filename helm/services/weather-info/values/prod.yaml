@@ -1,0 +1,41 @@
+replicaCount: 1
+
+service:
+  healthPath: /health
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  - name: PORT
+    value: "8088"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: API_URL
+    value: "https://api.open-meteo.com/v1/forecast"
+  - name: FORECAST_DAYS
+    value: "3"
+  - name: CACHE_TTL_HOURS
+    value: "25"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://neatnode.xyz,https://www.neatnode.xyz"
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: REDIS_URL
+      remoteKey: weather-redis-url
+    - secretKey: LOCATIONS_DB_URL
+      remoteKey: locations-database-url
+
+envFrom:
+  - secretRef:
+      name: weather-info-secrets
+
+serviceAccount:
+  gcpServiceAccount: "weather-info-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

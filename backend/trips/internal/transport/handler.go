@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/trips/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -43,9 +43,18 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
+func toPlaceSummary(p Place) generated.PlaceSummary {
+	return generated.PlaceSummary{
+		Name:    p.Name,
+		City:    p.City,
+		Country: p.Country,
+		Lat:     p.Lat,
+		Lng:     p.Lng,
+	}
+}
+
 func toResponse(t *Transport) generated.TransportResponse {
-	fromID, _ := uuid.Parse(t.FromLocationID)
-	toID, _ := uuid.Parse(t.ToLocationID)
+	id, _ := uuid.Parse(t.ID)
 	creatorID, _ := uuid.Parse(t.CreatedBy.ID)
 
 	var notes *string
@@ -53,21 +62,24 @@ func toResponse(t *Transport) generated.TransportResponse {
 		notes = &t.Notes
 	}
 
+	from := toPlaceSummary(t.From)
+	to := toPlaceSummary(t.To)
+
 	return generated.TransportResponse{
-		Id: openapi_types.UUID(uuid.MustParse(t.ID)),
+		Id: openapi_types.UUID(id),
 		CreatedBy: generated.UserSummary{
 			Id:    openapi_types.UUID(creatorID),
 			Name:  t.CreatedBy.Name,
 			Email: openapi_types.Email(t.CreatedBy.Email),
 		},
-		CreatedAt:      t.CreatedAt,
-		UpdatedAt:      t.UpdatedAt,
-		FromLocationId: openapi_types.UUID(fromID),
-		ToLocationId:   openapi_types.UUID(toID),
-		DepartureTime:  t.DepartureTime,
-		ArrivalTime:    t.ArrivalTime,
-		Type:           generated.TransportResponseType(t.Type),
-		Notes:          notes,
+		CreatedAt:     t.CreatedAt,
+		UpdatedAt:     t.UpdatedAt,
+		From:          from,
+		To:            to,
+		DepartureTime: t.DepartureTime,
+		ArrivalTime:   t.ArrivalTime,
+		Type:          generated.TransportResponseType(t.Type),
+		Notes:         notes,
 	}
 }
 
@@ -101,7 +113,7 @@ func ListHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -138,7 +150,7 @@ func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func UpdateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		transportID := r.PathValue("transportId")
 		if transportID == "" {
@@ -175,7 +187,7 @@ func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func DeleteHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func DeleteHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		transportID := r.PathValue("transportId")
 		if transportID == "" {

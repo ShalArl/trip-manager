@@ -1,0 +1,13 @@
+redis:
+  auth:
+    enabled: true
+    existingSecret: redis-secret
+    existingSecretPasswordKey: REDIS_PASSWORD
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi

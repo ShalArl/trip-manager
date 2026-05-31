@@ -8,14 +8,14 @@ servers:
     description: Development server
 
 security:
-  - firebaseAuth: []
+  - firebaseAuth: [ ]
 
 paths:
   /trips/{tripId}/locations:
     get:
       summary: List trip locations
       operationId: listLocations
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -36,7 +36,7 @@ paths:
     post:
       summary: Add location to trip
       operationId: addLocation
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -62,7 +62,7 @@ paths:
     put:
       summary: Update location
       operationId: updateLocation
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -90,7 +90,7 @@ paths:
     delete:
       summary: Remove location from trip
       operationId: deleteLocation
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -112,7 +112,7 @@ paths:
     post:
       summary: Add image to location
       operationId: addLocationImage
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -142,7 +142,7 @@ paths:
     delete:
       summary: Remove image from location
       operationId: deleteLocationImage
-      tags: [locations]
+      tags: [ locations ]
       parameters:
         - name: tripId
           in: path
@@ -174,7 +174,7 @@ components:
   schemas:
     UserSummary:
       type: object
-      required: [id, name, email]
+      required: [ id, name, email ]
       properties:
         id:
           type: string
@@ -190,7 +190,7 @@ components:
 
     LocationImageResponse:
       type: object
-      required: [id, locationId, imageUrl]
+      required: [ id, locationId, imageUrl ]
       properties:
         id:
           type: string
@@ -209,7 +209,7 @@ components:
 
     LocationResponse:
       type: object
-      required: [id, createdBy, createdAt, updatedAt, name, city, country, shortDescription, dateFrom, dateTo]
+      required: [ id, createdBy, createdAt, updatedAt, name, city, country, countryCode, shortDescription, dateFrom, dateTo ]
       properties:
         id:
           type: string
@@ -227,6 +227,8 @@ components:
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string
@@ -256,7 +258,7 @@ components:
 
     LocationListResponse:
       type: object
-      required: [data, total, limit, offset]
+      required: [ data, total, limit, offset ]
       properties:
         data:
           type: array
@@ -270,13 +272,15 @@ components:
 
     CreateLocationRequest:
       type: object
-      required: [name, city, country, shortDescription, dateFrom, dateTo]
+      required: [ name, city, country, shortDescription, dateFrom, dateTo ]
       properties:
         name:
           type: string
         city:
           type: string
         country:
+          type: string
+        countryCode:
           type: string
         shortDescription:
           type: string
@@ -306,6 +310,8 @@ components:
           type: string
         country:
           type: string
+        countryCode:
+          type: string
         shortDescription:
           type: string
         dateFrom:
@@ -327,7 +333,7 @@ components:
 
     AddLocationImageRequest:
       type: object
-      required: [imageKey]
+      required: [ imageKey ]
       properties:
         imageKey:
           type: string

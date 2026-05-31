@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/trips/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -43,9 +43,19 @@ func getIntQuery(r *http.Request, key string, defaultVal int) int {
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
+func toPlaceSummary(p Place) generated.PlaceSummary {
+	return generated.PlaceSummary{
+		Name:        p.Name,
+		City:        p.City,
+		Country:     p.Country,
+		Lat:         p.Lat,
+		Lng:         p.Lng,
+		CountryCode: p.CountryCode,
+	}
+}
+
 func toResponse(a *Accommodation) generated.AccommodationResponse {
 	id, _ := uuid.Parse(a.ID)
-	locationID, _ := uuid.Parse(a.LocationID)
 	creatorID, _ := uuid.Parse(a.CreatedBy.ID)
 
 	var address *string
@@ -58,8 +68,7 @@ func toResponse(a *Accommodation) generated.AccommodationResponse {
 	}
 
 	return generated.AccommodationResponse{
-		Id:         openapi_types.UUID(id),
-		LocationId: openapi_types.UUID(locationID),
+		Id: openapi_types.UUID(id),
 		CreatedBy: generated.UserSummary{
 			Id:    openapi_types.UUID(creatorID),
 			Name:  a.CreatedBy.Name,
@@ -67,6 +76,7 @@ func toResponse(a *Accommodation) generated.AccommodationResponse {
 		},
 		CreatedAt:     a.CreatedAt,
 		UpdatedAt:     a.UpdatedAt,
+		Location:      toPlaceSummary(a.Location),
 		Name:          a.Name,
 		Address:       address,
 		CheckIn:       a.CheckIn,
@@ -106,7 +116,7 @@ func ListHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -143,7 +153,7 @@ func CreateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func UpdateHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accommodationID := r.PathValue("accommodationId")
 		if accommodationID == "" {
@@ -184,7 +194,7 @@ func UpdateHandler(svc Service, usersClient *client.UsersClient) http.HandlerFun
 	}
 }
 
-func DeleteHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func DeleteHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accommodationID := r.PathValue("accommodationId")
 		if accommodationID == "" {

@@ -2,47 +2,47 @@
 
 import { useState } from "react";
 import { CreateTransportRequest } from "@/types/transport";
-
-type Location = {
-    id: string;
-    name: string;
-};
+import PlaceAutocomplete, { PlaceValue } from "@/components/shared/PlaceAutocomplete";
 
 type Props = {
     isOpen: boolean;
-    locations: Location[];
     onCloseAction: () => void;
     onAddAction: (transport: CreateTransportRequest) => void;
 };
 
-export default function AddTransportModal({ isOpen, locations, onCloseAction, onAddAction }: Props) {
-    const [formData, setFormData] = useState({
-        fromLocationId: "",
-        toLocationId: "",
-        departureTime: "",
-        arrivalTime: "",
-        type: "flight" as "flight" | "train" | "car" | "bus",
-        notes: "",
-    });
+const emptyPlace = (): PlaceValue | null => null;
+
+export default function AddTransportModal({ isOpen, onCloseAction, onAddAction }: Props) {
+    const [type, setType] = useState<"flight" | "train" | "car" | "bus">("flight");
+    const [from, setFrom] = useState<PlaceValue | null>(emptyPlace());
+    const [to, setTo] = useState<PlaceValue | null>(emptyPlace());
+    const [departureTime, setDepartureTime] = useState("");
+    const [arrivalTime, setArrivalTime] = useState("");
+    const [notes, setNotes] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formData.fromLocationId || !formData.toLocationId) {
-            alert("Bitte Von und Nach auswählen");
-            return;
-        }
+        if (!from) { setError("Bitte einen Startort auswählen"); return; }
+        if (!to) { setError("Bitte einen Zielort auswählen"); return; }
+        setError(null);
 
         onAddAction({
-            fromLocationId: formData.fromLocationId,
-            toLocationId: formData.toLocationId,
-            departureTime: formData.departureTime || undefined,
-            arrivalTime: formData.arrivalTime || undefined,
-            type: formData.type,
-            notes: formData.notes || undefined,
+            from,
+            to,
+            departureTime: departureTime ? new Date(departureTime).toISOString() : undefined,
+            arrivalTime: arrivalTime ? new Date(arrivalTime).toISOString() : undefined,
+            type,
+            notes: notes || undefined,
         });
 
-        setFormData({ fromLocationId: "", toLocationId: "", departureTime: "", arrivalTime: "", type: "flight", notes: "" });
+        // Reset
+        setFrom(null);
+        setTo(null);
+        setDepartureTime("");
+        setArrivalTime("");
+        setNotes("");
+        setType("flight");
         onCloseAction();
     };
 
@@ -50,7 +50,7 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
 
     return (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800">
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-md w-full border border-zinc-200 dark:border-zinc-800 max-h-[90vh] overflow-y-auto">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
                     Transport hinzufügen
                 </h2>
@@ -59,11 +59,11 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
                     {/* Type */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Typ *
+                            Typ <span className="text-red-500">*</span>
                         </label>
                         <select
-                            value={formData.type}
-                            onChange={(e) => setFormData({ ...formData, type: e.target.value as "flight" | "train" | "car" | "bus" })}
+                            value={type}
+                            onChange={(e) => setType(e.target.value as typeof type)}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                         >
                             <option value="flight">✈️ Flug</option>
@@ -73,39 +73,23 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
                         </select>
                     </div>
 
-                    {/* From & To als Dropdown */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Von *
-                            </label>
-                            <select
-                                value={formData.fromLocationId}
-                                onChange={(e) => setFormData({ ...formData, fromLocationId: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            >
-                                <option value="">Auswählen</option>
-                                {locations.map((loc) => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Nach *
-                            </label>
-                            <select
-                                value={formData.toLocationId}
-                                onChange={(e) => setFormData({ ...formData, toLocationId: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            >
-                                <option value="">Auswählen</option>
-                                {locations.map((loc) => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                    {/* From */}
+                    <PlaceAutocomplete
+                        label="Von"
+                        value={from}
+                        onChange={setFrom}
+                        placeholder="z.B. Flughafen Frankfurt, Berlin..."
+                        required
+                    />
+
+                    {/* To */}
+                    <PlaceAutocomplete
+                        label="Nach"
+                        value={to}
+                        onChange={setTo}
+                        placeholder="z.B. Paris, Rom, Wien..."
+                        required
+                    />
 
                     {/* Departure & Arrival */}
                     <div className="grid grid-cols-2 gap-4">
@@ -115,8 +99,8 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
                             </label>
                             <input
                                 type="datetime-local"
-                                value={formData.departureTime}
-                                onChange={(e) => setFormData({ ...formData, departureTime: e.target.value })}
+                                value={departureTime}
+                                onChange={(e) => setDepartureTime(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
@@ -126,8 +110,8 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
                             </label>
                             <input
                                 type="datetime-local"
-                                value={formData.arrivalTime}
-                                onChange={(e) => setFormData({ ...formData, arrivalTime: e.target.value })}
+                                value={arrivalTime}
+                                onChange={(e) => setArrivalTime(e.target.value)}
                                 className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                             />
                         </div>
@@ -139,13 +123,18 @@ export default function AddTransportModal({ isOpen, locations, onCloseAction, on
                             Notizen
                         </label>
                         <textarea
-                            value={formData.notes}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                             placeholder="z.B. Buchungsnummer AB1234"
                             rows={3}
                             className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                         />
                     </div>
+
+                    {/* Error */}
+                    {error && (
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    )}
 
                     {/* Buttons */}
                     <div className="flex gap-3 pt-4">

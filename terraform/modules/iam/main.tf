@@ -12,7 +12,7 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations"
+    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations", "travel-warning"
   ]
 }
 
@@ -44,10 +44,22 @@ resource "google_project_iam_member" "presigner_storage" {
   role    = "roles/storage.objectAdmin"
 }
 
+resource "google_project_iam_member" "presigner_token_creator" {
+  member  = "serviceAccount:${google_service_account.services["presigner"].email}"
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+}
+
 resource "google_project_iam_member" "locations_storage" {
   member  = "serviceAccount:${google_service_account.services["locations"].email}"
   project = var.project_id
   role    = "roles/storage.objectAdmin"
+}
+
+resource "google_project_iam_member" "locations_token_creator" {
+  member  = "serviceAccount:${google_service_account.services["locations"].email}"
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
 }
 
 # General Roles + Infrastructure

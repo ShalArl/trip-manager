@@ -14,6 +14,8 @@ repositories:
     url: https://charts.external-secrets.io
   - name: ingress-nginx
     url: https://kubernetes.github.io/ingress-nginx
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
 
 helmDefaults:
   wait: true
@@ -22,7 +24,6 @@ helmDefaults:
 
 releases:
   # Cluster-wide resources
-
   - name: external-secrets
     namespace: external-secrets
     chart: external-secrets/external-secrets
@@ -61,6 +62,14 @@ releases:
     needs:
       - external-secrets/external-secrets
 
+  - name: redis
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: helm/infrastructure/redis
+    values:
+      - helm/infrastructure/redis/values.yaml
+      - helm/infrastructure/redis/values/{{ .Environment.Name }}.yaml
+
+
   # Infrastructure
 
   - name: minio
@@ -75,9 +84,9 @@ releases:
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
     chart: ./helm/infrastructure/firebase-emulator
+    installed: {{ eq .Environment.Name "dev" }}
     values:
       - helm/infrastructure/firebase-emulator/values.yaml
-    installed: {{ eq .Environment.Name "dev" }}
 
   - name: users-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -102,6 +111,7 @@ releases:
     values:
       - helm/infrastructure/locations-postgres/values.yaml
       - helm/infrastructure/locations-postgres/values/{{ .Environment.Name }}.yaml
+
 
   # Services
 
@@ -199,6 +209,35 @@ releases:
       - trip-manager-{{ .Environment.Name }}/users
       - trip-manager-{{ .Environment.Name }}/locations-postgres
 
+  - name: travel-warning
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/services/travel-warning
+    values:
+      - helm/services/travel-warning/values.yaml
+      - helm/services/travel-warning/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}travel-warning"
+      - name: image.tag
+        value: "{{ .Values.imageTag }}"
+    needs:
+      - trip-manager-{{ .Environment.Name }}/redis
+
+  - name: weather-info
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/services/weather-info
+    values:
+      - helm/services/weather-info/values.yaml
+      - helm/services/weather-info/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}weather-info"
+      - name: image.tag
+        value: "{{ .Values.imageTag }}"
+    needs:
+      - trip-manager-{{ .Environment.Name }}/redis
+      - trip-manager-{{ .Environment.Name }}/locations-postgres
+
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/frontend
@@ -215,6 +254,7 @@ releases:
       - trip-manager-{{ .Environment.Name }}/trips
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/auth
+
 
   # Gateway
   - name: gateway

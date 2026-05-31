@@ -6,7 +6,10 @@ use (
 	./presigner
 	./shared/authclient
 	./shared/middleware
+	./shared/userclient
 	./social
+	./travel-warning
 	./trips
 	./users
+	./weather-info
 )

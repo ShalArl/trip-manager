@@ -8,6 +8,7 @@ export type Location = {
     name: string;
     city: string;
     country: string;
+    countryCode: string;
     shortDescription: string;
     dateFrom: string;
     dateTo: string;

@@ -1,0 +1,36 @@
+replicaCount: 1
+
+service:
+  healthPath: /health
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env:
+  - name: PORT
+    value: "8087"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: API_URL
+    value: "https://www.auswaertiges-amt.de/opendata/travelwarning"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://neatnode.xyz,https://www.neatnode.xyz"
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: REDIS_URL
+      remoteKey: redis-url
+
+
+envFrom:
+  - secretRef:
+      name: travel-warning-secrets
+
+serviceAccount:
+  gcpServiceAccount: "travel-warning-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

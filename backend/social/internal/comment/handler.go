@@ -1,19 +1,55 @@
 package comment
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
-	"github.com/ShalArl/trip-manager/backend/social/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
 )
 
+func enrichCommentsWithUserInfo(ctx context.Context, comments []*CommentResponse, usersClient *userclient.UsersClient) {
+	userIDs := make(map[string]struct{})
+	for _, c := range comments {
+		userIDs[c.User.ID] = struct{}{}
+	}
+
+	users := make(map[string]*userclient.UserResponse)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for id := range userIDs {
+		wg.Add(1)
+		go func(userID string) {
+			defer wg.Done()
+			user, err := usersClient.GetByID(ctx, userID)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			users[userID] = user
+			mu.Unlock()
+		}(id)
+	}
+	wg.Wait()
+
+	for _, c := range comments {
+		if u, ok := users[c.User.ID]; ok {
+			c.User.Name = u.Name
+			c.User.Email = u.Email
+			c.User.AvatarUrl = u.AvatarUrl
+		}
+	}
+}
+
 // ListTripCommentsHandler handles GET /trips/{tripId}/comments (optional authclient)
-func ListTripCommentsHandler(svc Service) http.HandlerFunc {
+func ListTripCommentsHandler(svc Service, userClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -27,12 +63,13 @@ func ListTripCommentsHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
+		enrichCommentsWithUserInfo(r.Context(), resp.Data, userClient)
 		shared.RespondJSON(w, http.StatusOK, resp)
 	}
 }
 
 // ListRepliesHandler handles GET /comments/{commentId}/replies (optional authclient)
-func ListRepliesHandler(svc Service) http.HandlerFunc {
+func ListRepliesHandler(svc Service, userClient userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		commentID := r.PathValue("commentId")
 		if commentID == "" {
@@ -51,7 +88,7 @@ func ListRepliesHandler(svc Service) http.HandlerFunc {
 }
 
 // CreateTripCommentHandler handles POST /trips/{tripId}/comments (authclient required)
-func CreateTripCommentHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateTripCommentHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
@@ -78,7 +115,7 @@ func CreateTripCommentHandler(svc Service, usersClient *client.UsersClient) http
 			return
 		}
 
-		resp, err := svc.CreateComment(r.Context(), userID, user.ID, user.Name, user.Email, "", tripID, req.Text)
+		resp, err := svc.CreateComment(r.Context(), userID, user.ID, user.Name, user.Email, user.AvatarUrl, tripID, req.Text)
 		if err != nil {
 			if errors.Is(err, shared.ErrInvalidInput) {
 				shared.RespondError(w, http.StatusBadRequest, err.Error())
@@ -93,7 +130,7 @@ func CreateTripCommentHandler(svc Service, usersClient *client.UsersClient) http
 }
 
 // CreateReplyHandler handles POST /comments/{commentId}/replies (authclient required)
-func CreateReplyHandler(svc Service, usersClient *client.UsersClient) http.HandlerFunc {
+func CreateReplyHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {

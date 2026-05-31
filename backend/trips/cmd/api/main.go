@@ -12,7 +12,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
-	"github.com/ShalArl/trip-manager/backend/trips/client"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/ShalArl/trip-manager/backend/trips/config"
 	"github.com/ShalArl/trip-manager/backend/trips/database"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/accommodation"
@@ -44,7 +44,7 @@ func main() {
 
 	// Clients
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
-	usersClient := client.NewUsersClient(cfg.UsersServiceURL)
+	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
 	requireAuth := authclient.RequireAuth(authClient)
 	optionalAuth := authclient.OptionalAuth(authClient)
 
@@ -76,9 +76,9 @@ func main() {
 	// Trips
 	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient)))
-	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc)))
-	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc)))
+	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc, usersClient)))
 	mux.HandleFunc("PUT /{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
 	mux.HandleFunc("DELETE /{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
 

@@ -223,7 +223,7 @@ export default function TripLocationsSection({
                     }}
                     onSaveAction={handleUpdate}
                     onDeleteAction={handleDelete}
-                    onLocationUpdate={handleLocationUpdate}
+                    onLocationUpdateAction={handleLocationUpdate}
                 />
             )}
         </>

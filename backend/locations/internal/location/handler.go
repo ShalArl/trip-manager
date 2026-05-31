@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ShalArl/trip-manager/backend/locations/client"
 	generated "github.com/ShalArl/trip-manager/backend/locations/generated"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -49,11 +49,10 @@ func buildImageURL(s3Endpoint, s3Bucket, key string) string {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 func toImageResponse(img LocationImage, s3Endpoint, s3Bucket string) generated.LocationImageResponse {
-	imageURL := buildImageURL(s3Endpoint, s3Bucket, img.ImageKey)
 	return generated.LocationImageResponse{
 		Id:         openapi_types.UUID(uuid.MustParse(img.ID)),
 		LocationId: openapi_types.UUID(uuid.MustParse(img.LocationID)),
-		ImageUrl:   imageURL,
+		ImageUrl:   img.ImageKey,
 		Sequence:   &img.Sequence,
 		CreatedAt:  &img.CreatedAt,
 	}
@@ -94,6 +93,7 @@ func toResponse(l *Location, s3Endpoint, s3Bucket string) generated.LocationResp
 		Name:             l.Name,
 		City:             l.City,
 		Country:          l.Country,
+		CountryCode:      l.CountryCode,
 		ShortDescription: l.ShortDescription,
 		DateFrom:         openapi_types.Date{Time: l.DateFrom},
 		DateTo:           openapi_types.Date{Time: l.DateTo},
@@ -135,7 +135,7 @@ func ListHandler(svc Service, s3Endpoint, s3Bucket string) http.HandlerFunc {
 	}
 }
 
-func CreateHandler(svc Service, usersClient *client.UsersClient, s3Endpoint, s3Bucket string) http.HandlerFunc {
+func CreateHandler(svc Service, usersClient *userclient.UsersClient, s3Endpoint, s3Bucket string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -174,10 +174,11 @@ func CreateHandler(svc Service, usersClient *client.UsersClient, s3Endpoint, s3B
 			UserID:           user.ID,
 			UserName:         user.Name,
 			UserEmail:        user.Email,
-			UserAvatarKey:    user.AvatarKey,
+			UserAvatarKey:    &user.AvatarUrl,
 			Name:             req.Name,
 			City:             req.City,
 			Country:          req.Country,
+			CountryCode:      *req.CountryCode,
 			ShortDescription: req.ShortDescription,
 			DateFrom:         req.DateFrom.Time,
 			DateTo:           req.DateTo.Time,
@@ -217,6 +218,7 @@ func UpdateHandler(svc Service, s3Endpoint, s3Bucket string) http.HandlerFunc {
 			Name:             req.Name,
 			City:             req.City,
 			Country:          req.Country,
+			CountryCode:      req.CountryCode,
 			ShortDescription: req.ShortDescription,
 			Notes:            req.Notes,
 			Sequence:         req.Sequence,

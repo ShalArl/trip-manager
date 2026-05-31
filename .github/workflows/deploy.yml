@@ -78,8 +78,10 @@ jobs:
 
       - name: Install Helmfile
         run: |
-          curl -fsSL https://github.com/helmfile/helmfile/releases/latest/download/helmfile_linux_amd64.tar.gz \
-            | tar xz
+          HELMFILE_VERSION=$(curl -s https://api.github.com/repos/helmfile/helmfile/releases/latest | grep tag_name | cut -d'"' -f4)
+          HELMFILE_VERSION_CLEAN=${HELMFILE_VERSION#v}
+          curl -fsSL "https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION_CLEAN}_linux_amd64.tar.gz" \
+            | tar xz helmfile
           sudo mv helmfile /usr/local/bin/
           helmfile version
 

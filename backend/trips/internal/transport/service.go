@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
-	"github.com/google/uuid"
 )
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -26,13 +25,39 @@ func NewService(repo Repository) Service {
 	return &serviceImpl{repo: repo}
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+func placeFromInput(p generated.PlaceInput) Place {
+	return Place{
+		Name:    p.Name,
+		City:    p.City,
+		Country: p.Country,
+		Lat:     p.Lat,
+		Lng:     p.Lng,
+	}
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+
+func validateCreate(req *generated.CreateTransportRequest) error {
+	if req.From.Name == "" || req.From.City == "" || req.From.Country == "" {
+		return fmt.Errorf("%w: from.name, from.city and from.country are required", ErrInvalidInput)
+	}
+	if req.To.Name == "" || req.To.City == "" || req.To.Country == "" {
+		return fmt.Errorf("%w: to.name, to.city and to.country are required", ErrInvalidInput)
+	}
+	return nil
+}
+
+// ── Implementation ────────────────────────────────────────────────────────────
+
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*Transport, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
 func (s *serviceImpl) Create(ctx context.Context, req *generated.CreateTransportRequest, tripID, userID, userName, userEmail string) (*Transport, error) {
-	if req.FromLocationId == uuid.Nil || req.ToLocationId == uuid.Nil {
-		return nil, fmt.Errorf("%w: from_location_id and to_location_id are required", ErrInvalidInput)
+	if err := validateCreate(req); err != nil {
+		return nil, err
 	}
 
 	notes := ""
@@ -47,12 +72,12 @@ func (s *serviceImpl) Create(ctx context.Context, req *generated.CreateTransport
 			Name:  userName,
 			Email: userEmail,
 		},
-		FromLocationID: req.FromLocationId.String(),
-		ToLocationID:   req.ToLocationId.String(),
-		DepartureTime:  req.DepartureTime,
-		ArrivalTime:    req.ArrivalTime,
-		Type:           string(req.Type),
-		Notes:          notes,
+		From:          placeFromInput(req.From),
+		To:            placeFromInput(req.To),
+		DepartureTime: req.DepartureTime,
+		ArrivalTime:   req.ArrivalTime,
+		Type:          string(req.Type),
+		Notes:         notes,
 	}
 	return s.repo.Create(ctx, t)
 }
@@ -62,11 +87,12 @@ func (s *serviceImpl) Update(ctx context.Context, req *generated.UpdateTransport
 	if err != nil {
 		return nil, err
 	}
-	if req.FromLocationId != nil {
-		existing.FromLocationID = req.FromLocationId.String()
+
+	if req.From != nil {
+		existing.From = placeFromInput(*req.From)
 	}
-	if req.ToLocationId != nil {
-		existing.ToLocationID = req.ToLocationId.String()
+	if req.To != nil {
+		existing.To = placeFromInput(*req.To)
 	}
 	if req.DepartureTime != nil {
 		existing.DepartureTime = req.DepartureTime
@@ -81,6 +107,7 @@ func (s *serviceImpl) Update(ctx context.Context, req *generated.UpdateTransport
 		existing.Notes = *req.Notes
 	}
 	existing.CreatedBy.ID = userID
+
 	return s.repo.Update(ctx, existing)
 }
 

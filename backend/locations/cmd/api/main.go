@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ShalArl/trip-manager/backend/locations/client"
 	"github.com/ShalArl/trip-manager/backend/locations/config"
 	"github.com/ShalArl/trip-manager/backend/locations/database"
 	"github.com/ShalArl/trip-manager/backend/locations/internal/location"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
+	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -48,7 +48,7 @@ func main() {
 
 	// Clients
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
-	usersClient := client.NewUsersClient(cfg.UsersServiceURL)
+	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
 	requireAuth := authclient.RequireAuth(authClient)
 	optionalAuth := authclient.OptionalAuth(authClient)
 
