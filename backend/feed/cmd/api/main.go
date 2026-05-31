@@ -13,11 +13,18 @@ import (
 	"github.com/ShalArl/trip-manager/backend/feed/config"
 	"github.com/ShalArl/trip-manager/backend/feed/internal/feed"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 func main() {
 	cfg := config.Load()
+
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{
+		"https://neatnode.xyz",
+		"https://www.neatnode.xyz",
+	}
 
 	// Neo4j
 	driver, err := neo4j.NewDriverWithContext(
@@ -57,7 +64,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	go func() {

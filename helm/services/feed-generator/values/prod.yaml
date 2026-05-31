@@ -10,7 +10,7 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: NEO4J_URI
-      remoteKey: neo4j-uri
+      remoteKey: neo4j-url
     - secretKey: NEO4J_USERNAME
       remoteKey: neo4j-username
     - secretKey: NEO4J_PASSWORD
