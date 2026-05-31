@@ -2,12 +2,16 @@ package feed
 
 import (
 	"context"
+	"time"
 
+	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
+	"github.com/google/uuid"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type Repository interface {
-	GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error)
+	GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error)
 }
 
 type repository struct {
@@ -18,12 +22,10 @@ func NewRepository(driver neo4j.DriverWithContext) Repository {
 	return &repository{driver: driver}
 }
 
-func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error) {
+func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error) {
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)
 
-	// Score = likes * 2 + comments * 1
-	// Neuere Trips bekommen einen kleinen Bonus über createdAt (optional ausbaubar)
 	result, err := session.Run(ctx, `
 		MATCH (t:Trip)
 		OPTIONAL MATCH (t)<-[:CREATED]-(creator:User)
@@ -37,13 +39,11 @@ func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip
 		ORDER BY score DESC, t.createdAt DESC
 		SKIP $offset
 		LIMIT $limit
-		RETURN t.id AS tripId,
-		       t.title AS title,
+		RETURN t.id        AS tripId,
+		       t.title     AS title,
 		       t.createdAt AS createdAt,
 		       coalesce(creator.id, '') AS creatorId,
-		       likes,
-		       comments,
-		       score
+		       likes, comments, score
 	`, map[string]any{
 		"limit":  limit,
 		"offset": offset,
@@ -52,24 +52,23 @@ func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip
 		return nil, 0, err
 	}
 
-	var trips []FeedTrip
+	var trips []generated.FeedTrip
 	for result.Next(ctx) {
 		rec := result.Record()
-		trips = append(trips, FeedTrip{
-			TripID:    stringVal(rec, "tripId"),
+		trips = append(trips, generated.FeedTrip{
+			TripId:    uuidVal(rec, "tripId"),
 			Title:     stringVal(rec, "title"),
-			CreatedAt: stringVal(rec, "createdAt"),
-			CreatorID: stringVal(rec, "creatorId"),
+			CreatedAt: timeVal(rec, "createdAt"),
+			CreatorId: uuidVal(rec, "creatorId"),
 			Likes:     int64Val(rec, "likes"),
 			Comments:  int64Val(rec, "comments"),
-			Score:     float64Val(rec, "score"),
+			Score:     float32Val(rec, "score"),
 		})
 	}
 	if err := result.Err(); err != nil {
 		return nil, 0, err
 	}
 
-	// Total Count
 	countResult, err := session.Run(ctx, `MATCH (t:Trip) RETURN count(t) AS total`, nil)
 	if err != nil {
 		return nil, 0, err
@@ -106,16 +105,43 @@ func int64Val(rec *neo4j.Record, key string) int64 {
 	return n
 }
 
-func float64Val(rec *neo4j.Record, key string) float64 {
+func float32Val(rec *neo4j.Record, key string) float32 {
 	v, ok := rec.Get(key)
 	if !ok || v == nil {
 		return 0
 	}
 	switch n := v.(type) {
 	case float64:
-		return n
+		return float32(n)
 	case int64:
-		return float64(n)
+		return float32(n)
 	}
 	return 0
+}
+
+func uuidVal(rec *neo4j.Record, key string) openapi_types.UUID {
+	s := stringVal(rec, key)
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return openapi_types.UUID{}
+	}
+	return openapi_types.UUID(id)
+}
+
+func timeVal(rec *neo4j.Record, key string) time.Time {
+	v, ok := rec.Get(key)
+	if !ok || v == nil {
+		return time.Time{}
+	}
+	switch t := v.(type) {
+	case time.Time:
+		return t
+	case string:
+		parsed, err := time.Parse(time.RFC3339, t)
+		if err != nil {
+			return time.Time{}
+		}
+		return parsed
+	}
+	return time.Time{}
 }

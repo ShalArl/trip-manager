@@ -7,16 +7,17 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,go,md}\"",
     "gen": "pnpm gen:go && pnpm gen:ts",
-    
+
     "gen:ts": "mkdirp ./frontend/generated && openapi-merge-cli --config merge-config.json && openapi-typescript ./api-spec/merged/openapi.yaml -o ./frontend/generated/types.ts",
     "gen:go:users": "mkdirp ./backend/users/generated && oapi-codegen --config=oapi-codegen-users.yaml ./api-spec/users/openapi.yaml",
     "gen:go:trips": "mkdirp ./backend/trips/generated && oapi-codegen --config=oapi-codegen-trips.yaml ./api-spec/trips/openapi.yaml",
     "gen:go:locations": "mkdirp ./backend/locations/generated && oapi-codegen --config=oapi-codegen-locations.yaml ./api-spec/locations/openapi.yaml",
     "gen:go:social": "mkdirp ./backend/social/generated && oapi-codegen --config=oapi-codegen-social.yaml ./api-spec/social/openapi.yaml",
-
-    "gen:go": "pnpm gen:go:users && pnpm gen:go:trips && pnpm gen:go:locations && pnpm gen:go:social",
+    "gen:go:feed": "mkdirp ./backend/feed/generated && oapi-codegen --config=oapi-codegen-feed.yaml ./api-spec/feed/openapi.yaml",
+    
+    "gen:go": "pnpm gen:go:users && pnpm gen:go:trips && pnpm gen:go:locations && pnpm gen:go:social && pnpm gen:go:feed",
     "merge-schemas": "openapi-merge-cli --config merge-config.json",
-
+    
     "clean": "rm -rf ./backend/internal/generated/*.go ./frontend/generated/{src,docs,.openapi-generator} ./frontend/generated/{*.json,*.md}",
     "clean:turbo": "rm -rf .turbo frontend/.turbo backend/.turbo"
   },
