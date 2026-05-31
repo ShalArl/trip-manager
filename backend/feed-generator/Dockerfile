@@ -31,6 +31,7 @@ COPY shared/userclient/go.sum shared/userclient/go.sum
 # Nur die nötigen Module kopieren
 COPY shared/ shared/
 COPY feed-generator/ feed-generator/
+COPY feed/ feed/
 
 WORKDIR /app/feed-generator
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./cmd/worker
