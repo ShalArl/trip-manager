@@ -1,6 +1,6 @@
 module github.com/ShalArl/trip-manager/backend/feed-generator
 
-go 1.22.0
+go 1.25.8
 
 require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.20.0
