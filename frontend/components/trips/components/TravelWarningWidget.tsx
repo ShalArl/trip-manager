@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-type WarningLevel = "none" | "low" | "medium" | "high" | "extreme";
-
-type TravelWarningData = {
-    level: WarningLevel;
-    title: string;
-    description: string;
+type WarningResponse = {
+    countryCode: string;
     countryName: string;
+    level: number;
+    warning: boolean;
+    partialWarning: boolean;
+    updatedAt: string;
 };
 
 type Props = {
@@ -18,81 +18,107 @@ type Props = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const LEVEL_CONFIG: Record<WarningLevel, { label: string; color: string; bg: string; barColor: string; barWidth: string }> = {
-    none:    { label: "Sicher",           color: "#3B6D11", bg: "#EAF3DE", barColor: "#639922", barWidth: "10%" },
-    low:     { label: "Geringe Warnung",  color: "#3B6D11", bg: "#EAF3DE", barColor: "#639922", barWidth: "25%" },
-    medium:  { label: "Mittlere Warnung", color: "#854F0B", bg: "#FAEEDA", barColor: "#EF9F27", barWidth: "50%" },
-    high:    { label: "Hohe Warnung",     color: "#A32D2D", bg: "#FCEBEB", barColor: "#E24B4A", barWidth: "75%" },
-    extreme: { label: "Reisewarnung",     color: "#A32D2D", bg: "#FCEBEB", barColor: "#E24B4A", barWidth: "100%" },
-};
-
 export default function TravelWarningWidget({ countryCode, countryName }: Props) {
-    const [warning, setWarning] = useState<TravelWarningData | null>(null);
+    const [data, setData] = useState<WarningResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
     useEffect(() => {
+        if (!countryCode) return;
         setLoading(true);
         setError(false);
+
         fetch(`${API_URL}/api/warnings/${countryCode.toUpperCase()}`)
-            .then((r) => r.json())
-            .then((data) => {
-                setWarning(data);
-                setLoading(false);
-            })
-            .catch(() => {
-                setError(true);
-                setLoading(false);
-            });
+            .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+            .then((json: WarningResponse) => { setData(json); setLoading(false); })
+            .catch(() => { setError(true); setLoading(false); });
     }, [countryCode]);
+
+    const header = (
+        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">
+            Reisewarnung · {countryName}
+        </p>
+    );
 
     if (loading) {
         return (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
-                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Reisewarnung · {countryName}</p>
-                <div className="animate-pulse space-y-3">
-                    <div className="h-6 w-28 bg-zinc-100 dark:bg-zinc-800 rounded" />
-                    <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full" />
-                    <div className="h-12 bg-zinc-100 dark:bg-zinc-800 rounded" />
-                </div>
+                {header}
+                <div className="animate-pulse h-6 w-40 bg-zinc-100 dark:bg-zinc-800 rounded" />
             </div>
         );
     }
 
-    if (error || !warning) {
+    if (error || !data) {
         return (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
-                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">Reisewarnung · {countryName}</p>
+                {header}
                 <p className="text-sm text-zinc-400 dark:text-zinc-500">Keine Daten verfügbar</p>
             </div>
         );
     }
 
-    const cfg = LEVEL_CONFIG[warning.level] ?? LEVEL_CONFIG.none;
-
-    return (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">
-                Reisewarnung · {warning.countryName || countryName}
-            </p>
-            <div className="flex items-center gap-3 mb-3">
-                <span
-                    className="text-xs font-medium px-2.5 py-1 rounded-md"
-                    style={{ background: cfg.bg, color: cfg.color }}
-                >
-                    {cfg.label}
-                </span>
-                <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                    <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: cfg.barWidth, background: cfg.barColor }}
-                    />
+    if (data.warning || data.level >= 3) {
+        return (
+            <div className="bg-white dark:bg-zinc-900 border border-red-200 dark:border-red-900 rounded-2xl p-5">
+                {header}
+                <div className="flex items-start gap-3">
+                    <span className="text-2xl shrink-0">🔴</span>
+                    <div>
+                        <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">Reisewarnung</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            Das Auswärtige Amt hat eine Reisewarnung für dieses Reiseziel ausgegeben.
+                            Von nicht notwendigen Reisen wird abgeraten.
+                        </p>
+                        <a
+                            href={`https://www.auswaertiges-amt.de/de/ReiseUndSicherheit/reise-und-sicherheitshinweise`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-2 text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                            Mehr Informationen →
+                        </a>
+                    </div>
                 </div>
             </div>
-            {warning.title && (
-                <p className="text-sm font-medium text-zinc-900 dark:text-white mb-1">{warning.title}</p>
-            )}
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{warning.description}</p>
+        );
+    }
+
+    if (data.partialWarning || data.level === 2) {
+        return (
+            <div className="bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900 rounded-2xl p-5">
+                {header}
+                <div className="flex items-start gap-3">
+                    <span className="text-2xl shrink-0">🟡</span>
+                    <div>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">Teilreisewarnung</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            Das Auswärtige Amt hat eine Teilreisewarnung für dieses Reiseziel ausgegeben.
+                            Bitte informieren Sie sich vor Ihrer Reise.
+                        </p>
+                        <a
+                            href={`https://www.auswaertiges-amt.de/de/ReiseUndSicherheit/reise-und-sicherheitshinweise`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                            Mehr Informationen →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white dark:bg-zinc-900 border border-green-200 dark:border-green-900 rounded-2xl p-5">
+            {header}
+            <div className="flex items-center gap-3">
+                <span className="text-2xl">🟢</span>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Keine besonderen Sicherheitshinweise für dieses Reiseziel.
+                </p>
+            </div>
         </div>
     );
 }
