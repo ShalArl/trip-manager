@@ -21,9 +21,9 @@ type WarningEntry struct {
 	LastModified      int64  `json:"lastModified"`
 	Effective         int64  `json:"effective"`
 	Title             string `json:"title"`
-	CountryCode       string `json:"countryCode"`
+	CountryCode       string `json:"CountryCode"`
 	ISO3CountryCode   string `json:"iso3CountryCode"`
-	CountryName       string `json:"countryName"`
+	CountryName       string `json:"CountryName"`
 	Warning           bool   `json:"warning"`
 	PartialWarning    bool   `json:"partialWarning"`
 	SituationWarning  bool   `json:"situationWarning"`
