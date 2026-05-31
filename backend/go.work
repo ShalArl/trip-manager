@@ -6,6 +6,7 @@ use (
 	./feed-generator
 	./locations
 	./newsletter
+	./newsletter-worker
 	./presigner
 	./shared/authclient
 	./shared/middleware

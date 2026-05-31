@@ -2,7 +2,6 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 COPY go.work go.work.sum ./
-
 COPY auth/go.mod auth/go.mod
 COPY auth/go.sum auth/go.sum
 COPY presigner/go.mod presigner/go.mod
@@ -30,17 +29,13 @@ COPY newsletter-worker/go.sum newsletter-worker/go.sum
 
 RUN go work sync
 
-COPY shared/authclient/ shared/authclient/
-COPY feed/ feed/
+COPY newsletter-worker/ newsletter-worker/
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/feed ./feed/cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/newsletter-worker ./newsletter-worker/cmd/worker
 
 FROM alpine:3.19
 RUN addgroup -S app && adduser -S -G app app
 USER app
 WORKDIR /app
-COPY --from=builder /bin/feed /bin/feed
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8007/health || exit 1
-EXPOSE 8007
-CMD ["/bin/feed"]
+COPY --from=builder /bin/newsletter-worker /bin/newsletter-worker
+CMD ["/bin/newsletter-worker"]

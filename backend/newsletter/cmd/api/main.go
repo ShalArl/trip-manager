@@ -12,24 +12,21 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/newsletter"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 type config struct {
-	Port           string
-	Neo4jURI       string
-	Neo4jUser      string
-	Neo4jPassword  string
-	AuthServiceURL string
+	Port            string
+	NewsletterDBURL string
+	AuthServiceURL  string
 }
 
 func loadConfig() config {
 	return config{
-		Port:           getEnv("PORT", "8008"),
-		Neo4jURI:       getEnv("NEO4J_URI", "bolt://localhost:7687"),
-		Neo4jUser:      getEnv("NEO4J_USER", "neo4j"),
-		Neo4jPassword:  getEnv("NEO4J_PASSWORD", "password"),
-		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
+		Port:            getEnv("PORT", "8008"),
+		NewsletterDBURL: getEnv("NEWSLETTER_DB_URL", "postgres://postgres:postgres@localhost:5432/newsletter_db?sslmode=disable"),
+		AuthServiceURL:  getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
 	}
 }
 
@@ -43,21 +40,14 @@ func getEnv(key, fallback string) string {
 func main() {
 	cfg := loadConfig()
 
-	driver, err := neo4j.NewDriverWithContext(
-		cfg.Neo4jURI,
-		neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""),
-	)
+	db, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
 	if err != nil {
-		log.Fatalf("newsletter: failed to create neo4j driver: %v", err)
+		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)
 	}
-	defer driver.Close(context.Background())
+	defer db.Close()
+	log.Println("newsletter: connected to newsletter-db")
 
-	if err := driver.VerifyConnectivity(context.Background()); err != nil {
-		log.Fatalf("newsletter: neo4j not reachable: %v", err)
-	}
-	log.Printf("newsletter: connected to neo4j at %s", cfg.Neo4jURI)
-
-	repo := newsletter.NewRepository(driver)
+	repo := newsletter.NewRepository(db)
 	svc := newsletter.NewService(repo)
 
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
