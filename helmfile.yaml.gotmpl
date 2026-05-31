@@ -62,6 +62,9 @@ releases:
     needs:
       - external-secrets/external-secrets
 
+  # Infrastructure
+
+
   - name: redis
     namespace: trip-manager-{{ .Environment.Name }}
     chart: helm/infrastructure/redis
@@ -69,8 +72,20 @@ releases:
       - helm/infrastructure/redis/values.yaml
       - helm/infrastructure/redis/values/{{ .Environment.Name }}.yaml
 
+  - name: neo4j
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: helm/infrastructure/neo4j
+    values:
+      - helm/infrastructure/neo4j/values.yaml
+      - helm/infrastructure/neo4j/values/{{ .Environment.Name }}.yaml
 
-  # Infrastructure
+  - name: kafka
+    namespace: trip-manager-{{ .Environment.Name }}
+    createNamespace: true
+    chart: ./helm/infrastructure/kafka
+    values:
+      - helm/infrastructure/kafka/values.yaml
+      - helm/infrastructure/kafka/values/{{ .Environment.Name }}.yaml
 
   - name: minio
     namespace: trip-manager-{{ .Environment.Name }}
@@ -131,6 +146,44 @@ releases:
        - external-secrets/external-secrets
        - trip-manager-{{ .Environment.Name }}/cluster-config
        {{- end }}
+
+  - name: feed
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: helm/services/feed
+    values:
+      - helm/services/feed/values.yaml
+      - helm/services/feed/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}feed"
+      - name: image.tag
+        value: "{{ .Values.imageTag }}"
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
+      - trip-manager-{{ .Environment.Name }}/kafka
+      - trip-manager-{{ .Environment.Name }}/neo4j
+
+  - name: feed-generator
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: helm/services/feed-generator
+    values:
+      - helm/services/feed-generator/values.yaml
+      - helm/services/feed-generator/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: image.repository
+          value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}feed-generator"
+      - name: image.tag
+          value: "{{ .Values.imageTag }}"
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
+      - trip-manager-{{ .Environment.Name }}/kafka
+      - trip-manager-{{ .Environment.Name }}/neo4j
 
   - name: presigner
     namespace: trip-manager-{{ .Environment.Name }}

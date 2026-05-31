@@ -1,0 +1,24 @@
+env:
+  - name: PORT
+    value: "8090"
+  - name: KAFKA_BROKERS
+    value: "kafka.trip-manager-prod.svc.cluster.local:9092"
+  - name: KAFKA_GROUP_ID
+    value: "feed-generator"
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: NEO4J_URI
+      remoteKey: neo4j-uri
+    - secretKey: NEO4J_USERNAME
+      remoteKey: neo4j-username
+    - secretKey: NEO4J_PASSWORD
+      remoteKey: neo4j-password
+
+envFrom:
+  - secretRef:
+      name: feed-generator-secrets
+
+serviceAccount:
+  gcpServiceAccount: "feed-generator-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

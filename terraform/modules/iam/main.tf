@@ -12,7 +12,7 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations", "travel-warning"
+    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations", "travel-warning", "feed", "weather-info", "feed-generator"
   ]
 }
 
@@ -103,11 +103,11 @@ resource "google_iam_workload_identity_pool" "github" {
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
-  project                       = var.project_id
-  workload_identity_pool_id     = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-provider"
-  display_name                  = "GitHub Actions Provider"
-  description                   = "Workload Identity Provider for GitHub Actions"
+  display_name                       = "GitHub Actions Provider"
+  description                        = "Workload Identity Provider for GitHub Actions"
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"

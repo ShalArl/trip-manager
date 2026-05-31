@@ -1,0 +1,43 @@
+kafka:
+  image:
+    registry: docker.io
+    repository: apache/kafka
+    tag: 3.7.0
+
+  kraft:
+    enabled: true
+    clusterId: "trip-manager-kafka-cluster"
+
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    controller:
+      protocol: PLAINTEXT
+
+  controller:
+    replicaCount: 1
+
+  broker:
+    replicaCount: 0  # combined mode
+
+  persistence:
+    enabled: true
+    size: 8Gi
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  extraEnvVars:
+    - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+      value: "1"
+    - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+      value: "1"
+    - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+      value: "1"
+    - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+      value: "true"
