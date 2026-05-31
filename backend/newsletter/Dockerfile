@@ -34,6 +34,8 @@ COPY travel-warning/go.sum travel-warning/go.sum
 COPY weather-info/go.mod weather-info/go.mod
 COPY weather-info/go.sum weather-info/go.sum
 
+COPY newsletter-worker/go.mod newsletter-worker/go.mod
+COPY newsletter-worker/go.sum newsletter-worker/go.sum
 RUN go work sync
 
 # Source Code

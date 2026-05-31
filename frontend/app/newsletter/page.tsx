@@ -124,11 +124,13 @@ export default function NewsletterPage() {
 
   const totalTrips = newsletter?.sections.reduce((acc, s) => acc + s.trips.length, 0) ?? 0;
   const generatedAt = newsletter?.generatedAt
-    ? new Date(newsletter.generatedAt).toLocaleDateString("de-DE", {
+    ? new Date(newsletter.generatedAt).toLocaleString("de-DE", {
         weekday: "long",
         day: "numeric",
         month: "long",
         year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     : null;
 

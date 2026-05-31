@@ -8,9 +8,6 @@ import (
 type NewsletterTrip struct {
 	TripID          string    `json:"tripId"`
 	Title           string    `json:"title"`
-	Description     string    `json:"description,omitempty"`
-	Destination     string    `json:"destination,omitempty"`
-	CoverImageURL   string    `json:"coverImageUrl,omitempty"`
 	CreatorID       string    `json:"creatorId"`
 	CreatorName     string    `json:"creatorName"`
 	LikeCount       int64     `json:"likeCount"`
@@ -31,7 +28,7 @@ type NewsletterResponse struct {
 }
 
 type Service interface {
-	GetNewsletter(ctx context.Context, userID string, limit int) (*NewsletterResponse, error)
+	GetNewsletter(ctx context.Context, firebaseUID string) (*NewsletterResponse, error)
 }
 
 type service struct {
@@ -42,84 +39,40 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) GetNewsletter(ctx context.Context, userID string, limit int) (*NewsletterResponse, error) {
-	perSection := limit / 3
-	if perSection < 3 {
-		perSection = 3
-	}
-
-	creatorTrips, err := s.repo.GetCreatorTrips(ctx, userID, perSection)
+func (s *service) GetNewsletter(ctx context.Context, firebaseUID string) (*NewsletterResponse, error) {
+	sections, generatedAt, err := s.repo.GetStoredNewsletter(ctx, firebaseUID)
 	if err != nil {
 		return nil, err
 	}
 
-	socialTrips, err := s.repo.GetSocialGraphTrips(ctx, userID, perSection)
-	if err != nil {
-		return nil, err
+	var newsletterSections []NewsletterSection
+	for _, sec := range sections {
+		var trips []NewsletterTrip
+		for _, t := range sec.Trips {
+			trips = append(trips, NewsletterTrip{
+				TripID:          t.TripID,
+				Title:           t.Title,
+				CreatorID:       t.CreatorID,
+				CreatorName:     t.CreatorName,
+				LikeCount:       t.LikeCount,
+				CommentCount:    t.CommentCount,
+				RelevanceReason: t.RelevanceReason,
+				CreatedAt:       t.CreatedAt,
+			})
+		}
+		newsletterSections = append(newsletterSections, NewsletterSection{
+			Title:       sec.Title,
+			Description: sec.Description,
+			Trips:       trips,
+		})
 	}
 
-	collaborativeTrips, err := s.repo.GetCollaborativeTrips(ctx, userID, perSection)
-	if err != nil {
-		return nil, err
-	}
-
-	seen := make(map[string]bool)
-	var sections []NewsletterSection
-
-	if section := buildSection(
-		"From Travellers You Follow",
-		"New trips from creators you've interacted with",
-		creatorTrips,
-		seen,
-	); len(section.Trips) > 0 {
-		sections = append(sections, section)
-	}
-
-	if section := buildSection(
-		"Popular in Your Network",
-		"Trips liked by travellers with similar tastes",
-		socialTrips,
-		seen,
-	); len(section.Trips) > 0 {
-		sections = append(sections, section)
-	}
-
-	if section := buildSection(
-		"Trending Among Your Peers",
-		"Highly liked trips from your travel community",
-		collaborativeTrips,
-		seen,
-	); len(section.Trips) > 0 {
-		sections = append(sections, section)
+	if newsletterSections == nil {
+		newsletterSections = []NewsletterSection{}
 	}
 
 	return &NewsletterResponse{
-		Sections:    sections,
-		GeneratedAt: time.Now().UTC(),
+		Sections:    newsletterSections,
+		GeneratedAt: generatedAt,
 	}, nil
-}
-
-func buildSection(title, description string, nodes []TripNode, seen map[string]bool) NewsletterSection {
-	section := NewsletterSection{
-		Title:       title,
-		Description: description,
-		Trips:       []NewsletterTrip{},
-	}
-	for _, n := range nodes {
-		if seen[n.TripID] {
-			continue
-		}
-		seen[n.TripID] = true
-		section.Trips = append(section.Trips, NewsletterTrip{
-			TripID:          n.TripID,
-			Title:           n.Title,
-			CreatorID:       n.CreatorID,
-			CreatorName:     n.CreatorName,
-			LikeCount:       n.LikeCount,
-			CommentCount:    n.CommentCount,
-			RelevanceReason: n.RelevanceReason,
-			CreatedAt:       n.CreatedAt,
-		})
-	}
-	return section
 }

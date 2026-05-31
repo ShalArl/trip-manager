@@ -30,6 +30,8 @@ COPY feed-generator/go.mod feed-generator/go.mod
 COPY feed-generator/go.sum feed-generator/go.sum
 COPY newsletter/go.mod newsletter/go.mod
 COPY newsletter/go.sum newsletter/go.sum
+COPY newsletter-worker/go.mod newsletter-worker/go.mod
+COPY newsletter-worker/go.sum newsletter-worker/go.sum
 
 RUN go work sync
 
