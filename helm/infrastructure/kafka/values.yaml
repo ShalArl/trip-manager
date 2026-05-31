@@ -1,9 +1,4 @@
 kafka:
-  image:
-    registry: docker.io
-    repository: apache/kafka
-    tag: 3.7.0
-
   kraft:
     enabled: true
     clusterId: "trip-manager-kafka-cluster"
