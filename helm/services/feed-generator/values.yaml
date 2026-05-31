@@ -7,7 +7,18 @@ service:
   port: 8090
   healthPath: /health
 
+probes:
+  liveness: /health
+  readiness: /health
+
 replicaCount: 1
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80
 
 resources:
   requests:

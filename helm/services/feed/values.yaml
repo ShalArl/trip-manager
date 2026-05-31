@@ -3,11 +3,25 @@ image:
   tag: ""
   pullPolicy: Always
 
+storage: 8Gi
+
+
 service:
   port: 8089
   healthPath: /health
 
 replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80
 
 resources:
   requests:

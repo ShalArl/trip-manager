@@ -7,3 +7,11 @@ redis:
       limits:
         cpu: 200m
         memory: 128Mi
+
+env:
+  - name: NEO4J_PASSWORD
+    value: "devpassword"
+  - name: NEO4J_AUTH
+    value: "neo4j/$(NEO4J_PASSWORD)"
+
+storage: 8Gi
