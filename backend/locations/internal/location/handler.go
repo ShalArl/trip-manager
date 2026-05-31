@@ -49,11 +49,10 @@ func buildImageURL(s3Endpoint, s3Bucket, key string) string {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 func toImageResponse(img LocationImage, s3Endpoint, s3Bucket string) generated.LocationImageResponse {
-	imageURL := buildImageURL(s3Endpoint, s3Bucket, img.ImageKey)
 	return generated.LocationImageResponse{
 		Id:         openapi_types.UUID(uuid.MustParse(img.ID)),
 		LocationId: openapi_types.UUID(uuid.MustParse(img.LocationID)),
-		ImageUrl:   imageURL,
+		ImageUrl:   img.ImageKey,
 		Sequence:   &img.Sequence,
 		CreatedAt:  &img.CreatedAt,
 	}

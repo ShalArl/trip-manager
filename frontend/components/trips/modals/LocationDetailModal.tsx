@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { ImagePlus, Trash2, X } from "lucide-react";
+import React, {useEffect, useRef, useState} from "react";
+import {ImagePlus, Trash2, X} from "lucide-react";
 
-import { LocationResponse, UpdateLocationRequest } from "@/types/location";
-import { addLocationImage, deleteLocationImage } from "@/lib/api/locations";
-import { components } from "@/generated/types";
-import PlaceAutocomplete, { PlaceValue } from "@/components/shared/PlaceAutocomplete";
+import {LocationResponse, UpdateLocationRequest} from "@/types/location";
+import {addLocationImage, deleteLocationImage} from "@/lib/api/locations";
+import {components} from "@/generated/types";
+import PlaceAutocomplete, {PlaceValue} from "@/components/shared/PlaceAutocomplete";
+import {getDownloadUrl} from "@/lib/api/uploads";
 
 type LocationImageResponse = components["schemas"]["LocationImageResponse"];
 
@@ -26,15 +27,15 @@ type Props = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LocationDetailModal({
-    isOpen,
-    location,
-    tripId,
-    isEditable,
-    onCloseAction,
-    onSaveAction,
-    onDeleteAction,
-    onLocationUpdateAction,
-}: Props) {
+                                                isOpen,
+                                                location,
+                                                tripId,
+                                                isEditable,
+                                                onCloseAction,
+                                                onSaveAction,
+                                                onDeleteAction,
+                                                onLocationUpdateAction,
+                                            }: Props) {
     const [isEditing, setIsEditing] = useState(false);
 
     // Place für Autocomplete – initialisiert aus bestehender Location
@@ -59,12 +60,20 @@ export default function LocationDetailModal({
     const [imageError, setImageError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [signedImageUrls, setSignedImageUrls] = useState<Record<string, string>>({});
+
     // ── Handlers ─────────────────────────────────────────────────────────────
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!place) { setEditError("Bitte einen Ort auswählen"); return; }
-        if (!shortDescription.trim()) { setEditError("Bitte eine Kurzbeschreibung eingeben"); return; }
+        if (!place) {
+            setEditError("Bitte einen Ort auswählen");
+            return;
+        }
+        if (!shortDescription.trim()) {
+            setEditError("Bitte eine Kurzbeschreibung eingeben");
+            return;
+        }
         setEditError(null);
 
         onSaveAction({
@@ -84,8 +93,14 @@ export default function LocationDetailModal({
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (!file.type.startsWith("image/")) { setImageError("Bitte wähle eine Bilddatei aus"); return; }
-        if (file.size > 10 * 1024 * 1024) { setImageError("Datei muss kleiner als 10MB sein"); return; }
+        if (!file.type.startsWith("image/")) {
+            setImageError("Bitte wähle eine Bilddatei aus");
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            setImageError("Datei muss kleiner als 10MB sein");
+            return;
+        }
 
         setImageError(null);
         setIsUploadingImage(true);
@@ -93,7 +108,7 @@ export default function LocationDetailModal({
             const created = await addLocationImage(tripId, location.id!, file, images.length);
             const updatedImages = [...images, created];
             setImages(updatedImages);
-            onLocationUpdateAction?.({ ...location, images: updatedImages });
+            onLocationUpdateAction?.({...location, images: updatedImages});
         } catch (err) {
             setImageError("Fehler beim Hochladen des Bildes");
             console.error("[LocationDetailModal] addLocationImage:", err);
@@ -108,12 +123,29 @@ export default function LocationDetailModal({
             await deleteLocationImage(tripId, location.id!, image.id.toString());
             const updatedImages = images.filter((i) => i.id !== image.id);
             setImages(updatedImages);
-            onLocationUpdateAction?.({ ...location, images: updatedImages });
+            onLocationUpdateAction?.({...location, images: updatedImages});
         } catch (err) {
             setImageError("Fehler beim Löschen des Bildes");
             console.error("[LocationDetailModal] deleteLocationImage:", err);
         }
     };
+
+    useEffect(() => {
+        const fetchUrls = async () => {
+            const urls: Record<string, string> = {};
+            for (const img of images) {
+                if (img.imageUrl) {
+                    try {
+                        urls[img.id.toString()] = await getDownloadUrl(img.imageUrl);
+                    } catch {
+                        urls[img.id.toString()] = "";
+                    }
+                }
+            }
+            setSignedImageUrls(urls);
+        };
+        if (images.length > 0) fetchUrls();
+    }, [images]);
 
     if (!isOpen) return null;
 
@@ -121,7 +153,8 @@ export default function LocationDetailModal({
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-lg w-full border border-zinc-100 dark:border-zinc-800 overflow-hidden max-h-[90vh] flex flex-col">
+            <div
+                className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-lg w-full border border-zinc-100 dark:border-zinc-800 overflow-hidden max-h-[90vh] flex flex-col">
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-sky-500 to-sky-600 px-8 py-6 shrink-0">
@@ -168,13 +201,14 @@ export default function LocationDetailModal({
                                     </p>
                                     {isEditable && (
                                         <>
-                                            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                                            <input ref={fileInputRef} type="file" accept="image/*"
+                                                   onChange={handleImageSelect} className="hidden"/>
                                             <button
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={isUploadingImage}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors disabled:opacity-50"
                                             >
-                                                <ImagePlus className="w-3.5 h-3.5" />
+                                                <ImagePlus className="w-3.5 h-3.5"/>
                                                 {isUploadingImage ? "Lädt hoch..." : "Bild hinzufügen"}
                                             </button>
                                         </>
@@ -182,23 +216,28 @@ export default function LocationDetailModal({
                                 </div>
                                 {imageError && <p className="text-sm text-red-500 mb-3">{imageError}</p>}
                                 {images.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-8 text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-                                        <ImagePlus className="w-8 h-8 mb-2 opacity-30" />
+                                    <div
+                                        className="flex flex-col items-center justify-center py-8 text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                                        <ImagePlus className="w-8 h-8 mb-2 opacity-30"/>
                                         <p className="text-sm">Keine Bilder vorhanden</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 gap-3">
                                         {images.map((image) => (
-                                            <div key={image.id.toString()} className="relative group rounded-xl overflow-hidden aspect-video bg-zinc-100 dark:bg-zinc-800">
-                                                <img src={image.imageUrl} alt="Location" className="w-full h-full object-cover" />
-                                                {isEditable && (
-                                                    <button
-                                                        onClick={() => handleDeleteImage(image)}
-                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <X className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
+                                            <div key={image.id.toString()}
+                                                 className="relative group rounded-xl overflow-hidden aspect-video bg-zinc-100 dark:bg-zinc-800">
+                                                <img
+                                                    src={signedImageUrls[image.id.toString()] || ""}
+                                                    alt="Location"
+                                                    className="w-full h-full object-cover"
+                                                /> {isEditable && (
+                                                <button
+                                                    onClick={() => handleDeleteImage(image)}
+                                                    className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X className="w-3.5 h-3.5"/>
+                                                </button>
+                                            )}
                                             </div>
                                         ))}
                                     </div>
@@ -225,7 +264,7 @@ export default function LocationDetailModal({
                                             onClick={onDeleteAction}
                                             className="px-4 py-3 text-white bg-red-500 hover:bg-red-600 rounded-xl font-semibold transition-all"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-4 h-4"/>
                                         </button>
                                     </>
                                 )}
@@ -256,7 +295,8 @@ export default function LocationDetailModal({
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Von *</label>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Von
+                                        *</label>
                                     <input
                                         type="date"
                                         value={dateFrom}
@@ -265,7 +305,8 @@ export default function LocationDetailModal({
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Bis *</label>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Bis
+                                        *</label>
                                     <input
                                         type="date"
                                         value={dateTo}
@@ -276,7 +317,8 @@ export default function LocationDetailModal({
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Notizen</label>
+                                <label
+                                    className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Notizen</label>
                                 <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
