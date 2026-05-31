@@ -27,24 +27,24 @@ COPY feed-generator/go.mod feed-generator/go.mod
 COPY feed-generator/go.sum feed-generator/go.sum
 COPY newsletter/go.mod newsletter/go.mod
 COPY newsletter/go.sum newsletter/go.sum
+
 RUN go work sync
 
 # Source Code
 COPY shared/authclient/ shared/authclient/
 COPY shared/middleware/ shared/middleware/
+COPY newsletter/ newsletter/
 
-COPY locations/ locations/
-
-# Aus dem locations-Verzeichnis bauen
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/locations ./locations/cmd/api
+# Aus dem newsletter-Verzeichnis bauen
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/newsletter ./newsletter/cmd/api
 
 # Runtime stage
 FROM alpine:3.19
 RUN addgroup -S app && adduser -S -G app app
 USER app
 WORKDIR /app
-COPY --from=builder /bin/locations /bin/locations
+COPY --from=builder /bin/newsletter /bin/newsletter
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8005/health || exit 1
-EXPOSE 8005
-CMD ["/bin/locations"]
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8008/health || exit 1
+EXPOSE 8008
+CMD ["/bin/newsletter"]

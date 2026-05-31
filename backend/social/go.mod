@@ -4,9 +4,11 @@ go 1.25.8
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-    github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
 	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
 	github.com/google/uuid v1.6.0
+	github.com/oapi-codegen/runtime v1.4.1
+	github.com/segmentio/kafka-go v0.4.47
 	google.golang.org/api v0.278.0
 	google.golang.org/grpc v1.81.0
 )
@@ -30,6 +32,8 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
+	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect
