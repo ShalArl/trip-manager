@@ -174,9 +174,9 @@ releases:
       - helm/services/feed-generator/values/{{ .Environment.Name }}.yaml
     set:
       - name: image.repository
-          value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}feed-generator"
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}feed-generator"
       - name: image.tag
-          value: "{{ .Values.imageTag }}"
+        value: "{{ .Values.imageTag }}"
     needs:
       {{- if eq .Environment.Name "prod" }}
       - external-secrets/external-secrets
