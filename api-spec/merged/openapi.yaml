@@ -1511,6 +1511,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TripCommentResponse'
+    FeedTrip:
+      type: object
+      required:
+        - tripId
+        - title
+        - createdAt
+        - creatorId
+        - likes
+        - comments
+        - score
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        creatorId:
+          type: string
+          format: uuid
+        likes:
+          type: integer
+          format: int64
+        comments:
+          type: integer
+          format: int64
+        score:
+          type: number
+          format: float
+    FeedResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedTrip'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
     PresignedURLRequest:
       description: Request for a presigned URL to upload files directly to S3/MinIO
       type: object
