@@ -29,11 +29,12 @@ type UserSummary struct {
 }
 
 type Place struct {
-	Name    string
-	City    string
-	Country string
-	Lat     *float64
-	Lng     *float64
+	Name        string
+	City        string
+	Country     string
+	CountryCode string
+	Lat         *float64
+	Lng         *float64
 }
 
 type Transport struct {
@@ -53,27 +54,29 @@ type Transport struct {
 // ── Record ────────────────────────────────────────────────────────────────────
 
 type transportRecord struct {
-	ID            uuid.UUID  `db:"id"`
-	TripID        uuid.UUID  `db:"trip_id"`
-	UserID        uuid.UUID  `db:"user_id"`
-	UserName      string     `db:"user_name"`
-	UserEmail     string     `db:"user_email"`
-	FromName      *string    `db:"from_name"`
-	FromCity      *string    `db:"from_city"`
-	FromCountry   *string    `db:"from_country"`
-	FromLat       *float64   `db:"from_lat"`
-	FromLng       *float64   `db:"from_lng"`
-	ToName        *string    `db:"to_name"`
-	ToCity        *string    `db:"to_city"`
-	ToCountry     *string    `db:"to_country"`
-	ToLat         *float64   `db:"to_lat"`
-	ToLng         *float64   `db:"to_lng"`
-	DepartureTime *time.Time `db:"departure_time"`
-	ArrivalTime   *time.Time `db:"arrival_time"`
-	Type          string     `db:"type"`
-	Notes         *string    `db:"notes"`
-	CreatedAt     time.Time  `db:"created_at"`
-	UpdatedAt     time.Time  `db:"updated_at"`
+	ID              uuid.UUID  `db:"id"`
+	TripID          uuid.UUID  `db:"trip_id"`
+	UserID          uuid.UUID  `db:"user_id"`
+	UserName        string     `db:"user_name"`
+	UserEmail       string     `db:"user_email"`
+	FromName        *string    `db:"from_name"`
+	FromCity        *string    `db:"from_city"`
+	FromCountry     *string    `db:"from_country"`
+	FromCountryCode *string    `db:"from_country_code"`
+	FromLat         *float64   `db:"from_lat"`
+	FromLng         *float64   `db:"from_lng"`
+	ToName          *string    `db:"to_name"`
+	ToCity          *string    `db:"to_city"`
+	ToCountry       *string    `db:"to_country"`
+	ToCountryCode   *string    `db:"to_country_code"`
+	ToLat           *float64   `db:"to_lat"`
+	ToLng           *float64   `db:"to_lng"`
+	DepartureTime   *time.Time `db:"departure_time"`
+	ArrivalTime     *time.Time `db:"arrival_time"`
+	Type            string     `db:"type"`
+	Notes           *string    `db:"notes"`
+	CreatedAt       time.Time  `db:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at"`
 }
 
 func derefStr(s *string) string {
@@ -93,18 +96,20 @@ func (rec *transportRecord) toDomain() *Transport {
 			Email: rec.UserEmail,
 		},
 		From: Place{
-			Name:    derefStr(rec.FromName),
-			City:    derefStr(rec.FromCity),
-			Country: derefStr(rec.FromCountry),
-			Lat:     rec.FromLat,
-			Lng:     rec.FromLng,
+			Name:        derefStr(rec.FromName),
+			City:        derefStr(rec.FromCity),
+			Country:     derefStr(rec.FromCountry),
+			Lat:         rec.FromLat,
+			Lng:         rec.FromLng,
+			CountryCode: derefStr(rec.FromCountryCode),
 		},
 		To: Place{
-			Name:    derefStr(rec.ToName),
-			City:    derefStr(rec.ToCity),
-			Country: derefStr(rec.ToCountry),
-			Lat:     rec.ToLat,
-			Lng:     rec.ToLng,
+			Name:        derefStr(rec.ToName),
+			City:        derefStr(rec.ToCity),
+			Country:     derefStr(rec.ToCountry),
+			Lat:         rec.ToLat,
+			Lng:         rec.ToLng,
+			CountryCode: derefStr(rec.ToCountryCode),
 		},
 		DepartureTime: rec.DepartureTime,
 		ArrivalTime:   rec.ArrivalTime,
@@ -163,19 +168,19 @@ func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, 
 	query := `
 		INSERT INTO transports (
 			trip_id, user_id, user_name, user_email,
-			from_name, from_city, from_country, from_lat, from_lng,
-			to_name, to_city, to_country, to_lat, to_lng,
+			from_name, from_city, from_country, from_country_code, from_lat, from_lng,
+			to_name, to_city, to_country, to_country_code, to_lat, to_lng,
 			departure_time, arrival_time, type, notes
 		) VALUES (
 			$1, $2, $3, $4,
 			$5, $6, $7, $8, $9,
 			$10, $11, $12, $13, $14,
-			$15, $16, $17, $18
+			$15, $16, $17, $18, $19, $20
 		) RETURNING id`
 	err = r.db.QueryRowContext(ctx, query,
 		tripID, userID, t.CreatedBy.Name, t.CreatedBy.Email,
-		t.From.Name, t.From.City, t.From.Country, t.From.Lat, t.From.Lng,
-		t.To.Name, t.To.City, t.To.Country, t.To.Lat, t.To.Lng,
+		t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
+		t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
 		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
 	).Scan(&id)
 	if err != nil {
@@ -201,15 +206,15 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 
 	query := `
 		UPDATE transports
-		SET from_name = $1, from_city = $2, from_country = $3, from_lat = $4, from_lng = $5,
-		    to_name = $6, to_city = $7, to_country = $8, to_lat = $9, to_lng = $10,
-		    departure_time = $11, arrival_time = $12, type = $13, notes = $14,
+		SET from_name = $1, from_city = $2, from_country = $3, from_country_code = $4, from_lat = $5, from_lng = $6,
+		    to_name = $7, to_city = $8, to_country = $9, to_country_code = $10, to_lat = $11, to_lng = $12,
+		    departure_time = $13, arrival_time = $14, type = $15, notes = $16,
 		    updated_at = NOW()
-		WHERE id = $15 AND user_id = $16
+		WHERE id = $17 AND user_id = $18
 		RETURNING updated_at`
 	err = r.db.QueryRowContext(ctx, query,
-		t.From.Name, t.From.City, t.From.Country, t.From.Lat, t.From.Lng,
-		t.To.Name, t.To.City, t.To.Country, t.To.Lat, t.To.Lng,
+		t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
+		t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
 		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
 		id, userID,
 	).Scan(&t.UpdatedAt)

@@ -310,6 +310,8 @@ components:
           type: string
         country:
           type: string
+        countryCode:
+          type: string
         shortDescription:
           type: string
         dateFrom:

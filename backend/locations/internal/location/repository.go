@@ -45,6 +45,7 @@ type Location struct {
 	Name             string
 	City             string
 	Country          string
+	CountryCode      string
 	ShortDescription string
 	DateFrom         time.Time
 	DateTo           time.Time
@@ -69,6 +70,7 @@ type locationRecord struct {
 	Name             string    `db:"name"`
 	City             string    `db:"city"`
 	Country          string    `db:"country"`
+	CountryCode      string    `db:"country_code"`
 	ShortDescription string    `db:"short_description"`
 	DateFrom         time.Time `db:"date_from"`
 	DateTo           time.Time `db:"date_to"`
@@ -101,6 +103,7 @@ func (r *locationRecord) toDomain(images []LocationImage) *Location {
 		Name:             r.Name,
 		City:             r.City,
 		Country:          r.Country,
+		CountryCode:      r.CountryCode,
 		ShortDescription: r.ShortDescription,
 		DateFrom:         r.DateFrom,
 		DateTo:           r.DateTo,
@@ -220,6 +223,7 @@ func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, er
 		Name:             l.Name,
 		City:             l.City,
 		Country:          l.Country,
+		CountryCode:      l.CountryCode,
 		ShortDescription: l.ShortDescription,
 		DateFrom:         l.DateFrom,
 		DateTo:           l.DateTo,
@@ -229,12 +233,12 @@ func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, er
 		Sequence:         l.Sequence,
 	}
 	query := `
-		INSERT INTO locations (trip_id, user_id, user_name, user_email, user_avatar_key, name, city, country, short_description, date_from, date_to, latitude, longitude, notes, sequence)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		INSERT INTO locations (trip_id, user_id, user_name, user_email, user_avatar_key, name, city, country, country_code, short_description, date_from, date_to, latitude, longitude, notes, sequence)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING id, created_at, updated_at`
 	err = r.db.QueryRowContext(ctx, query,
 		rec.TripID, rec.UserID, rec.UserName, rec.UserEmail, rec.UserAvatarKey,
-		rec.Name, rec.City, rec.Country, rec.ShortDescription,
+		rec.Name, rec.City, rec.Country, rec.CountryCode, rec.ShortDescription,
 		rec.DateFrom, rec.DateTo, rec.Latitude, rec.Longitude, rec.Notes, rec.Sequence,
 	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
 	if err != nil {
@@ -255,12 +259,12 @@ func (r *repositoryImpl) Update(ctx context.Context, l *Location) (*Location, er
 	var updatedAt time.Time
 	err = r.db.QueryRowContext(ctx, `
 		UPDATE locations
-		SET name = $1, city = $2, country = $3, short_description = $4,
-		    date_from = $5, date_to = $6, latitude = $7, longitude = $8,
-		    notes = $9, sequence = $10, updated_at = NOW()
-		WHERE id = $11
+		SET name = $1, city = $2, country = $3, country_code = $4, short_description = $5,
+		    date_from = $6, date_to = $7, latitude = $8, longitude = $9,
+		    notes = $10, sequence = $11, updated_at = NOW()
+		WHERE id = $12
 		RETURNING updated_at`,
-		l.Name, l.City, l.Country, l.ShortDescription,
+		l.Name, l.City, l.Country, l.CountryCode, l.ShortDescription,
 		l.DateFrom, l.DateTo, l.Latitude, l.Longitude,
 		l.Notes, l.Sequence, id,
 	).Scan(&updatedAt)

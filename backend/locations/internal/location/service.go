@@ -17,6 +17,7 @@ type CreateInput struct {
 	Name             string
 	City             string
 	Country          string
+	CountryCode      string
 	ShortDescription string
 	DateFrom         time.Time
 	DateTo           time.Time
@@ -31,6 +32,7 @@ type UpdateInput struct {
 	Name             *string
 	City             *string
 	Country          *string
+	CountryCode      *string
 	ShortDescription *string
 	DateFrom         *time.Time
 	DateTo           *time.Time
@@ -79,7 +81,7 @@ func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Location,
 		return nil, fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
 	if input.City == "" {
-		return nil, fmt.Errorf("%w: city is required", ErrInvalidInput)
+		input.City = input.Name
 	}
 	if input.Country == "" {
 		return nil, fmt.Errorf("%w: country is required", ErrInvalidInput)
@@ -101,6 +103,7 @@ func (s *serviceImpl) Create(ctx context.Context, input CreateInput) (*Location,
 		Name:             input.Name,
 		City:             input.City,
 		Country:          input.Country,
+		CountryCode:      input.CountryCode,
 		ShortDescription: input.ShortDescription,
 		DateFrom:         input.DateFrom,
 		DateTo:           input.DateTo,
