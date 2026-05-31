@@ -5,7 +5,8 @@
     { "inputFile": "./api-spec/locations/openapi.yaml" },
     { "inputFile": "./api-spec/social/openapi.yaml" },
     { "inputFile": "./api-spec/feed/openapi.yaml" },
-    { "inputFile": "./api-spec/presigner/openapi.yaml" }
+    { "inputFile": "./api-spec/presigner/openapi.yaml" },
+    { "inputFile": "./api-spec/newsletter/openapi.yaml" }
   ],
   "output": "./api-spec/merged/openapi.yaml"
 }

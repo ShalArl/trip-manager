@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  title: Newsletter Service API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8008/api
+    description: Development server
+paths:
+  /newsletter:
+    get:
+      summary: Get personalized newsletter
+      description: |
+        Returns a personalized newsletter for the authenticated user.
+        Based on trips from travellers the user has interacted with.
+        Requires authentication.
+      operationId: getNewsletter
+      tags: [newsletter]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Personalized newsletter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NewsletterResponse' }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NewsletterTrip:
+      type: object
+      required: [tripId, title, creatorId, creatorName, relevanceReason, createdAt]
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        destination:
+          type: string
+        coverImageUrl:
+          type: string
+        creatorId:
+          type: string
+        creatorName:
+          type: string
+        likeCount:
+          type: integer
+        commentCount:
+          type: integer
+        relevanceReason:
+          type: string
+          description: Why this trip is relevant for the user
+          enum:
+            - creator_you_follow
+            - liked_by_similar_users
+            - trending_in_network
+        createdAt:
+          type: string
+          format: date-time
+
+    NewsletterSection:
+      type: object
+      required: [title, trips]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        trips:
+          type: array
+          items: { $ref: '#/components/schemas/NewsletterTrip' }
+
+    NewsletterResponse:
+      type: object
+      required: [sections, generatedAt]
+      properties:
+        sections:
+          type: array
+          items: { $ref: '#/components/schemas/NewsletterSection' }
+        generatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

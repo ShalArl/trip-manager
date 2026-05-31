@@ -1,9 +1,10 @@
 FROM golang:1.25-alpine AS builder
-
 WORKDIR /app
 
-COPY go.work go.work.sum* ./
+# go.work zuerst – damit Go den Workspace kennt
 COPY go.work go.work.sum ./
+
+# Nur die go.mod/go.sum der relevanten Module für Layer-Caching
 COPY auth/go.mod auth/go.mod
 COPY auth/go.sum auth/go.sum
 COPY presigner/go.mod presigner/go.mod
@@ -20,34 +21,30 @@ COPY trips/go.mod trips/go.mod
 COPY trips/go.sum trips/go.sum
 COPY locations/go.mod locations/go.mod
 COPY locations/go.sum locations/go.sum
-COPY travel-warning/go.mod travel-warning/go.mod
-COPY travel-warning/go.sum travel-warning/go.sum
-COPY weather-info/go.mod weather-info/go.mod
-COPY weather-info/go.sum weather-info/go.sum
-COPY shared/authclient/go.mod shared/authclient/go.mod
-COPY shared/authclient/go.sum shared/authclient/go.sum
-COPY shared/middleware/go.mod shared/middleware/go.mod
-COPY shared/middleware/go.sum shared/middleware/go.sum
-COPY shared/userclient/go.mod shared/userclient/go.mod
-COPY shared/userclient/go.sum shared/userclient/go.sum
+COPY feed/go.mod feed/go.mod
+COPY feed/go.sum feed/go.sum
 COPY feed-generator/go.mod feed-generator/go.mod
 COPY feed-generator/go.sum feed-generator/go.sum
 COPY newsletter/go.mod newsletter/go.mod
 COPY newsletter/go.sum newsletter/go.sum
+
 RUN go work sync
 
+# Source Code
 COPY shared/authclient/ shared/authclient/
-COPY feed/ feed/
-COPY feed-generator/ feed-generator/
+COPY shared/middleware/ shared/middleware/
+COPY newsletter/ newsletter/
 
-WORKDIR /app/feed
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./cmd/api
+# Aus dem newsletter-Verzeichnis bauen
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/newsletter ./newsletter/cmd/api
 
-FROM alpine:3.21
+# Runtime stage
+FROM alpine:3.19
 RUN addgroup -S app && adduser -S -G app app
 USER app
-
-COPY --from=builder /bin/api /bin/api
-
-EXPOSE 8091
-CMD ["/bin/api"]
+WORKDIR /app
+COPY --from=builder /bin/newsletter /bin/newsletter
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8008/health || exit 1
+EXPOSE 8008
+CMD ["/bin/newsletter"]

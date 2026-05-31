@@ -8,7 +8,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {LogOut, Settings, TrendingUp} from "lucide-react";
+import {LogOut, Settings, TrendingUp, Mail} from "lucide-react";
 import {useRouter} from "next/navigation";
 import {useUserContext} from "@/lib/context/UserContext";
 import {UserAvatar} from "@/components/global/UserAvatar";
@@ -56,6 +56,15 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                         <TrendingUp className="h-4 w-4" />
                         Feed
                     </button>
+                    {displayUser && (
+                        <button
+                            onClick={() => router.push("/newsletter")}
+                            className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                        >
+                            <Mail className="h-4 w-4" />
+                            Newsletter
+                        </button>
+                    )}
                 </div>
 
                 {/* Rechts: User oder Anmelden */}
