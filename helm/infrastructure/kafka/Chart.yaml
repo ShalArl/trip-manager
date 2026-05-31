@@ -4,5 +4,5 @@ version: 0.1.0
 description: Kafka message broker
 dependencies:
   - name: kafka
-    version: 32.4.3
+    version: 30.1.8
     repository: https://charts.bitnami.com/bitnami
