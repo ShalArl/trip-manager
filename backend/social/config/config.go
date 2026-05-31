@@ -16,6 +16,7 @@ type Config struct {
 	LogLevel                   string
 	AuthClientConnectionString string
 	UsersServiceURL            string
+	KafkaBrokers               string
 }
 
 func LoadConfig() *Config {
@@ -25,6 +26,7 @@ func LoadConfig() *Config {
 		LogLevel:                   getEnv("LOG_LEVEL", "info"),
 		AuthClientConnectionString: getEnv("AUTH_CLIENT_CONNECTION_STRING", ""),
 		UsersServiceURL:            getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
+		KafkaBrokers:               getEnv("KAFKA_BROKERS", ""),
 	}
 }
 

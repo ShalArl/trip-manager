@@ -7,6 +7,7 @@ type Config struct {
 	DatabaseURL     string
 	AuthServiceURL  string
 	UsersServiceURL string
+	KafkaBrokers    string
 }
 
 func Load() *Config {
@@ -15,8 +16,10 @@ func Load() *Config {
 		DatabaseURL:     getEnv("DATABASE_URL", ""),
 		AuthServiceURL:  getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
 		UsersServiceURL: getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
+		KafkaBrokers:    getEnv("KAFKA_BROKERS", ""),
 	}
 }
+
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val

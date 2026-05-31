@@ -4,12 +4,18 @@ go 1.25.8
 
 require (
 	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
-    github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
-    github.com/ShalArl/trip-manager/backend/shared/userclient v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/userclient v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.12.3
-	github.com/oapi-codegen/runtime v1.4.0
+	github.com/oapi-codegen/runtime v1.4.1
+	github.com/segmentio/kafka-go v0.4.51
+)
+
+require (
+	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 )
 
 replace (
