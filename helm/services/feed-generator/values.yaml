@@ -1,0 +1,26 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+
+service:
+  port: 8090
+  healthPath: /health
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+env:
+  - name: PORT
+    value: "8090"
+  - name: KAFKA_BROKERS
+    value: "kafka.trip-manager-prod.svc.cluster.local:9092"
+  - name: KAFKA_GROUP_ID
+    value: "feed-generator"

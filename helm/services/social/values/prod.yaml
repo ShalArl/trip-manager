@@ -27,6 +27,8 @@ env:
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-prod.svc.cluster.local:8083"
+  - name: KAFKA_BROKERS
+    value: "kafka.trip-manager-prod.svc.cluster.local:9092"
 
 serviceAccount:
   gcpServiceAccount: "social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

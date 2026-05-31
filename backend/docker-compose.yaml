@@ -56,6 +56,74 @@ services:
       minio:
         condition: service_healthy
 
+  # ── Message Broker ───────────────────────────────────────────────────────────
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: trip_manager_kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft – kein Zookeeper
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: "trip-manager-kafka-cluster"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Graph Datenbank ──────────────────────────────────────────────────────────
+
+  neo4j:
+    image: neo4j:5.19-community
+    container_name: trip_manager_neo4j
+    restart: always
+    ports:
+      - "7474:7474"   # Browser UI
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4jpassword}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Mail (lokal) ─────────────────────────────────────────────────────────────
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: trip_manager_mailhog
+    restart: always
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8025 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Datenbanken ──────────────────────────────────────────────────────────────
 
   users-db:
@@ -169,12 +237,15 @@ services:
       FIRESTORE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-trip-manager-local}
       FIRESTORE_EMULATOR_HOST: firebase:8080
       USERS_SERVICE_URL: http://users:8001
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       firebase:
         condition: service_healthy
       auth:
         condition: service_healthy
       users:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8003/health"]
@@ -211,7 +282,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-  
+
   trips:
     build:
       context: .
@@ -225,10 +296,13 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@trips-db:5432/trips_db?sslmode=disable
       AUTH_SERVICE_URL: http://auth:8082
       USERS_SERVICE_URL: http://users:8001
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       trips-db:
         condition: service_healthy
       auth:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/health"]
@@ -236,7 +310,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-   
+
   locations:
     build:
       context: .
@@ -266,6 +340,76 @@ services:
       retries: 3
       start_period: 10s
 
+  feed:
+    build:
+      context: .
+      dockerfile: feed/Dockerfile
+    container_name: trip_manager_feed
+    restart: always
+    ports:
+      - "8007:8007"
+    environment:
+      PORT: 8007
+      AUTH_CLIENT_CONNECTION_STRING: http://auth:8082
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jpassword}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ── Workers ──────────────────────────────────────────────────────────────────
+
+  feed-generator:
+    build:
+      context: .
+      dockerfile: feed-generator/Dockerfile
+    container_name: trip_manager_feed_generator
+    restart: always
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: feed-generator
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jpassword}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+
+  newsletter-worker:
+    build:
+      context: .
+      dockerfile: newsletter-worker/Dockerfile
+    container_name: trip_manager_newsletter_worker
+    restart: always
+    ports:
+      - "8008:8008"
+    environment:
+      PORT: 8008
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      USERS_SERVICE_URL: http://users:8001
+      TRIPS_SERVICE_URL: http://trips:8002
+    depends_on:
+      mailhog:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+      trips:
+        condition: service_healthy
+
+  # ── Gateway ──────────────────────────────────────────────────────────────────
+
   nginx:
     image: nginx:alpine
     container_name: trip_manager_gateway
@@ -280,9 +424,12 @@ services:
       - presigner
       - trips
       - locations
+      - feed
 
 volumes:
   users_db_data:
   trips_db_data:
   locations_db_data:
   minio_data:
+  kafka_data:
+  neo4j_data:

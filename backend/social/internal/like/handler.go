@@ -2,10 +2,13 @@ package like
 
 import (
 	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
+	"github.com/ShalArl/trip-manager/backend/social/kafka"
 )
 
 // GetTripLikesHandler handles GET /trips/{tripId}/likes (optional authclient)
@@ -31,7 +34,8 @@ func GetTripLikesHandler(svc Service) http.HandlerFunc {
 }
 
 // LikeTripHandler handles POST /trips/{tripId}/likes (authclient required)
-func LikeTripHandler(svc Service) http.HandlerFunc {
+
+func LikeTripHandler(svc Service, producer *kafka.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
@@ -53,6 +57,17 @@ func LikeTripHandler(svc Service) http.HandlerFunc {
 			}
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		// Kafka Event – fire-and-forget
+		if producer != nil {
+			if err := producer.PublishTripLiked(r.Context(), kafka.TripLikedEvent{
+				TripID:    tripID,
+				UserID:    userID, // Firebase UID
+				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("warn: failed to publish trip.liked for trip %s: %v", tripID, err)
+			}
 		}
 
 		w.WriteHeader(http.StatusCreated)
