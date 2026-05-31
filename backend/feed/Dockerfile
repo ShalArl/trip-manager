@@ -26,9 +26,12 @@ COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY shared/userclient/go.mod shared/userclient/go.mod
 COPY shared/userclient/go.sum shared/userclient/go.sum
+COPY feed-generator/go.mod feed-generator/go.mod
+COPY feed-generator/go.sum feed-generator/go.sum
 
 COPY shared/ shared/
 COPY feed/ feed/
+COPY feed-generator/ feed-generator/
 
 WORKDIR /app/feed
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./cmd/api
