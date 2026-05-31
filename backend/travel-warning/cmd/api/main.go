@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -44,12 +45,11 @@ func main() {
 
 	// CORS
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		os.Getenv("CORS_ALLOWED_ORIGINS"),
-	}
-
-	if corsConfig.AllowedOrigins[0] == "" {
+	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if origins == "" {
 		corsConfig.AllowedOrigins = []string{"*"}
+	} else {
+		corsConfig.AllowedOrigins = strings.Split(origins, ",")
 	}
 
 	server := &http.Server{
