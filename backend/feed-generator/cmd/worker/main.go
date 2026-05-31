@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,6 +22,17 @@ func main() {
 		cfg.Neo4jURI,
 		neo4j.BasicAuth(cfg.Neo4jUser, cfg.Neo4jPassword, ""),
 	)
+
+	go func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		err := http.ListenAndServe(":"+cfg.Port, nil)
+		if err != nil {
+			return
+		}
+	}()
+
 	if err != nil {
 		log.Fatalf("feed-generator: failed to create neo4j driver: %v", err)
 	}
