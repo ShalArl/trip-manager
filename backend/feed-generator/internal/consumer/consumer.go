@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"log"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/segmentio/kafka-go"
 )
 
 const (
-	TopicTripCreated   = "trip.created"
-	TopicTripLiked     = "trip.liked"
-	TopicTripCommented = "trip.commented"
+	AttrEventType          = "event_type"
+	EventTypeTripCreated   = "trip.created"
+	EventTypeTripLiked     = "trip.liked"
+	EventTypeTripCommented = "trip.commented"
 )
 
 // ── Event Types ───────────────────────────────────────────────────────────────
@@ -40,101 +41,92 @@ type TripCommentedEvent struct {
 // ── Consumer ──────────────────────────────────────────────────────────────────
 
 type Consumer struct {
-	driver  neo4j.DriverWithContext
-	brokers []string
-	groupID string
+	driver         neo4j.DriverWithContext
+	client         *pubsub.Client
+	subscriptionID string
 }
 
-func New(driver neo4j.DriverWithContext, brokers []string, groupID string) *Consumer {
+func New(driver neo4j.DriverWithContext, projectID, subscriptionID string) (*Consumer, error) {
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Consumer{
-		driver:  driver,
-		brokers: brokers,
-		groupID: groupID,
-	}
+		driver:         driver,
+		client:         client,
+		subscriptionID: subscriptionID,
+	}, nil
 }
 
-// Start startet alle drei Topic-Consumer in eigenen Goroutinen.
-// Blockiert bis ctx cancelled wird.
 func (c *Consumer) Start(ctx context.Context) {
-	topics := []string{TopicTripCreated, TopicTripLiked, TopicTripCommented}
-	for _, topic := range topics {
-		go c.consume(ctx, topic)
-	}
-	<-ctx.Done()
-	log.Println("feed-generator: shutting down consumers")
-}
+	log.Printf("feed-generator: starting pubsub consumer for subscription %s", c.subscriptionID)
 
-func (c *Consumer) consume(ctx context.Context, topic string) {
-	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     c.brokers,
-		GroupID:     c.groupID,
-		Topic:       topic,
-		MinBytes:    1,
-		MaxBytes:    10e6,
-		StartOffset: kafka.FirstOffset, // ← hinzufügen
+	sub := c.client.Subscription(c.subscriptionID)
+
+	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+		eventType := msg.Attributes[AttrEventType]
+		log.Printf("feed-generator: received message with type %s", eventType)
+
+		if err := c.handle(ctx, eventType, msg.Data); err != nil {
+			log.Printf("feed-generator: error handling event %s: %v", eventType, err)
+			msg.Nack()
+			return
+		}
+
+		msg.Ack()
 	})
-	defer r.Close()
 
-	log.Printf("feed-generator: consuming topic %s", topic)
-
-	for {
-		msg, err := r.FetchMessage(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			log.Printf("feed-generator: error reading from %s: %v", topic, err)
-			continue
-		}
-		log.Printf("feed-generator: received message from %s: %s", topic, string(msg.Value))
-
-		if err := c.handle(ctx, topic, msg.Value); err != nil {
-			log.Printf("feed-generator: error handling message from %s: %v", topic, err)
-		}
-
-		r.CommitMessages(ctx, msg)
+	if err != nil && ctx.Err() == nil {
+		log.Fatalf("feed-generator: consumer runtime error: %v", err)
 	}
+
+	log.Println("feed-generator: shutting down consumer")
 }
 
-func (c *Consumer) handle(ctx context.Context, topic string, payload []byte) error {
-	switch topic {
-	case TopicTripCreated:
+func (c *Consumer) Close() error {
+	return c.client.Close()
+}
+
+func (c *Consumer) handle(ctx context.Context, eventType string, payload []byte) error {
+	switch eventType {
+	case EventTypeTripCreated:
 		var e TripCreatedEvent
 		if err := json.Unmarshal(payload, &e); err != nil {
 			return err
 		}
 		return c.onTripCreated(ctx, e)
 
-	case TopicTripLiked:
+	case EventTypeTripLiked:
 		var e TripLikedEvent
 		if err := json.Unmarshal(payload, &e); err != nil {
 			return err
 		}
 		return c.onTripLiked(ctx, e)
 
-	case TopicTripCommented:
+	case EventTypeTripCommented:
 		var e TripCommentedEvent
 		if err := json.Unmarshal(payload, &e); err != nil {
 			return err
 		}
 		return c.onTripCommented(ctx, e)
 	}
+
+	log.Printf("feed-generator: warn: unknown event type %s", eventType)
 	return nil
 }
 
 // ── Neo4j Writes ──────────────────────────────────────────────────────────────
 
-// onTripCreated schreibt:
-//
-//	(User {id, name}) -[:CREATED {createdAt}]-> (Trip {id, title, createdAt})
 func (c *Consumer) onTripCreated(ctx context.Context, e TripCreatedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
-		 SET u.name = $userName
-		 MERGE (t:Trip {id: $tripId})
-		 SET t.title = $title, t.createdAt = $createdAt
-		 MERGE (u)-[r:CREATED]->(t)
-		 SET r.createdAt = $createdAt`,
+        SET u.name = $userName
+        MERGE (t:Trip {id: $tripId})
+        SET t.title = $title, t.createdAt = $createdAt
+        MERGE (u)-[r:CREATED]->(t)
+        SET r.createdAt = $createdAt`,
 		map[string]any{
 			"userId":    e.UserID,
 			"userName":  e.UserName,
@@ -144,24 +136,15 @@ func (c *Consumer) onTripCreated(ctx context.Context, e TripCreatedEvent) error 
 		},
 		neo4j.EagerResultTransformer,
 	)
-	if err != nil {
-		return err
-	}
-	log.Printf("feed-generator: CREATED %s -> %s", e.UserID, e.TripID)
-	return nil
+	return err
 }
 
-// onTripLiked schreibt:
-//
-//	(User {id}) -[:LIKED {createdAt}]-> (Trip {id})
-//
-// MERGE auf Trip damit auch Likes ankommen bevor trip.created verarbeitet wurde.
 func (c *Consumer) onTripLiked(ctx context.Context, e TripLikedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
-		 MERGE (t:Trip {id: $tripId})
-		 MERGE (u)-[r:LIKED]->(t)
-		 SET r.createdAt = $createdAt`,
+        MERGE (t:Trip {id: $tripId})
+        MERGE (u)-[r:LIKED]->(t)
+        SET r.createdAt = $createdAt`,
 		map[string]any{
 			"userId":    e.UserID,
 			"tripId":    e.TripID,
@@ -169,22 +152,15 @@ func (c *Consumer) onTripLiked(ctx context.Context, e TripLikedEvent) error {
 		},
 		neo4j.EagerResultTransformer,
 	)
-	if err != nil {
-		return err
-	}
-	log.Printf("feed-generator: LIKED %s -> %s", e.UserID, e.TripID)
-	return nil
+	return err
 }
 
-// onTripCommented schreibt:
-//
-//	(User {id}) -[:COMMENTED {createdAt}]-> (Trip {id})
 func (c *Consumer) onTripCommented(ctx context.Context, e TripCommentedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
-		 MERGE (t:Trip {id: $tripId})
-		 MERGE (u)-[r:COMMENTED]->(t)
-		 SET r.createdAt = $createdAt`,
+        MERGE (t:Trip {id: $tripId})
+        MERGE (u)-[r:COMMENTED]->(t)
+        SET r.createdAt = $createdAt`,
 		map[string]any{
 			"userId":    e.UserID,
 			"tripId":    e.TripID,
@@ -192,9 +168,5 @@ func (c *Consumer) onTripCommented(ctx context.Context, e TripCommentedEvent) er
 		},
 		neo4j.EagerResultTransformer,
 	)
-	if err != nil {
-		return err
-	}
-	log.Printf("feed-generator: COMMENTED %s -> %s", e.UserID, e.TripID)
-	return nil
+	return err
 }

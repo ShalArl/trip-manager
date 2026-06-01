@@ -12,6 +12,14 @@ postgres:
 service:
   port: 5432
 
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
 persistence:
   enabled: false
   size: 1Gi

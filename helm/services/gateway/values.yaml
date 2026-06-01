@@ -44,7 +44,7 @@ routes:
     port: 8088
     path: /api/weather
     healthPath: /health
-  feedGenerator:
+  feed:
     service: feed
     port: 8089
     path: /api/feed

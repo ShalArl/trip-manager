@@ -1,10 +1,10 @@
 env:
   - name: PORT
     value: "8090"
-  - name: KAFKA_BROKERS
-    value: "kafka.trip-manager-prod.svc.cluster.local:9092"
-  - name: KAFKA_GROUP_ID
-    value: "feed-generator"
+  - name: GCP_PROJECT_ID
+    value: "project-32c60644-299b-4b05-8cf"
+  - name: PUBSUB_SUBSCRIPTION_ID
+    value: "trip-events-sub"
 
 externalSecrets:
   enabled: true

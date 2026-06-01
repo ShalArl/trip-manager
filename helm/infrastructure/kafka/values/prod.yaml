@@ -1,4 +1,0 @@
-kafka:
-  storage: 10Gi
-  auth:
-    enabled: false

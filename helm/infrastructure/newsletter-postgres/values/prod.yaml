@@ -3,8 +3,8 @@ postgres:
 
 persistence:
   enabled: true
-  size: 10Gi
-  storageClass: premium-rwo
+  size: 8Gi
+  storageClass: standard-rwo
 
 externalSecrets:
   enabled: true

@@ -19,7 +19,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/trips/internal/accommodation"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/transport"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/trip"
-	"github.com/ShalArl/trip-manager/backend/trips/kafka"
+	"github.com/ShalArl/trip-manager/backend/trips/pubsub"
 )
 
 func main() {
@@ -44,15 +44,23 @@ func main() {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 
-	// Kafka Producer
-	// KAFKA_BROKERS = "kafka:9092" (comma-separated falls mehrere)
-	var kafkaProducer *kafka.Producer
-	if brokers := cfg.KafkaBrokers; brokers != "" {
-		kafkaProducer = kafka.NewProducer(strings.Split(brokers, ","))
-		defer kafkaProducer.Close()
-		log.Printf("kafka producer connected to %s", brokers)
+	// PubSub Producer
+	var pubsubProducer *pubsub.Producer
+	if cfg.GCPProjectID != "" && cfg.PubSubTopicID != "" {
+		var err error
+		pubsubProducer, err = pubsub.NewProducer(cfg.GCPProjectID, cfg.PubSubTopicID)
+		if err != nil {
+			log.Fatalf("failed to initialize pubsub producer: %v", err)
+		}
+		defer func(pubsubProducer *pubsub.Producer) {
+			err := pubsubProducer.Close()
+			if err != nil {
+				log.Fatalf("failed to close pubsub producer: %v", err)
+			}
+		}(pubsubProducer)
+		log.Printf("Pub/Sub producer initialized for project %s on topic %s", cfg.GCPProjectID, cfg.PubSubTopicID)
 	} else {
-		log.Println("warn: KAFKA_BROKERS not set, trip.created events will not be published")
+		log.Println("warn: GCP_PROJECT_ID or PUBSUB_TOPIC_ID not set, trip.created events will not be published")
 	}
 
 	// Clients
@@ -88,7 +96,7 @@ func main() {
 
 	// Trips
 	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
-	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient, kafkaProducer)))
+	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient, pubsubProducer)))
 	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc, usersClient)))
