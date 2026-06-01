@@ -69,10 +69,10 @@ func main() {
 	})
 
 	// Globaler Feed – öffentlich, Gäste + eingeloggte User
-	mux.HandleFunc("GET /api/feed", optionalAuth(feed.GetGlobalFeedHandler(feedSvc)))
+	mux.HandleFunc("GET /", optionalAuth(feed.GetGlobalFeedHandler(feedSvc)))
 
 	// Personalisierter Feed – nur für eingeloggte User
-	mux.HandleFunc("GET /api/feed/personal", requireAuth(feed.GetPersonalFeedHandler(feedSvc)))
+	mux.HandleFunc("GET /personal", requireAuth(feed.GetPersonalFeedHandler(feedSvc)))
 
 	// Server
 	server := &http.Server{
