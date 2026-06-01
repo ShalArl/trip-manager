@@ -12,7 +12,11 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations", "travel-warning", "feed", "weather-info", "feed-generator"
+    "auth", "social", "presigner",
+    "users", "trips", "external-secrets",
+    "frontend", "locations", "travel-warning",
+    "feed", "weather-info", "feed-generator",
+    "newsletter", "newsletter-worker"
   ]
 }
 

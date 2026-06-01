@@ -1,0 +1,49 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+
+service:
+  port: 8084
+
+replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70
+  targetMemory: 80
+
+env:
+  - name: PORT
+    value: "8070"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: AUTH_SERVICE_URL
+    value: "http://auth.trip-manager.svc.cluster.local:8082"
+  - name: DATABASE_URL
+    value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+  - name: USERS_SERVICE_URL
+    value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+
+envFrom: []
+
+serviceAccount:
+  gcpServiceAccount: ""
+
+externalSecrets:
+  enabled: false
+  secrets: []
