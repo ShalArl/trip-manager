@@ -66,29 +66,33 @@ func (c *Consumer) Start(ctx context.Context) {
 
 func (c *Consumer) consume(ctx context.Context, topic string) {
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  c.brokers,
-		GroupID:  c.groupID,
-		Topic:    topic,
-		MinBytes: 1,
-		MaxBytes: 10e6,
+		Brokers:     c.brokers,
+		GroupID:     c.groupID,
+		Topic:       topic,
+		MinBytes:    1,
+		MaxBytes:    10e6,
+		StartOffset: kafka.FirstOffset, // ← hinzufügen
 	})
 	defer r.Close()
 
 	log.Printf("feed-generator: consuming topic %s", topic)
 
 	for {
-		msg, err := r.ReadMessage(ctx)
+		msg, err := r.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
-				return // context cancelled, normales Shutdown
+				return
 			}
 			log.Printf("feed-generator: error reading from %s: %v", topic, err)
 			continue
 		}
+		log.Printf("feed-generator: received message from %s: %s", topic, string(msg.Value))
 
 		if err := c.handle(ctx, topic, msg.Value); err != nil {
 			log.Printf("feed-generator: error handling message from %s: %v", topic, err)
 		}
+
+		r.CommitMessages(ctx, msg)
 	}
 }
 

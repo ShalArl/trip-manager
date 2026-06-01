@@ -34,7 +34,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("feed: failed to create neo4j driver: %v", err)
 	}
-	defer driver.Close(context.Background())
+	defer func(driver neo4j.DriverWithContext, ctx context.Context) {
+		err := driver.Close(ctx)
+		if err != nil {
+			log.Fatalf("feed: failed to close neo4j driver: %v", err)
+		}
+	}(driver, context.Background())
 
 	if err := driver.VerifyConnectivity(context.Background()); err != nil {
 		log.Fatalf("feed: neo4j not reachable: %v", err)
@@ -47,6 +52,7 @@ func main() {
 
 	// Auth
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
+	requireAuth := authclient.RequireAuth(authClient)
 	optionalAuth := authclient.OptionalAuth(authClient)
 
 	// Router
@@ -55,11 +61,18 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			log.Printf("feed: failed to write health response: %v", err)
+			return
+		}
 	})
 
-	// Feed ist öffentlich (optionalAuth damit man später hasLiked einbauen kann)
-	mux.HandleFunc("GET /api/feed", optionalAuth(feed.GetFeedHandler(feedSvc)))
+	// Globaler Feed – öffentlich, Gäste + eingeloggte User
+	mux.HandleFunc("GET /api/feed", optionalAuth(feed.GetGlobalFeedHandler(feedSvc)))
+
+	// Personalisierter Feed – nur für eingeloggte User
+	mux.HandleFunc("GET /api/feed/personal", requireAuth(feed.GetPersonalFeedHandler(feedSvc)))
 
 	// Server
 	server := &http.Server{

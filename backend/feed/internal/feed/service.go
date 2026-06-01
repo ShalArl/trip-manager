@@ -1,9 +1,14 @@
 package feed
 
-import "context"
+import (
+	"context"
+
+	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
+)
 
 type Service interface {
-	GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error)
+	GetGlobalFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error)
+	GetPersonalizedFeed(ctx context.Context, userID string, limit, offset int) ([]generated.FeedTrip, int, error)
 }
 
 type service struct {
@@ -14,7 +19,17 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, int, error) {
+func (s *service) GetGlobalFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error) {
+	limit, offset = clamp(limit, offset)
+	return s.repo.GetFeed(ctx, limit, offset)
+}
+
+func (s *service) GetPersonalizedFeed(ctx context.Context, userID string, limit, offset int) ([]generated.FeedTrip, int, error) {
+	limit, offset = clamp(limit, offset)
+	return s.repo.GetPersonalizedFeed(ctx, userID, limit, offset)
+}
+
+func clamp(limit, offset int) (int, int) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -24,5 +39,5 @@ func (s *service) GetFeed(ctx context.Context, limit, offset int) ([]FeedTrip, i
 	if offset < 0 {
 		offset = 0
 	}
-	return s.repo.GetFeed(ctx, limit, offset)
+	return limit, offset
 }
