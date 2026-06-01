@@ -1,4 +1,4 @@
-BASE_URL ?= https://hetzner.neatnode.xyz
+BASE_URL ?= https://api.neatnode.xyz/api
 USERS ?= 10
 SPAWN_RATE ?= 10
 RUN_TIME ?= 5m

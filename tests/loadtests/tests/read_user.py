@@ -1,84 +1,92 @@
 import random
 
 from locust import task, between
-from tests.base import BaseUser
+from tests.base import BaseUser, with_auth
 
 from seeding.generators import generate_city
 
 
 class ReadUser(BaseUser):
-    weight = 70
+    weight = 75
     wait_time = between(1, 3)
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.trip_ids: list[str] = []
         self.location_ids: dict[str, list[str]] = {}
-        self.activity_ids: dict[str, dict[str, list[str]]] = {}
 
     def on_start(self):
         super().on_start()
+        # Lade existierende Trips beim Start
+        resp = self.client.get("/trips")
+        if resp.status_code == 200:
+            trips = resp.json()
+            if isinstance(trips, list):
+                self.trip_ids = [t["id"] for t in trips]
+            elif isinstance(trips, dict) and "data" in trips:
+                self.trip_ids = [t["id"] for t in trips["data"]]
 
-        for trip_id in self.trip_ids:
+        for trip_id in self.trip_ids[:5]:  # nur erste 5 um on_start nicht zu verlangsamen
             loc_resp = self.client.get(f"/trips/{trip_id}/locations")
-            if loc_resp.status_code != 200:
-                continue
+            if loc_resp.status_code == 200:
+                locs = loc_resp.json()
+                if isinstance(locs, list):
+                    self.location_ids[trip_id] = [l["id"] for l in locs]
+                elif isinstance(locs, dict) and "data" in locs:
+                    self.location_ids[trip_id] = [l["id"] for l in locs["data"]]
 
-            location_ids = [l["id"] for l in loc_resp.json()]
-            self.location_ids[trip_id] = location_ids
-
-            self.activity_ids[trip_id] = {}
-            for location_id in location_ids:
-                act_resp = self.client.get(f"/trips/{trip_id}/locations/{location_id}/activities")
-                if act_resp.status_code == 200:
-                    self.activity_ids[trip_id][location_id] = [a["id"] for a in act_resp.json()]
-
-    @task
+    @task(3)
     def get_trips(self):
         self.client.get("/trips")
 
-    @task
+    @task(2)
+    def get_recent_trips(self):
+        self.client.get("/trips/recent")
+
+    @task(2)
     def get_trip_details(self):
         if not self.trip_ids:
             return
         trip_id = random.choice(self.trip_ids)
         self.client.get(f"/trips/{trip_id}")
 
-    @task
+    @task(2)
     def get_locations(self):
         if not self.trip_ids:
             return
         trip_id = random.choice(self.trip_ids)
         self.client.get(f"/trips/{trip_id}/locations")
 
-    @task
-    def get_activities(self):
-        if not self.trip_ids:
-            return
-        trip_id = random.choice(self.trip_ids)
-        location_ids = self.location_ids.get(trip_id, [])
-        if not location_ids:
-            return
-        location_id = random.choice(location_ids)
-        self.client.get(f"/trips/{trip_id}/locations/{location_id}/activities")
-
-    @task
+    @task(1)
     def read_comments(self):
         if not self.trip_ids:
             return
         trip_id = random.choice(self.trip_ids)
-        self.client.get(f"/trips/{trip_id}/comments")
+        self.client.get(f"/social/{trip_id}/comments")
 
-    @task
+    @task(1)
     def read_likes(self):
         if not self.trip_ids:
             return
         trip_id = random.choice(self.trip_ids)
-        self.client.get(f"/trips/{trip_id}/likes")
+        self.client.get(f"/social/{trip_id}/likes")
 
-    @task
+    @task(2)
     def search_trips(self):
         city = generate_city()
         limit = random.randint(10, 50)
         self.client.get(f"/trips/search?q={city}&limit={limit}&offset=0")
+
+    @task(1)
+    def get_feed(self):
+        self.client.get("/feed")
+
+    @task(1)
+    @with_auth
+    def get_personal_feed(self):
+        self.client.get("/feed/personal")
+
+    @task(1)
+    @with_auth
+    def get_newsletter(self):
+        self.client.get("/newsletter")

@@ -94,6 +94,7 @@ def generate_location() -> dict:
         end_date=start_date + timedelta(days=10),
     )
     return {
+        "title": fake.sentence(nb_words=3),  # ← neu
         "city": fake.city(),
         "country": fake.country(),
         "shortDescription": fake.sentence(nb_words=6),

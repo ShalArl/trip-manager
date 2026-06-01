@@ -23,7 +23,8 @@ def init_firebase():
             credentials.ApplicationDefault(),
             {
                 "projectId": FIREBASE_PROJECT_ID,
-                "serviceAccountId": f"trip-manager-runtime@{FIREBASE_PROJECT_ID}.iam.gserviceaccount.com",
+                #"serviceAccountId": f"trip-manager-runtime@{FIREBASE_PROJECT_ID}.iam.gserviceaccount.com",
+                "serviceAccountId": f"firebase-adminsdk-fbsvc@{FIREBASE_PROJECT_ID}.iam.gserviceaccount.com"
             },
         )
 
@@ -122,6 +123,8 @@ async def get_id_token_for_uid(client: httpx.AsyncClient, uid: str) -> dict | No
 
 
 async def provision_backend_user(client: httpx.AsyncClient, id_token: str, name: str) -> bool:
+    url = f"{BASE_URL}/api/users/provision"
+    #print(f"[DEBUG] Calling: {url}")  # ← neu
     try:
         resp = await client.post(
             f"{BASE_URL}/api/users/provision",
