@@ -27,7 +27,14 @@ COPY trips/go.mod trips/go.mod
 COPY trips/go.sum trips/go.sum
 COPY locations/go.mod locations/go.mod
 COPY locations/go.sum locations/go.sum
-
+COPY feed/go.mod feed/go.mod
+COPY feed/go.sum feed/go.sum
+COPY feed-generator/go.mod feed-generator/go.mod
+COPY feed-generator/go.sum feed-generator/go.sum
+COPY newsletter/go.mod newsletter/go.mod
+COPY newsletter/go.sum newsletter/go.sum
+COPY newsletter-worker/go.mod newsletter-worker/go.mod
+COPY newsletter-worker/go.sum newsletter-worker/go.sum
 
 RUN go work sync
 

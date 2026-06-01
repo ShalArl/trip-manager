@@ -791,6 +791,30 @@ paths:
           description: Forbidden
         '404':
           description: Comment not found
+  /feed:
+    get:
+      summary: Get activity feed
+      operationId: getFeed
+      tags:
+        - feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedResponse'
   /uploads/presigned:
     post:
       summary: Get a presigned URL for direct file upload
@@ -820,6 +844,37 @@ paths:
           description: Unauthorized
         '500':
           description: Failed to generate presigned URL
+  /newsletter:
+    get:
+      summary: Get personalized newsletter
+      description: |
+        Returns a personalized newsletter for the authenticated user.
+        Based on trips from travellers the user has interacted with.
+        Requires authentication.
+      operationId: getNewsletter
+      tags:
+        - newsletter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Personalized newsletter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsletterResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     UserResponse:
@@ -1487,6 +1542,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TripCommentResponse'
+    FeedTrip:
+      type: object
+      required:
+        - tripId
+        - title
+        - createdAt
+        - creatorId
+        - likes
+        - comments
+        - score
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        creatorId:
+          type: string
+          format: uuid
+        likes:
+          type: integer
+          format: int64
+        comments:
+          type: integer
+          format: int64
+        score:
+          type: number
+          format: float
+    FeedResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedTrip'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
     PresignedURLRequest:
       description: Request for a presigned URL to upload files directly to S3/MinIO
       type: object
@@ -1527,6 +1631,79 @@ components:
             minutes)
           example: 900
         key:
+          type: string
+    NewsletterTrip:
+      type: object
+      required:
+        - tripId
+        - title
+        - creatorId
+        - creatorName
+        - relevanceReason
+        - createdAt
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        destination:
+          type: string
+        coverImageUrl:
+          type: string
+        creatorId:
+          type: string
+        creatorName:
+          type: string
+        likeCount:
+          type: integer
+        commentCount:
+          type: integer
+        relevanceReason:
+          type: string
+          description: Why this trip is relevant for the user
+          enum:
+            - creator_you_follow
+            - liked_by_similar_users
+            - trending_in_network
+        createdAt:
+          type: string
+          format: date-time
+    NewsletterSection:
+      type: object
+      required:
+        - title
+        - trips
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsletterTrip'
+    NewsletterResponse:
+      type: object
+      required:
+        - sections
+        - generatedAt
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewsletterSection'
+        generatedAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
           type: string
           description: Object key to reference this upload in subsequent requests
   securitySchemes:

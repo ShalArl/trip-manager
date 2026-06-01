@@ -2,27 +2,60 @@ package feed
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
+
+	generated "github.com/ShalArl/trip-manager/backend/feed/generated"
+	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 )
 
-func GetFeedHandler(svc Service) http.HandlerFunc {
+// GetGlobalFeedHandler – HackerNews Score, kein Auth nötig
+func GetGlobalFeedHandler(svc Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := queryInt(r, "limit", 20)
 		offset := queryInt(r, "offset", 0)
 
-		trips, total, err := svc.GetFeed(r.Context(), limit, offset)
+		trips, total, err := svc.GetGlobalFeed(r.Context(), limit, offset)
 		if err != nil {
+			log.Printf("feed: error getting global feed: %v", err)
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// Leere Liste statt null
 		if trips == nil {
-			trips = []FeedTrip{}
+			trips = []generated.FeedTrip{}
 		}
 
-		respondJSON(w, http.StatusOK, FeedResponse{
+		respondJSON(w, http.StatusOK, generated.FeedResponse{
+			Data:   trips,
+			Total:  total,
+			Limit:  limit,
+			Offset: offset,
+		})
+	}
+}
+
+// GetPersonalFeedHandler – rein personalisierter Feed, requireAuth in main.go
+func GetPersonalFeedHandler(svc Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit := queryInt(r, "limit", 20)
+		offset := queryInt(r, "offset", 0)
+
+		userID, _ := authclient.GetUserID(r)
+
+		trips, total, err := svc.GetPersonalizedFeed(r.Context(), userID, limit, offset)
+		if err != nil {
+			log.Printf("feed: error getting personalized feed for user %s: %v", userID, err)
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if trips == nil {
+			trips = []generated.FeedTrip{}
+		}
+
+		respondJSON(w, http.StatusOK, generated.FeedResponse{
 			Data:   trips,
 			Total:  total,
 			Limit:  limit,
@@ -36,7 +69,10 @@ func GetFeedHandler(svc Service) http.HandlerFunc {
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		return
+	}
 }
 
 func respondError(w http.ResponseWriter, status int, msg string) {

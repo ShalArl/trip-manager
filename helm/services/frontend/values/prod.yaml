@@ -2,8 +2,8 @@ replicaCount: 2
 
 hpa:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 1
+  maxReplicas: 3
 
 resources:
   requests:

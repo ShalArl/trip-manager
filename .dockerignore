@@ -5,6 +5,9 @@ build/
 .next/
 .turbo/
 .git/
+frontend/node_modules/
+frontend/.next/
+backend/*/vendor/
 
 # Git
 .gitignore
