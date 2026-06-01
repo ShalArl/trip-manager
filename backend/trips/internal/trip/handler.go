@@ -13,7 +13,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
-	"github.com/ShalArl/trip-manager/backend/trips/kafka"
+	"github.com/ShalArl/trip-manager/backend/trips/pubsub"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -224,7 +224,7 @@ func GetTripHandler(svc Service, usersClient *userclient.UsersClient) http.Handl
 	}
 }
 
-func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, producer *kafka.Producer) http.HandlerFunc {
+func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, producer *pubsub.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {
@@ -264,9 +264,9 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, produce
 			return
 		}
 
-		// Kafka Event – fire-and-forget, Fehler nur loggen
+		// PubSub Event – fire-and-forget, Fehler nur loggen
 		if producer != nil {
-			if err := producer.PublishTripCreated(r.Context(), kafka.TripCreatedEvent{
+			if err := producer.PublishTripCreated(r.Context(), pubsub.TripCreatedEvent{
 				TripID:    trip.ID,
 				UserID:    user.ID,
 				UserName:  user.Name,

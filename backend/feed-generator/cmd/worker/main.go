@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/ShalArl/trip-manager/backend/feed-generator/config"
@@ -36,7 +35,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("feed-generator: failed to create neo4j driver: %v", err)
 	}
-	defer driver.Close(context.Background())
+	defer func(driver neo4j.DriverWithContext, ctx context.Context) {
+		err := driver.Close(ctx)
+		if err != nil {
+			log.Printf("feed-generator: failed to close neo4j driver: %v", err)
+		}
+	}(driver, context.Background())
 
 	// Verbindung testen
 	if err := driver.VerifyConnectivity(context.Background()); err != nil {
@@ -49,8 +53,16 @@ func main() {
 		log.Fatalf("feed-generator: failed to setup neo4j schema: %v", err)
 	}
 
-	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	c := consumer.New(driver, brokers, cfg.KafkaGroupID)
+	c, err := consumer.New(driver, cfg.GCPProjectID, cfg.PubSubSubscription)
+	if err != nil {
+		log.Fatalf("failed to initialize pubsub consumer: %v", err)
+	}
+	defer func(c *consumer.Consumer) {
+		err := c.Close()
+		if err != nil {
+			log.Printf("feed-generator: failed to close pubsub consumer: %v", err)
+		}
+	}(c)
 
 	// Context mit Graceful Shutdown
 	ctx, cancel := context.WithCancel(context.Background())

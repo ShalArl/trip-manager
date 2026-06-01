@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/social/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
 	"github.com/ShalArl/trip-manager/backend/social/internal/like"
-	"github.com/ShalArl/trip-manager/backend/social/kafka"
+	"github.com/ShalArl/trip-manager/backend/social/pubsub"
 )
 
 func main() {
@@ -43,14 +42,23 @@ func main() {
 		}
 	}(firestoreClient)
 
-	// Kafka Producer
-	var kafkaProducer *kafka.Producer
-	if brokers := cfg.KafkaBrokers; brokers != "" {
-		kafkaProducer = kafka.NewProducer(strings.Split(brokers, ","))
-		defer kafkaProducer.Close()
-		log.Printf("kafka producer connected to %s", brokers)
+	// PubSub Producer
+	var pubsubProducer *pubsub.Producer
+	if cfg.GCPProjectID != "" && cfg.PubSubTopicID != "" {
+		var err error
+		pubsubProducer, err = pubsub.NewProducer(cfg.GCPProjectID, cfg.PubSubTopicID)
+		if err != nil {
+			log.Fatalf("failed to initialize pubsub producer: %v", err)
+		}
+		defer func(pubsubProducer *pubsub.Producer) {
+			err := pubsubProducer.Close()
+			if err != nil {
+				log.Fatalf("failed to close pubsub producer: %v", err)
+			}
+		}(pubsubProducer)
+		log.Printf("Pub/Sub producer initialized for project %s on topic %s", cfg.GCPProjectID, cfg.PubSubTopicID)
 	} else {
-		log.Println("warn: KAFKA_BROKERS not set, trip.liked/commented events will not be published")
+		log.Println("warn: GCP_PROJECT_ID or PUBSUB_TOPIC_ID not set, trip.liked/commented events will not be published")
 	}
 
 	authClient := authclient.NewClient(cfg.AuthClientConnectionString)
@@ -66,12 +74,12 @@ func main() {
 
 	// Like endpoints
 	mux.HandleFunc("GET /{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	mux.HandleFunc("POST /{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService, kafkaProducer)))
+	mux.HandleFunc("POST /{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService, pubsubProducer)))
 	mux.HandleFunc("DELETE /{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
 
 	// Comment endpoints
 	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService, usersClient))
-	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient, kafkaProducer)))
+	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient, pubsubProducer)))
 	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
 
 	// Health check

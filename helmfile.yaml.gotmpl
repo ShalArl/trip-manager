@@ -79,14 +79,6 @@ releases:
       - helm/infrastructure/neo4j/values.yaml
       - helm/infrastructure/neo4j/values/{{ .Environment.Name }}.yaml
 
-  - name: kafka
-    namespace: trip-manager-{{ .Environment.Name }}
-    createNamespace: true
-    chart: ./helm/infrastructure/kafka
-    values:
-      - helm/infrastructure/kafka/values.yaml
-      - helm/infrastructure/kafka/values/{{ .Environment.Name }}.yaml
-
   - name: minio
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
@@ -170,7 +162,6 @@ releases:
       - external-secrets/external-secrets
       - trip-manager-{{ .Environment.Name }}/cluster-config
       {{- end }}
-      - trip-manager-{{ .Environment.Name }}/kafka
       - trip-manager-{{ .Environment.Name }}/neo4j
 
   - name: feed-generator
@@ -189,7 +180,6 @@ releases:
       - external-secrets/external-secrets
       - trip-manager-{{ .Environment.Name }}/cluster-config
       {{- end }}
-      - trip-manager-{{ .Environment.Name }}/kafka
       - trip-manager-{{ .Environment.Name }}/neo4j
 
   - name: presigner

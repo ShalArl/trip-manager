@@ -1,7 +1,0 @@
-kafka:
-  image:
-    repository: apache/kafka
-    tag: "3.7.0"
-  storage: 8Gi
-  auth:
-    enabled: false
