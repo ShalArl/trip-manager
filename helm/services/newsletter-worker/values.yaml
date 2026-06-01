@@ -35,14 +35,6 @@ env:
   - name: RUN_MODE
     value: "oneshot"
 
-  UsersDBURL      string
-  NewsletterDBURL string
-  Neo4jURI        string
-  Neo4jUser       string
-  Neo4jPassword   string
-  CronSchedule    string
-  RunMode         string
-
 envFrom: []
 
 serviceAccount:
