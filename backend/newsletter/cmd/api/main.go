@@ -12,6 +12,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/newsletter"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -40,6 +41,9 @@ func getEnv(key, fallback string) string {
 func main() {
 	cfg := loadConfig()
 
+	corsCongig := middleware.DefaultCORSConfig()
+	corsCongig.AllowedOrigins = []string{"https://www.neatnode.xyz", "https://neatnode.xyz"}
+
 	db, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
 	if err != nil {
 		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)
@@ -61,11 +65,11 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	mux.HandleFunc("GET /api/newsletter", requireAuth(newsletter.GetNewsletterHandler(svc)))
+	mux.HandleFunc("GET /", requireAuth(newsletter.GetNewsletterHandler(svc)))
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: middleware.CORS(corsCongig)(mux),
 	}
 
 	go func() {

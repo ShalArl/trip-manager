@@ -49,6 +49,11 @@ routes:
     port: 8089
     path: /api/feed
     healthPath: /health
+  newsletter:
+    service: newsletter
+    port: 8090
+    path: /api/newsletter
+    healthPath: /health
 
 
   frontend:
