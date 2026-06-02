@@ -14,8 +14,6 @@ repositories:
     url: https://charts.external-secrets.io
   - name: ingress-nginx
     url: https://kubernetes.github.io/ingress-nginx
-  - name: bitnami
-    url: https://charts.bitnami.com/bitnami
 
 helmDefaults:
   wait: true
@@ -23,7 +21,6 @@ helmDefaults:
   cleanupOnFail: true
 
 releases:
-  # Cluster-wide resources
   - name: external-secrets
     namespace: external-secrets
     chart: external-secrets/external-secrets
@@ -50,7 +47,6 @@ releases:
               http: 30080
               https: 30443
 
-
   - name: cluster-config
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
@@ -64,13 +60,17 @@ releases:
 
   # Infrastructure
 
-
   - name: redis
     namespace: trip-manager-{{ .Environment.Name }}
     chart: helm/infrastructure/redis
     values:
       - helm/infrastructure/redis/values.yaml
       - helm/infrastructure/redis/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: neo4j
     namespace: trip-manager-{{ .Environment.Name }}
@@ -78,6 +78,11 @@ releases:
     values:
       - helm/infrastructure/neo4j/values.yaml
       - helm/infrastructure/neo4j/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: minio
     namespace: trip-manager-{{ .Environment.Name }}
@@ -102,6 +107,11 @@ releases:
     values:
       - helm/infrastructure/users-postgres/values.yaml
       - helm/infrastructure/users-postgres/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: trips-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -110,6 +120,11 @@ releases:
     values:
       - helm/infrastructure/trips-postgres/values.yaml
       - helm/infrastructure/trips-postgres/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: locations-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -118,6 +133,11 @@ releases:
     values:
       - helm/infrastructure/locations-postgres/values.yaml
       - helm/infrastructure/locations-postgres/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: newsletter-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -126,6 +146,11 @@ releases:
     values:
       - helm/infrastructure/newsletter-postgres/values.yaml
       - helm/infrastructure/newsletter-postgres/values/{{ .Environment.Name }}.yaml
+    needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   # Services
 
@@ -141,10 +166,10 @@ releases:
       - name: image.tag
         value: "{{ .Values.imageTag }}"
     needs:
-       {{- if eq .Environment.Name "prod" }}
-       - external-secrets/external-secrets
-       - trip-manager-{{ .Environment.Name }}/cluster-config
-       {{- end }}
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
 
   - name: feed
     namespace: trip-manager-{{ .Environment.Name }}
@@ -211,6 +236,10 @@ releases:
       - name: image.tag
         value: "{{ .Values.imageTag }}"
     needs:
+      {{- if eq .Environment.Name "prod" }}
+      - external-secrets/external-secrets
+      - trip-manager-{{ .Environment.Name }}/cluster-config
+      {{- end }}
       - trip-manager-{{ .Environment.Name }}/auth
 
   - name: users
@@ -302,7 +331,6 @@ releases:
     needs:
       - trip-manager-{{ .Environment.Name }}/newsletter-postgres
 
-
   - name: newsletter-worker
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/newsletter-worker
@@ -317,6 +345,7 @@ releases:
     needs:
       - trip-manager-{{ .Environment.Name }}/newsletter-postgres
       - trip-manager-{{ .Environment.Name }}/neo4j
+    wait: false
 
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
@@ -335,7 +364,6 @@ releases:
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/auth
 
-
   # Gateway
   - name: gateway
     namespace: trip-manager-{{ .Environment.Name }}
@@ -351,4 +379,3 @@ releases:
       - trip-manager-{{ .Environment.Name }}/trips
       - trip-manager-{{ .Environment.Name }}/locations
       - trip-manager-{{ .Environment.Name }}/frontend
-

@@ -19,8 +19,8 @@ hpa:
 externalSecrets:
   enabled: true
   secrets:
-    - secretKey: DATABASE_URL
-      remoteKey: newsletter-database-url
+    - secretKey: NEWSLETTER_DB_URL
+      remoteKey: newsletter-postgres-url
 
 envFrom:
   - secretRef:

@@ -9,8 +9,8 @@ service:
 replicaCount: 1
 
 probes:
-  liveness: /health
-  readiness: /health
+  liveness: ""
+  readiness: ""
 
 resources:
   requests:

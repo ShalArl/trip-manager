@@ -33,6 +33,7 @@ spec:
     config:
       type: HTTP
       httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
         port: {{ .Values.service.port }}
         requestPath: {{ .Values.service.healthPath }}
   targetRef:

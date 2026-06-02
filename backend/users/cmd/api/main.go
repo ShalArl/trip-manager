@@ -31,10 +31,16 @@ func main() {
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
+
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxOpenConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(10 * time.Minute)
 
 	// Migrations
 	if err := database.RunMigrations(db); err != nil {
