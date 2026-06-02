@@ -1,0 +1,13 @@
+postgres:
+  password: ""
+
+persistence:
+  enabled: true
+  size: 8Gi
+  storageClass: standard-rwo
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: POSTGRES_PASSWORD
+      remoteKey: newsletter-postgres-password

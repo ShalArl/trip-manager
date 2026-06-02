@@ -1,0 +1,4 @@
+apiVersion: v2
+name: newsletter-postgres
+version: 0.1.0
+description: Postgres database for newsletter service

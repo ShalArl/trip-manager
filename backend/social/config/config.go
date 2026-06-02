@@ -16,6 +16,8 @@ type Config struct {
 	LogLevel                   string
 	AuthClientConnectionString string
 	UsersServiceURL            string
+	GCPProjectID               string
+	PubSubTopicID              string
 }
 
 func LoadConfig() *Config {
@@ -25,6 +27,8 @@ func LoadConfig() *Config {
 		LogLevel:                   getEnv("LOG_LEVEL", "info"),
 		AuthClientConnectionString: getEnv("AUTH_CLIENT_CONNECTION_STRING", ""),
 		UsersServiceURL:            getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
+		GCPProjectID:               getEnv("GCP_PROJECT_ID", ""),
+		PubSubTopicID:              getEnv("PUBSUB_TOPIC_ID", "trip-events"),
 	}
 }
 

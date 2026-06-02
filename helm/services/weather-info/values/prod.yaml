@@ -1,15 +1,16 @@
 replicaCount: 1
 
 service:
+  port: 8088
   healthPath: /health
 
 resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
   requests:
-    cpu: 100m
+    cpu: 50m
     memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
 
 env:
   - name: PORT

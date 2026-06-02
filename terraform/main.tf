@@ -8,6 +8,7 @@ resource "google_project_service" "apis" {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "certificatemanager.googleapis.com",
+    "pubsub.googleapis.com",
   ])
 
   project            = var.project_id
@@ -53,4 +54,12 @@ module "secrets" {
   secret_names  = keys(var.secrets)
   secret_values = var.secrets
   depends_on    = [google_project_service.apis]
+}
+
+module "pubsub" {
+  source     = "./modules/pubsub"
+  project_id = var.project_id
+  depends_on = [
+    google_project_service.apis
+  ]
 }

@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
+	"github.com/ShalArl/trip-manager/backend/trips/pubsub"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -67,7 +70,6 @@ func toResponse(t *Trip) generated.TripResponse {
 	}
 }
 
-// toStringPtr is the handler-local helper (toPtr in repository.go handles *string → string)
 func toStringPtr(s string) *string {
 	if s == "" {
 		return nil
@@ -222,7 +224,7 @@ func GetTripHandler(svc Service, usersClient *userclient.UsersClient) http.Handl
 	}
 }
 
-func CreateTripHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
+func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, producer *pubsub.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := getToken(r)
 		if token == "" {
@@ -261,6 +263,20 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient) http.Ha
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// PubSub Event – fire-and-forget, Fehler nur loggen
+		if producer != nil {
+			if err := producer.PublishTripCreated(r.Context(), pubsub.TripCreatedEvent{
+				TripID:    trip.ID,
+				UserID:    user.ID,
+				UserName:  user.Name,
+				Title:     trip.Title,
+				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("warn: failed to publish trip.created for trip %s: %v", trip.ID, err)
+			}
+		}
+
 		respondJSON(w, http.StatusCreated, toResponse(trip))
 	}
 }

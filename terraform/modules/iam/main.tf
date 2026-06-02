@@ -12,7 +12,11 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner", "users", "trips", "external-secrets", "frontend", "locations", "travel-warning"
+    "auth", "social", "presigner",
+    "users", "trips", "external-secrets",
+    "frontend", "locations", "travel-warning",
+    "feed", "weather-info", "feed-generator",
+    "newsletter", "newsletter-worker"
   ]
 }
 
@@ -71,7 +75,7 @@ resource "google_project_iam_member" "external_secrets_secretmanager" {
 
 resource "google_service_account_iam_member" "workload_identity" {
   for_each = toset([
-    "auth", "social", "presigner", "users", "trips"
+    "auth", "social", "presigner", "users", "trips", "newsletter-worker", "feed-generator"
   ])
   member             = "serviceAccount:${var.project_id}.svc.id.goog[trip-manager-prod/${each.value}]"
   role               = "roles/iam.workloadIdentityUser"
@@ -103,11 +107,11 @@ resource "google_iam_workload_identity_pool" "github" {
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
-  project                       = var.project_id
-  workload_identity_pool_id     = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-provider"
-  display_name                  = "GitHub Actions Provider"
-  description                   = "Workload Identity Provider for GitHub Actions"
+  display_name                       = "GitHub Actions Provider"
+  description                        = "Workload Identity Provider for GitHub Actions"
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -156,3 +160,29 @@ resource "google_project_iam_member" "ar_reader" {
   member  = "serviceAccount:${each.value}-sa@${var.project_id}.iam.gserviceaccount.com"
 }
 
+
+# Pub Sub # TODO: CHECK WITH ARLIND
+
+resource "google_project_iam_member" "trips_pubsub" {
+  project = var.project_id
+  role    = "roles/pubsub.editor"
+  member  = "serviceAccount:${google_service_account.services["trips"].email}"
+}
+
+resource "google_project_iam_member" "newsletter_pubsub" {
+  project = var.project_id
+  role    = "roles/pubsub.editor"
+  member  = "serviceAccount:${google_service_account.services["newsletter"].email}"
+}
+
+resource "google_project_iam_member" "newsletter_worker_pubsub" {
+  project = var.project_id
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${google_service_account.services["newsletter-worker"].email}"
+}
+
+resource "google_project_iam_member" "feed_worker_pub_sub" {
+  project = var.project_id
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${google_service_account.services["feed-generator"].email}"
+}

@@ -2,10 +2,13 @@ package like
 
 import (
 	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
+	"github.com/ShalArl/trip-manager/backend/social/pubsub"
 )
 
 // GetTripLikesHandler handles GET /trips/{tripId}/likes (optional authclient)
@@ -31,7 +34,8 @@ func GetTripLikesHandler(svc Service) http.HandlerFunc {
 }
 
 // LikeTripHandler handles POST /trips/{tripId}/likes (authclient required)
-func LikeTripHandler(svc Service) http.HandlerFunc {
+
+func LikeTripHandler(svc Service, producer *pubsub.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
@@ -55,6 +59,16 @@ func LikeTripHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
+		// Pub/Sub Event – fire-and-forget
+		if producer != nil {
+			if err := producer.PublishTripCommented(r.Context(), pubsub.TripCommentedEvent{
+				TripID:    tripID,
+				UserID:    userID, // Firebase UID
+				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("warn: failed to publish trip.commented for trip %s: %v", tripID, err)
+			}
+		}
 		w.WriteHeader(http.StatusCreated)
 	}
 }

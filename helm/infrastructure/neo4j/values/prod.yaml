@@ -1,0 +1,25 @@
+redis:
+  auth:
+    enabled: true
+    existingSecret: neo4j-secret
+    existingSecretPasswordKey: NEO4J_PASSWORD
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+
+env:
+  - name: NEO4J_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: neo4j-secret
+        key: NEO4J_PASSWORD
+  - name: NEO4J_AUTH
+    value: "neo4j/$(NEO4J_PASSWORD)"
+
+storage: 8Gi

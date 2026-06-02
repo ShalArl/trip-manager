@@ -115,6 +115,20 @@ spec:
       backendRefs:
         - name: {{ .Values.routes.weatherInfo.service }}
           port: {{ .Values.routes.weatherInfo.port }}
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/feed/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.feed.service }}
+          port: {{ .Values.routes.feed.port }}
 ---
 # Frontend Route
 apiVersion: gateway.networking.k8s.io/v1

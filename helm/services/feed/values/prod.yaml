@@ -1,0 +1,27 @@
+env:
+  - name: PORT
+    value: "8089"
+  - name: AUTH_CLIENT_CONNECTION_STRING
+    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
+  - name: NEO4J_URI
+    valueFrom:
+      secretKeyRef:
+        name: feed-secrets
+        key: NEO4J_URI
+
+externalSecrets:
+  enabled: true
+  secrets:
+    - secretKey: NEO4J_URI
+      remoteKey: neo4j-url
+    - secretKey: NEO4J_USERNAME
+      remoteKey: neo4j-username
+    - secretKey: NEO4J_PASSWORD
+      remoteKey: neo4j-password
+
+envFrom:
+  - secretRef:
+      name: feed-secrets
+
+serviceAccount:
+  gcpServiceAccount: "feed-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

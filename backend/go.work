@@ -12,4 +12,8 @@ use (
 	./trips
 	./users
 	./weather-info
+	./feed
+	./feed-generator
+	./newsletter
+	./newsletter-worker
 )

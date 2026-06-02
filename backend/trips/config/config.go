@@ -7,6 +7,8 @@ type Config struct {
 	DatabaseURL     string
 	AuthServiceURL  string
 	UsersServiceURL string
+	GCPProjectID    string
+	PubSubTopicID   string
 }
 
 func Load() *Config {
@@ -15,8 +17,11 @@ func Load() *Config {
 		DatabaseURL:     getEnv("DATABASE_URL", ""),
 		AuthServiceURL:  getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
 		UsersServiceURL: getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
+		GCPProjectID:    getEnv("GCP_PROJECT_ID", ""),
+		PubSubTopicID:   getEnv("PUBSUB_TOPIC_ID", "trip-events"),
 	}
 }
+
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val

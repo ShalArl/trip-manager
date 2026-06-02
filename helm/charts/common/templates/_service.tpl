@@ -19,23 +19,25 @@ spec:
   selector: {{- include "common.selectorLabels" . | nindent 4 }}
 {{- end }}
 
-{{- define "common.backendConfig" -}}
+{{- define "common.backendPolicy" -}}
 {{- if .Values.service.healthPath }}
 ---
-apiVersion: cloud.google.com/v1
-kind: BackendConfig
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
 metadata:
-  name: {{ include "common.fullname" . }}-backend-config
+  name: {{ include "common.fullname" . }}-hc-policy
   namespace: {{ .Release.Namespace }}
   labels: {{- include "common.labels" . | nindent 4 }}
 spec:
-  healthCheck:
-    checkIntervalSec: 15
-    timeoutSec: 5
-    healthyThreshold: 1
-    unhealthyThreshold: 2
-    type: HTTP
-    requestPath: {{ .Values.service.healthPath }}
-    port: {{ .Values.service.port }}
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: {{ .Values.service.port }}
+        requestPath: {{ .Values.service.healthPath }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ include "common.fullname" . }}
 {{- end }}
 {{- end }}

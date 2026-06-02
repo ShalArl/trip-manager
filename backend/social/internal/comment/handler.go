@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/ShalArl/trip-manager/backend/social/internal/shared"
+	"github.com/ShalArl/trip-manager/backend/social/pubsub"
 )
 
 func enrichCommentsWithUserInfo(ctx context.Context, comments []*CommentResponse, usersClient *userclient.UsersClient) {
@@ -88,7 +91,7 @@ func ListRepliesHandler(svc Service, userClient userclient.UsersClient) http.Han
 }
 
 // CreateTripCommentHandler handles POST /trips/{tripId}/comments (authclient required)
-func CreateTripCommentHandler(svc Service, usersClient *userclient.UsersClient) http.HandlerFunc {
+func CreateTripCommentHandler(svc Service, usersClient *userclient.UsersClient, producer *pubsub.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
 		if !ok {
@@ -123,6 +126,17 @@ func CreateTripCommentHandler(svc Service, usersClient *userclient.UsersClient) 
 			}
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		// Pub/Sub Event – fire-and-forget
+		if producer != nil {
+			if err := producer.PublishTripLiked(r.Context(), pubsub.TripLikedEvent{
+				TripID:    tripID,
+				UserID:    userID, // Firebase UID
+				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("warn: failed to publish trip.liked for trip %s: %v", tripID, err)
+			}
 		}
 
 		shared.RespondJSON(w, http.StatusCreated, resp)

@@ -1,0 +1,224 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream auth {
+        server auth:8082;
+    }
+    upstream users {
+        server users:8001;
+    }
+    upstream trips {
+        server trips:8002;
+    }
+    upstream social {
+        server social:8003;
+    }
+    upstream presigner {
+        server presigner:8004;
+    }
+    upstream locations {
+        server locations:8005;
+    }
+    upstream feed {
+        server feed:8007;
+    }
+
+    server {
+        listen 8000;
+
+        # Health
+        location /health {
+            add_header Content-Type application/json;
+            return 200 '{"status":"ok"}';
+        }
+
+        # Auth
+        location /api/auth/ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://auth;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Users ohne trailing slash
+        location = /api/users {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://users;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Users
+        location /api/users/ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://users;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Social - Likes (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/likes(/.*)?$ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://social;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Social - Comments (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/comments(/.*)?$ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://social;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Locations (MUSS vor /api/trips/ stehen!)
+        location ~ ^/api/trips/[^/]+/locations(/.*)?$ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://locations;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Trips ohne trailing slash
+        location = /api/trips {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://trips;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Trips
+        location /api/trips/ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://trips;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Presigner
+        location /api/uploads/ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://presigner;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Social (direkter Pfad)
+        location /api/social/ {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://social;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # Feed
+        location /api/feed {
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'http://localhost:3000';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type';
+                add_header 'Access-Control-Max-Age' 1728000;
+                return 204;
+            }
+            add_header 'Access-Control-Allow-Origin' 'http://localhost:3000' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+            proxy_pass http://feed;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}

@@ -1,0 +1,14 @@
+# helm/infrastructure/neo4j/templates/neo4j.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: neo4j
+  ports:
+    - name: bolt
+      port: 7687
+    - name: http
+      port: 7474
