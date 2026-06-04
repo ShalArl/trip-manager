@@ -7,6 +7,7 @@ use (
 	./shared/authclient
 	./shared/middleware
 	./shared/userclient
+	./shared/tenantdb
 	./social
 	./travel-warning
 	./trips
@@ -16,4 +17,5 @@ use (
 	./feed-generator
 	./newsletter
 	./newsletter-worker
+	shared/firebaseclient
 )

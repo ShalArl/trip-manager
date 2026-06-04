@@ -19,24 +19,34 @@ import (
 	"github.com/ShalArl/trip-manager/backend/trips/internal/transport"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/trip"
 	"github.com/ShalArl/trip-manager/backend/trips/pubsub"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
 	ctx := context.Background()
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("No allowed origin configured")
 	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database connection: %v", err)
+		}
+	}(db)
 
 	// Migrations
 	if err := database.RunMigrations(db); err != nil {

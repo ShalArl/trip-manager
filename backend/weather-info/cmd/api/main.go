@@ -50,7 +50,11 @@ func main() {
 
 	// CORS
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = cfg.CORSAllowedOrigins
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("No allowed origin configured")
+	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Server
 	server := &http.Server{

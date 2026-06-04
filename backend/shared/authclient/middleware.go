@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"tenantdb"
 )
 
 type contextKey string
@@ -43,6 +44,7 @@ func RequireAuth(client *Client) func(http.HandlerFunc) http.HandlerFunc {
 			ctx = context.WithValue(ctx, contextKeyUserClaims, result.Claims)
 			ctx = context.WithValue(ctx, contextKeyTenantID, tenantID)
 			ctx = context.WithValue(ctx, contextKeyUserRole, role)
+			ctx = tenantdb.WithTenantID(ctx, tenantID) // ← neu
 
 			next(w, r.WithContext(ctx))
 		}
@@ -109,7 +111,7 @@ func extractRole(claims map[string]interface{}) string {
 	if claims == nil {
 		return "tenant_member"
 	}
-	if v, ok := claims["tenant_id"].(string); ok && v != "" {
+	if v, ok := claims["role"].(string); ok && v != "" { // ← "role" statt "tenant_id"
 		return v
 	}
 	return "tenant_member"
@@ -134,7 +136,7 @@ func GetUserRole(r *http.Request) string {
 func RequireTenantAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		role := GetUserRole(r)
-		if role != "tenant_admin" && role != "platform_admin" {
+		if role != "tenant_admin" && role != "tenant_owner" && role != "platform_admin" {
 			respondError(w, http.StatusForbidden, "permission denied")
 			return
 		}

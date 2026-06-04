@@ -27,6 +27,10 @@ COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY shared/userclient/go.mod shared/userclient/go.mod
 COPY shared/userclient/go.sum shared/userclient/go.sum
+COPY shared/tenantdb/go.mod shared/tenantdb/go.mod
+COPY shared/tenantdb/go.sum shared/tenantdb/go.sum
+COPY shared/firebaseclient/go.mod shared/firebaseclient/go.mod
+COPY shared/firebaseclient/go.sum shared/firebaseclient/go.sum
 COPY feed/go.mod feed/go.mod
 COPY feed/go.sum feed/go.sum
 COPY feed-generator/go.mod feed-generator/go.mod

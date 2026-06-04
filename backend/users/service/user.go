@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 )
 
@@ -18,6 +19,8 @@ type User struct {
 	Bio         string
 	AvatarKey   string
 	FirebaseUID string
+	TenantID    string
+	Role        string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -26,6 +29,8 @@ type ProvisionInput struct {
 	FirebaseUID string
 	Email       string
 	Name        string
+	TenantID    string // optional, default "default"
+	Role        string // optional, default "tenant_member"
 }
 
 type UpdateInput struct {
@@ -48,11 +53,12 @@ type Service interface {
 // ── Implementation ────────────────────────────────────────────────────────────
 
 type serviceImpl struct {
-	repo repository.Repository
+	repo         repository.Repository
+	firebaseAuth *firebaseclient.Client
 }
 
-func NewService(repo repository.Repository) Service {
-	return &serviceImpl{repo: repo}
+func NewService(repo repository.Repository, firebaseAuth *firebaseclient.Client) Service {
+	return &serviceImpl{repo: repo, firebaseAuth: firebaseAuth}
 }
 
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*User, error) {
@@ -81,15 +87,40 @@ func (s *serviceImpl) Provision(ctx context.Context, input ProvisionInput) (*Use
 		return repoToService(existing), false, nil
 	}
 
+	// Defaults
+	tenantID := input.TenantID
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	role := input.Role
+	if role == "" {
+		role = "tenant_member"
+	}
+
 	// Create new user
 	created, err := s.repo.Create(ctx, &repository.User{
 		Email:       input.Email,
 		Name:        input.Name,
 		FirebaseUID: input.FirebaseUID,
+		TenantID:    tenantID,
+		Role:        role,
 	})
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Firebase Custom Claims setzen
+	if s.firebaseAuth != nil {
+		claims := map[string]interface{}{
+			"tenant_id": tenantID,
+			"role":      role,
+		}
+		if err := s.firebaseAuth.SetCustomClaims(ctx, input.FirebaseUID, claims); err != nil {
+			// Nicht fatal – User ist angelegt, Claims können nachträglich gesetzt werden
+			fmt.Printf("warn: failed to set firebase custom claims for %s: %v\n", input.FirebaseUID, err)
+		}
+	}
+
 	return repoToService(created), true, nil
 }
 
@@ -130,6 +161,8 @@ func repoToService(u *repository.User) *User {
 		Bio:         u.Bio,
 		AvatarKey:   u.AvatarKey,
 		FirebaseUID: u.FirebaseUID,
+		TenantID:    u.TenantID,
+		Role:        u.Role,
 		CreatedAt:   u.CreatedAt,
 		UpdatedAt:   u.UpdatedAt,
 	}

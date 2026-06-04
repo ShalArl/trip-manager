@@ -4,56 +4,48 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"cloud.google.com/go/firestore"
+	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/api/option"
 )
 
 type Config struct {
-	Port                       string
-	FirestoreProject           string
-	LogLevel                   string
-	AuthClientConnectionString string
-	UsersServiceURL            string
-	GCPProjectID               string
-	PubSubTopicID              string
+	Port                         string   `envconfig:"PORT" default:"8080"`
+	FirestoreProject             string   `envconfig:"FIRESTORE_PROJECT" required:"true"`
+	LogLevel                     string   `envconfig:"LOG_LEVEL" default:"info"`
+	AuthClientConnectionString   string   `envconfig:"AUTH_CLIENT_CONNECTION_STRING" required:"true"`
+	UsersServiceURL              string   `envconfig:"USERS_SERVICE_URL" required:"true"`
+	GCPProjectID                 string   `envconfig:"GCP_PROJECT_ID" required:"true"`
+	PubSubTopicID                string   `envconfig:"PUBSUB_TOPIC_ID" required:"true"`
+	FirestoreEmulatorHost        string   `envconfig:"FIRESTORE_EMULATOR_HOST" default:""`
+	GoogleApplicationCredentials string   `envconfig:"GOOGLE_APPLICATION_CREDENTIALS"`
+	CORSAllowedOrigins           []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 }
 
-func LoadConfig() *Config {
-	return &Config{
-		Port:                       getEnv("PORT", "8080"),
-		FirestoreProject:           getEnv("FIRESTORE_PROJECT_ID", "trip-manager-local"),
-		LogLevel:                   getEnv("LOG_LEVEL", "info"),
-		AuthClientConnectionString: getEnv("AUTH_CLIENT_CONNECTION_STRING", ""),
-		UsersServiceURL:            getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
-		GCPProjectID:               getEnv("GCP_PROJECT_ID", ""),
-		PubSubTopicID:              getEnv("PUBSUB_TOPIC_ID", "trip-events"),
+func LoadConfig() (*Config, error) {
+	var config Config
+	if err := envconfig.Process("", &config); err != nil {
+		return nil, err
 	}
+	return &config, nil
 }
 
-func ConnectFirestore(ctx context.Context, projectID string) (*firestore.Client, error) {
-	if projectID == "" {
+func ConnectFirestore(ctx context.Context, cfg Config) (*firestore.Client, error) {
+	if cfg.FirestoreProject == "" {
 		return nil, fmt.Errorf("firestore project id required")
 	}
 	var opts []option.ClientOption
-	if emuHost := os.Getenv("FIRESTORE_EMULATOR_HOST"); emuHost != "" {
-		log.Printf("Using Firestore Emulator: %s\n", emuHost)
+	if cfg.FirestoreEmulatorHost != "" {
+		log.Printf("Using Firestore Emulator")
 	}
-	if credFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); credFile != "" {
-		opts = append(opts, option.WithCredentialsFile(credFile))
+	if cfg.GoogleApplicationCredentials != "" {
+		opts = append(opts, option.WithCredentialsFile(cfg.GoogleApplicationCredentials))
 	}
-	client, err := firestore.NewClient(ctx, projectID, opts...)
+	client, err := firestore.NewClient(ctx, cfg.FirestoreProject, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to firestore: %w", err)
 	}
 	log.Println("Successfully connected to firestore")
 	return client, nil
-}
-
-func getEnv(key, defaultVal string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return defaultVal
 }

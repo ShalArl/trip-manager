@@ -1,28 +1,20 @@
 package config
 
-import "os"
+import "github.com/kelseyhightower/envconfig"
 
 type Config struct {
-	Port           string
-	AuthServiceURL string
-	Neo4jURI       string
-	Neo4jUser      string
-	Neo4jPassword  string
+	Port           string `envconfig:"PORT" default:"8007"`
+	AuthServiceURL string `envconfig:"AUTH_CLIENT_CONNECTION_STRING"`
+	Neo4jURI       string `envconfig:"NEO4J_URI"`
+	Neo4jUser      string `envconfig:"NEO4J_USERNAME"`
+	Neo4jPassword  string `envconfig:"NEO4J_PASSWORD"`
+	LogLevel       string `envconfig:"LOG_LEVEL"`
 }
 
-func Load() *Config {
-	return &Config{
-		Port:           getEnv("PORT", "8007"),
-		AuthServiceURL: getEnv("AUTH_CLIENT_CONNECTION_STRING", "http://localhost:8082"),
-		Neo4jURI:       getEnv("NEO4J_URI", "bolt://localhost:7687"),
-		Neo4jUser:      getEnv("NEO4J_USERNAME", "neo4j"),
-		Neo4jPassword:  getEnv("NEO4J_PASSWORD", "neo4jpassword"),
+func Load() (*Config, error) {
+	var config Config
+	if err := envconfig.Process("", &config); err != nil {
+		return nil, err
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
-	}
-	return fallback
+	return &config, nil
 }

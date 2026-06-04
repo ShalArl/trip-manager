@@ -11,12 +11,14 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -24,17 +26,23 @@ func main() {
 	cfg := config.Load()
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("No allowed origin configured")
 	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database connection: %v", err)
+		}
+	}(db)
 
 	// Migrations
 	if err := database.RunMigrations(db); err != nil {
@@ -44,9 +52,15 @@ func main() {
 	// Auth client
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 
+	// Firebase client
+	fbClient, err := firebaseclient.New(ctx, cfg.FirebaseProjectID)
+	if err != nil {
+		log.Fatalf("failed to init firebase client: %v", err)
+	}
+
 	// Wire up
 	repo := repository.NewRepository(db)
-	svc := service.NewService(repo)
+	svc := service.NewService(repo, fbClient)
 
 	// Middleware
 	requireAuth := authclient.RequireAuth(authClient)
@@ -56,8 +70,13 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			log.Printf("failed to write health response: %v", err)
+			return
+		}
 	})
+
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))

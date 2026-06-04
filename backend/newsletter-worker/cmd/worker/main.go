@@ -7,44 +7,40 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"tenantdb"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/robfig/cron/v3"
 )
 
 type config struct {
-	UsersDBURL      string
-	NewsletterDBURL string
-	Neo4jURI        string
-	Neo4jUser       string
-	Neo4jPassword   string
-	CronSchedule    string
-	RunMode         string
+	UsersDBURL      string `envconfig:"USERS_DB_URL"`
+	NewsletterDBURL string `envconfig:"NEWSLETTER_DB_URL"`
+	Neo4jURI        string `envconfig:"NEO4J_URI"`
+	Neo4jUser       string `envconfig:"NEO4J_USERNAME"`
+	Neo4jPassword   string `envconfig:"NEO4J_PASSWORD"`
+	CronSchedule    string `envconfig:"CRON_SCHEDULE"`
+	RunMode         string `envconfig:"RUN_MODE"`
+	LogLevel        string `envconfig:"LOG_LEVEL"`
 }
 
-func loadConfig() config {
-	return config{
-		UsersDBURL:      getEnv("USERS_DB_URL", "postgres://postgres:postgres@localhost:5432/users_db?sslmode=disable"),
-		NewsletterDBURL: getEnv("NEWSLETTER_DB_URL", "postgres://postgres:postgres@localhost:5432/newsletter_db?sslmode=disable"),
-		Neo4jURI:        getEnv("NEO4J_URI", "bolt://localhost:7687"),
-		Neo4jUser:       getEnv("NEO4J_USERNAME", "neo4j"),
-		Neo4jPassword:   getEnv("NEO4J_PASSWORD", "neo4jpassword"),
-		CronSchedule:    getEnv("CRON_SCHEDULE", "*/2 * * * *"),
-		RunMode:         getEnv("RUN_MODE", ""),
+func load() (*config, error) {
+	var config config
+	if err := envconfig.Process("", &config); err != nil {
+		return nil, err
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
+	return &config, nil
 }
 
 func main() {
-	cfg := loadConfig()
+	cfg, err := load()
+	if err != nil {
+		log.Printf("Failed to load config")
+
+	}
 
 	usersDB, err := sqlx.Connect("postgres", cfg.UsersDBURL)
 	if err != nil {
@@ -91,10 +87,14 @@ func main() {
 	runGeneration(usersDB, newsletterDB, neo4jDriver)
 
 	c := cron.New()
-	c.AddFunc(cfg.CronSchedule, func() {
+	_, err = c.AddFunc(cfg.CronSchedule, func() {
 		log.Println("newsletter-worker: cron triggered, generating newsletters...")
 		runGeneration(usersDB, newsletterDB, neo4jDriver)
 	})
+	if err != nil {
+		log.Printf("newsletter-worker: failed to add cron job: %v", err)
+		return
+	}
 	c.Start()
 	log.Printf("newsletter-worker: cron started with schedule '%s'", cfg.CronSchedule)
 
@@ -108,10 +108,23 @@ func main() {
 func migrate(db *sqlx.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS newsletters (
-			firebase_uid TEXT PRIMARY KEY,
-			content      JSONB NOT NULL,
-			generated_at TIMESTAMP NOT NULL DEFAULT NOW()
-		)
+			firebase_uid TEXT         NOT NULL,
+			tenant_id    VARCHAR(255) NOT NULL DEFAULT 'default',
+			content      JSONB        NOT NULL,
+			generated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+			PRIMARY KEY (firebase_uid, tenant_id)
+		);
+		CREATE INDEX IF NOT EXISTS idx_newsletters_tenant_id ON newsletters(tenant_id);
+		ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
+		DO $$ BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_policies 
+				WHERE tablename = 'newsletters' AND policyname = 'tenant_isolation_newsletters'
+			) THEN
+				CREATE POLICY tenant_isolation_newsletters ON newsletters
+					USING (tenant_id = current_setting('app.tenant_id', true));
+			END IF;
+		END $$;
 	`)
 	return err
 }
@@ -119,35 +132,43 @@ func migrate(db *sqlx.DB) error {
 func runGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverWithContext) {
 	ctx := context.Background()
 
-	var uids []string
-	if err := usersDB.SelectContext(ctx, &uids, `SELECT firebase_uid FROM users`); err != nil {
+	var users []struct {
+		FirebaseUID string `db:"firebase_uid"`
+		TenantID    string `db:"tenant_id"`
+	}
+	if err := usersDB.SelectContext(ctx, &users, `SELECT firebase_uid, tenant_id FROM users`); err != nil {
 		log.Printf("newsletter-worker: failed to fetch users: %v", err)
 		return
 	}
-	log.Printf("newsletter-worker: generating for %d users", len(uids))
+	log.Printf("newsletter-worker: generating for %d users", len(users))
 
-	for _, uid := range uids {
-		sections, err := generateForUser(ctx, driver, uid)
+	for _, u := range users {
+		tenantCtx := tenantdb.WithTenantID(ctx, u.TenantID)
+
+		sections, err := generateForUser(tenantCtx, driver, u.FirebaseUID)
 		if err != nil {
-			log.Printf("newsletter-worker: error for user %s: %v", uid, err)
+			log.Printf("newsletter-worker: error for user %s: %v", u.FirebaseUID, err)
 			continue
 		}
 
 		content, err := json.Marshal(sections)
 		if err != nil {
-			log.Printf("newsletter-worker: marshal error for user %s: %v", uid, err)
+			log.Printf("newsletter-worker: marshal error for user %s: %v", u.FirebaseUID, err)
 			continue
 		}
 
-		_, err = newsletterDB.ExecContext(ctx, `
-			INSERT INTO newsletters (firebase_uid, content, generated_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (firebase_uid) DO UPDATE
-			SET content = EXCLUDED.content,
-			    generated_at = EXCLUDED.generated_at
-		`, uid, content)
+		err = tenantdb.WithTenant(tenantCtx, newsletterDB, func(tx *sqlx.Tx) error {
+			_, err := tx.ExecContext(tenantCtx, `
+				INSERT INTO newsletters (firebase_uid, tenant_id, content, generated_at)
+				VALUES ($1, $2, $3, NOW())
+				ON CONFLICT (firebase_uid, tenant_id) DO UPDATE
+				SET content = EXCLUDED.content,
+				    generated_at = EXCLUDED.generated_at
+			`, u.FirebaseUID, u.TenantID, content)
+			return err
+		})
 		if err != nil {
-			log.Printf("newsletter-worker: db write error for user %s: %v", uid, err)
+			log.Printf("newsletter-worker: db write error for user %s: %v", u.FirebaseUID, err)
 			continue
 		}
 	}

@@ -15,7 +15,7 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT 'default'
         REFERENCES tenants(id),
     ADD COLUMN IF NOT EXISTS role VARCHAR(50) NOT NULL DEFAULT 'tenant_member'
-        CHECK (role IN ('platform_admin', 'tenant_admin', 'tenant_member'));
+        CHECK (role IN ('platform_admin', 'tenant_owner', 'tenant_admin', 'tenant_member'));
 
 CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
 

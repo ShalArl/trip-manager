@@ -14,41 +14,44 @@ import (
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/jmoiron/sqlx"
+	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 )
 
 type config struct {
-	Port            string
-	NewsletterDBURL string
-	AuthServiceURL  string
+	Port            string `envconfig:"PORT" default:"8008"`
+	NewsletterDBURL string `envconfig:"NEWSLETTER_DB_URL"`
+	AuthServiceURL  string `envconfig:"AUTH_SERVICE_URL"`
+	LogLevel        string `envconfig:"LOG_LEVEL"`
 }
 
-func loadConfig() config {
-	return config{
-		Port:            getEnv("PORT", "8008"),
-		NewsletterDBURL: getEnv("NEWSLETTER_DB_URL", "postgres://postgres:postgres@localhost:5432/newsletter_db?sslmode=disable"),
-		AuthServiceURL:  getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
+func load() (*config, error) {
+	var config config
+	if err := envconfig.Process("", &config); err != nil {
+		return nil, err
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
+	return &config, nil
 }
 
 func main() {
-	cfg := loadConfig()
+	cfg, err := load()
+	if err != nil {
+		log.Printf("Failed to load config")
+	}
 
-	corsCongig := middleware.DefaultCORSConfig()
-	corsCongig.AllowedOrigins = []string{"https://www.neatnode.xyz", "https://neatnode.xyz"}
+	corsConfig := middleware.DefaultCORSConfig()
+	corsConfig.AllowedOrigins = []string{"https://www.neatnode.xyz", "https://neatnode.xyz"}
 
 	db, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
 	if err != nil {
 		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("newsletter: failed to close db: %v", err)
+		}
+	}(db)
 	log.Println("newsletter: connected to newsletter-db")
 
 	repo := newsletter.NewRepository(db)
@@ -62,14 +65,18 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			log.Fatalf("Failed to write health check response: %v", err)
+			return
+		}
 	})
 
 	mux.HandleFunc("GET /", requireAuth(newsletter.GetNewsletterHandler(svc)))
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsCongig)(mux),
+		Handler: middleware.CORS(corsConfig)(mux),
 	}
 
 	go func() {
