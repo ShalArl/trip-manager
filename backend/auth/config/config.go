@@ -13,10 +13,11 @@ import (
 
 // Config holds application configuration
 type Config struct {
-	Port                     string `envconfig:"PORT" default:"8080"`
-	FirebaseProjectID        string `envconfig:"FIREBASE_PROJECT_ID"`
-	LogLevel                 string `envconfig:"LOG_LEVEL"`
-	FirebaseAuthEmulatorHost string `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
+	Port                     string   `envconfig:"PORT" default:"8080"`
+	FirebaseProjectID        string   `envconfig:"FIREBASE_PROJECT_ID"`
+	LogLevel                 string   `envconfig:"LOG_LEVEL"`
+	FirebaseAuthEmulatorHost string   `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
+	CORSAllowedOrigins       []string `envconfig:"CORS_ALLOWED_ORIGINS" default:"*"`
 }
 
 // LoadConfig loads configuration from environment variables

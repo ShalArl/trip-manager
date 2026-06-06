@@ -42,9 +42,7 @@ COPY newsletter-worker/go.sum newsletter-worker/go.sum
 RUN go work sync
 
 # Source Code
-COPY shared/authclient/ shared/authclient/
-COPY shared/middleware/ shared/middleware/
-
+COPY shared/ shared/
 COPY presigner/ presigner/
 
 # Aus dem presigner-Verzeichnis bauen

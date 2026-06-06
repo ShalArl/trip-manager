@@ -29,7 +29,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to redis: %v", err)
 	}
-	defer weatherCache.Close()
+	defer func(weatherCache *cache.WeatherCache) {
+		err := weatherCache.Close()
+		if err != nil {
+			log.Fatalf("failed to close cache: %v", err)
+		}
+	}(weatherCache)
 
 	// Open-Meteo Client
 	meteoClient := fetcher.NewClient(cfg.APIUrl, cfg.ForecastDays)

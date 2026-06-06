@@ -18,16 +18,19 @@ import (
 
 func main() {
 	ctx := context.Background()
+	// Load cache
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config %v", err)
+	}
+	log.Printf("Starting Auth Service on port %s\n", cfg.Port)
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("Allowed Origins is empty!")
 	}
-
-	// Load cache
-	cfg := config.LoadConfig()
-	log.Printf("Starting Auth Service on port %s\n", cfg.Port)
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Initialize Firebase
 	authClient, err := config.InitializeFirebase(ctx, cfg)

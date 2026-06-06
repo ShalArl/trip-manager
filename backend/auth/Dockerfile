@@ -47,6 +47,7 @@ COPY shared/authclient/ shared/authclient/
 COPY shared/middleware/ shared/middleware/
 COPY shared/tenantdb/ shared/tenantdb/
 
+COPY shared/ shared/
 COPY auth/ auth/
 
 # Aus dem auth-Verzeichnis bauen

@@ -45,8 +45,7 @@ COPY feed/go.sum feed/go.sum
 
 RUN go work sync
 
-COPY shared/authclient/ shared/authclient/
-COPY shared/middleware/ shared/middleware/
+COPY shared/ shared/
 COPY feed/ feed/
 COPY feed-generator/ feed-generator/
 

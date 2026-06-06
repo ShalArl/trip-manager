@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"net/http"
-	"tenantdb"
 )
 
 type contextKey string

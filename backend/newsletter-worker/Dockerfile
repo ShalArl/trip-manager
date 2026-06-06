@@ -40,6 +40,7 @@ COPY travel-warning/go.sum travel-warning/go.sum
 
 RUN go work sync
 
+COPY shared/ shared/
 COPY newsletter-worker/ newsletter-worker/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/newsletter-worker ./newsletter-worker/cmd/worker

@@ -8,4 +8,12 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/robfig/cron/v3 v3.0.1
+
+	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/tenantdb v0.0.0
+)
+
+replace (
+	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
+	github.com/ShalArl/trip-manager/backend/shared/tenantdb => ../shared/tenantdb
 )

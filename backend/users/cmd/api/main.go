@@ -23,7 +23,10 @@ import (
 
 func main() {
 	ctx := context.Background()
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
 	allowedOrigins := cfg.CORSAllowedOrigins
