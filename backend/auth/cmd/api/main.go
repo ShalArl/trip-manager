@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ShalArl/trip-manager/backend/auth/internal/config"
+	"github.com/ShalArl/trip-manager/backend/auth/config"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/handler"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/service"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"

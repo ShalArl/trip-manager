@@ -3,11 +3,6 @@ env:
     value: "8089"
   - name: AUTH_CLIENT_CONNECTION_STRING
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
-  - name: NEO4J_URI
-    valueFrom:
-      secretKeyRef:
-        name: feed-secrets
-        key: NEO4J_URI
 
 externalSecrets:
   enabled: true

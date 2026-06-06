@@ -10,6 +10,7 @@ type Config struct {
 	Neo4jUser          string `envconfig:"NEO4J_USERNAME"`
 	Neo4jPassword      string `envconfig:"NEO4J_PASSWORD"`
 	LogLevel           string `envconfig:"LOG_LEVEL"`
+	PubSubEmulatorHost string `envconfig:"PUBSUB_EMULATOR_HOST"`
 }
 
 func Load() (*Config, error) {

@@ -87,6 +87,14 @@ releases:
       - helm/infrastructure/minio/values.yaml
     installed: {{ eq .Environment.Name "dev" }}
 
+  - name: pubsub-emulator
+    namespace: trip-manager-{{ .Environment.Name }}
+    createNamespace: true
+    chart: ./helm/infrastructure/pubsub-emulator
+    values:
+      - helm/infrastructure/pubsub-emulator/values.yaml
+    installed: {{ eq .Environment.Name "dev" }}
+
   - name: firebase-emulator
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true

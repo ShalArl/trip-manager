@@ -21,11 +21,6 @@ env:
     value: "8082"
   - name: LOG_LEVEL
     value: "info"
-  - name: FIREBASE_PROJECT_ID
-    valueFrom:
-      secretKeyRef:
-        name: auth-secrets
-        key: FIREBASE_PROJECT_ID
 
 externalSecrets:
   enabled: true

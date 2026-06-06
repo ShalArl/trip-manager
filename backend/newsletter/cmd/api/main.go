@@ -19,10 +19,11 @@ import (
 )
 
 type config struct {
-	Port            string `envconfig:"PORT" default:"8008"`
-	NewsletterDBURL string `envconfig:"NEWSLETTER_DB_URL"`
-	AuthServiceURL  string `envconfig:"AUTH_SERVICE_URL"`
-	LogLevel        string `envconfig:"LOG_LEVEL"`
+	Port               string   `envconfig:"PORT" default:"8008"`
+	NewsletterDBURL    string   `envconfig:"NEWSLETTER_DB_URL"`
+	AuthServiceURL     string   `envconfig:"AUTH_SERVICE_URL"`
+	LogLevel           string   `envconfig:"LOG_LEVEL"`
+	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 }
 
 func load() (*config, error) {
@@ -36,12 +37,16 @@ func load() (*config, error) {
 func main() {
 	cfg, err := load()
 	if err != nil {
-		log.Printf("Failed to load config")
+		log.Fatal("Failed to load config")
 	}
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{"https://www.neatnode.xyz", "https://neatnode.xyz"}
-
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatal("No allowed origins configured")
+	}
+	corsConfig.AllowedOrigins = allowedOrigins
+	
 	db, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
 	if err != nil {
 		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)

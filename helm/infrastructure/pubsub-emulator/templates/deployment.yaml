@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pubsub-emulator
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pubsub-emulator
+  template:
+    metadata:
+      labels:
+        app: pubsub-emulator
+    spec:
+      containers:
+        - name: pubsub-emulator
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - gcloud
+            - beta
+            - emulators
+            - pubsub
+            - start
+            - --project={{ .Values.projectId }}
+            - --host-port=0.0.0.0:8085
+          ports:
+            - containerPort: 8085
+              name: pubsub

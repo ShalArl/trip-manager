@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	Port               string        `envconfig:"LOG_LEVEL"`
-	Bucket             string        `envconfig:"BUCKET"`
+	Port               string        `envconfig:"PORT"`
+	Bucket             string        `envconfig:"STORAGE_BUCKET"`
 	TTL                time.Duration `envconfig:"TTL" default:"15m"`
 	LogLevel           string        `envconfig:"LOG_LEVEL"`
 	Type               string        `envconfig:"STORAGE_PROVIDER"`

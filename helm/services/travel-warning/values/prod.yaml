@@ -11,6 +11,9 @@ resources:
     cpu: 100m
     memory: 128Mi
 
+hpa:
+  enabled: false
+
 env:
   - name: PORT
     value: "8087"
@@ -26,7 +29,6 @@ externalSecrets:
   secrets:
     - secretKey: REDIS_URL
       remoteKey: redis-url
-
 
 envFrom:
   - secretRef:

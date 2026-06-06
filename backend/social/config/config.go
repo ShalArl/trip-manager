@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Port                         string   `envconfig:"PORT" default:"8080"`
-	FirestoreProject             string   `envconfig:"FIRESTORE_PROJECT" required:"true"`
+	FirestoreProject             string   `envconfig:"FIRESTORE_PROJECT_ID" required:"true"`
 	LogLevel                     string   `envconfig:"LOG_LEVEL" default:"info"`
 	AuthClientConnectionString   string   `envconfig:"AUTH_CLIENT_CONNECTION_STRING" required:"true"`
 	UsersServiceURL              string   `envconfig:"USERS_SERVICE_URL" required:"true"`
@@ -21,6 +21,7 @@ type Config struct {
 	FirestoreEmulatorHost        string   `envconfig:"FIRESTORE_EMULATOR_HOST" default:""`
 	GoogleApplicationCredentials string   `envconfig:"GOOGLE_APPLICATION_CREDENTIALS"`
 	CORSAllowedOrigins           []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	PubSubEmulatorHost           string   `envconfig:"PUBSUB_EMULATOR_HOST"`
 }
 
 func LoadConfig() (*Config, error) {

@@ -12,6 +12,7 @@ type Config struct {
 	GCPProjectID       string   `envconfig:"GCP_PROJECT_ID"`
 	PubSubTopicID      string   `envconfig:"PUBSUB_TOPIC_ID" default:""`
 	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	PubSubEmulatorHost string   `envconfig:"PUBSUB_EMULATOR_HOST"`
 }
 
 func Load() (*Config, error) {
