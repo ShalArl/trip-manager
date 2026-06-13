@@ -1632,6 +1632,7 @@ components:
           example: 900
         key:
           type: string
+          description: Object key to reference this upload in subsequent requests
     NewsletterTrip:
       type: object
       required:
@@ -1705,7 +1706,6 @@ components:
       properties:
         error:
           type: string
-          description: Object key to reference this upload in subsequent requests
   securitySchemes:
     firebaseAuth:
       type: http
