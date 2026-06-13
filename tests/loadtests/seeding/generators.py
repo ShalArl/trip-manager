@@ -25,15 +25,6 @@ def get_password() -> str:
 
 ####################################################################
 
-"""
-type CreateUserRequest struct {
-	Email openapi_types.Email `json:"email"`
-	Name  string              `json:"name"`
-
-	// Password Minimum 8 characters
-	Password string `json:"password"`
-}
-"""
 def generate_user(i: int) -> dict:
     return {
         "email": f"user_{i}@loadtest.com",
@@ -41,27 +32,12 @@ def generate_user(i: int) -> dict:
         "name": fake.name(),
     }
 
-"""
-type CreateTripRequest struct {
-    Description      *string            `json:"description,omitempty"`
-    EndDate          openapi_types.Date `json:"endDate"`
-    ShortDescription string             `json:"shortDescription"`
-    StartDate        openapi_types.Date `json:"startDate"`
-    Title            string             `json:"title"`
-}
-"""
 def generate_trip() -> dict:
     start = fake.date_between(start_date="today", end_date="+1y")
     end = fake.date_between(start_date=start, end_date="+2y")
 
-    # for better titles
-    title_prefix = ["Welcome to",
-                    "My trip in",
-                    "Experiencing",
-                    "Holidays in",
-                    "With friends in",
-                    "Checking out",
-                    "Wonders of"]
+    title_prefix = ["Welcome to", "My trip in", "Experiencing", "Holidays in",
+                    "With friends in", "Checking out", "Wonders of"]
 
     title = random.choice(title_prefix) + " " + fake.country()
     return {
@@ -73,54 +49,32 @@ def generate_trip() -> dict:
     }
 
 
-"""
-type CreateLocationRequest struct {
-	City      string   `json:"city"`
-	Country   string   `json:"country"`
-	Latitude  *float32 `json:"latitude,omitempty"`
-	Longitude *float32 `json:"longitude,omitempty"`
-	Name      string   `json:"name"`
-	Notes     *string  `json:"notes,omitempty"`
-
-	// Sequence Visit sequence number
-	Sequence *int `json:"sequence,omitempty"`
-}
-"""
+EXAMPLE_LOCATIONS = [
+    {"title": "Eiffel Tower",      "name": "Eiffel Tower",      "city": "Paris",      "country": "France",         "countryCode": "FR", "shortDescription": "Iconic iron lattice tower on the Champ de Mars.", "latitude": 48.8584,  "longitude": 2.2945},
+    {"title": "Colosseum",         "name": "Colosseum",         "city": "Rome",        "country": "Italy",          "countryCode": "IT", "shortDescription": "Ancient amphitheatre in the centre of Rome.",     "latitude": 41.8902,  "longitude": 12.4922},
+    {"title": "Brandenburg Gate",  "name": "Brandenburg Gate",  "city": "Berlin",      "country": "Germany",        "countryCode": "DE", "shortDescription": "18th-century neoclassical monument in Berlin.",   "latitude": 52.5163,  "longitude": 13.3777},
+    {"title": "Sagrada Familia",   "name": "Sagrada Familia",   "city": "Barcelona",   "country": "Spain",          "countryCode": "ES", "shortDescription": "Large unfinished Roman Catholic basilica.",       "latitude": 41.4036,  "longitude": 2.1744},
+    {"title": "Acropolis",         "name": "Acropolis",         "city": "Athens",      "country": "Greece",         "countryCode": "GR", "shortDescription": "Ancient citadel located on a rocky outcrop.",     "latitude": 37.9715,  "longitude": 23.7267},
+    {"title": "Anne Frank House",  "name": "Anne Frank House",  "city": "Amsterdam",   "country": "Netherlands",    "countryCode": "NL", "shortDescription": "Museum dedicated to wartime diarist Anne Frank.", "latitude": 52.3752,  "longitude": 4.8840},
+    {"title": "Charles Bridge",    "name": "Charles Bridge",    "city": "Prague",      "country": "Czech Republic", "countryCode": "CZ", "shortDescription": "Historic bridge crossing the Vltava river.",      "latitude": 50.0865,  "longitude": 14.4114},
+    {"title": "Wawel Castle",      "name": "Wawel Castle",      "city": "Krakow",      "country": "Poland",         "countryCode": "PL", "shortDescription": "A fortified architectural complex in Krakow.",    "latitude": 50.0540,  "longitude": 19.9355},
+    {"title": "Schönbrunn Palace", "name": "Schönbrunn Palace", "city": "Vienna",      "country": "Austria",        "countryCode": "AT", "shortDescription": "Former imperial summer residence in Vienna.",     "latitude": 48.1845,  "longitude": 16.3122},
+    {"title": "Old Town Square",   "name": "Old Town Square",   "city": "Tallinn",     "country": "Estonia",        "countryCode": "EE", "shortDescription": "Well-preserved medieval old town in Tallinn.",   "latitude": 59.4370,  "longitude": 24.7536},
+]
 
 def generate_location() -> dict:
+    base = random.choice(EXAMPLE_LOCATIONS).copy()
     start_date = fake.date_between(start_date="today", end_date="+1y")
     end_date = fake.date_between(
         start_date=start_date + timedelta(days=1),
         end_date=start_date + timedelta(days=10),
     )
-    return {
-        "title": fake.sentence(nb_words=3),  # ← neu
-        "city": fake.city(),
-        "country": fake.country(),
-        "shortDescription": fake.sentence(nb_words=6),
-        "dateFrom": start_date.isoformat(),
-        "dateTo": end_date.isoformat(),
-        "latitude": float(fake.latitude()),
-        "longitude": float(fake.longitude()),
-        "name": fake.sentence(nb_words=2),
-        "notes": fake.sentence(nb_words=10),
-        "sequence": random.randint(1, 10),
-    }
+    base["dateFrom"] = start_date.isoformat()
+    base["dateTo"] = end_date.isoformat()
+    base["notes"] = fake.sentence(nb_words=10)
+    base["sequence"] = random.randint(1, 10)
+    return base
 
-"""
-// CreateActivityRequest defines model for CreateActivityRequest.
-type CreateActivityRequest struct {
-	Category    *CreateActivityRequestCategory `json:"category,omitempty"`
-	Cost        *float32                       `json:"cost,omitempty"`
-	Currency    *string                        `json:"currency,omitempty"`
-	Date        openapi_types.Date             `json:"date"`
-	Description *string                        `json:"description,omitempty"`
-	EndTime     *string                        `json:"endTime,omitempty"`
-	LocationId  openapi_types.UUID             `json:"locationId"`
-	Name        string                         `json:"name"`
-	StartTime   *string                        `json:"startTime,omitempty"`
-}
-"""
 
 def generate_activity(location_id: str) -> dict:
     return {
@@ -134,16 +88,6 @@ def generate_activity(location_id: str) -> dict:
     }
 
 
-"""
-type PresignedURLRequest struct {
-	// FileName Name of the file to upload (e.g., "avatar.jpg")
-	FileName string `json:"fileName"`
-
-	// MediaType Type of media being uploaded
-	MediaType PresignedURLRequestMediaType `json:"mediaType"`
-}
-"""
-
 def generate_image_upload_request() -> dict:
     return {
         "fileName": f"{fake.word()}.jpg",
@@ -151,7 +95,6 @@ def generate_image_upload_request() -> dict:
     }
 
 
-# Create some images for file upload testing
 def generate_fake_images(count=10, width=800, height=600) -> list[bytes]:
     images = []
     for _ in range(count):

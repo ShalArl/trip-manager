@@ -6,7 +6,7 @@ from tests.base import BaseUser, with_auth
 
 
 class PowerUser(BaseUser):
-    weight = 20
+    weight = 25
     wait_time = between(1, 3)
 
     def __init__(self, *args, **kwargs):
@@ -19,16 +19,12 @@ class PowerUser(BaseUser):
     def on_start(self):
         super().on_start()
 
-    # -- Helpers --
-
     def _random_trip_id(self) -> str | None:
         return random.choice(self.trip_ids) if self.trip_ids else None
 
     def _random_location_id(self, trip_id: str) -> str | None:
         ids = self.location_ids.get(trip_id, [])
         return random.choice(ids) if ids else None
-
-    # -- Tasks --
 
     @task(3)
     @with_auth
@@ -42,7 +38,7 @@ class PowerUser(BaseUser):
         self.location_ids[trip_id] = []
         self.activity_ids[trip_id] = {}
 
-        loc_resp = self.client.post(f"/trips/{trip_id}/locations", json=generate_location())
+        loc_resp = self.client.post(f"/locations/{trip_id}", json=generate_location())
         if loc_resp.status_code != 201:
             print(f"[DEBUG] create location error {loc_resp.status_code}: {loc_resp.text[:500]}")
             return
@@ -62,7 +58,8 @@ class PowerUser(BaseUser):
         trip_id = self._random_trip_id()
         if not trip_id:
             return
-        resp = self.client.post(f"/trips/{trip_id}/locations", json=generate_location())
+        payload = generate_location()
+        resp = self.client.post(f"/locations/{trip_id}", json=payload)
         if resp.status_code != 201:
             print(f"[DEBUG] add_location {resp.status_code}: {resp.text[:500]}")
             return
@@ -94,7 +91,6 @@ class PowerUser(BaseUser):
             return
         comment_id = resp.json()["id"]
         self.comment_ids.setdefault(trip_id, []).append(comment_id)
-
         comment_ids = self.comment_ids.get(trip_id, [])
         if not comment_ids:
             return
@@ -115,7 +111,6 @@ class PowerUser(BaseUser):
             if resp.status_code in (200, 201):
                 resp.success()
             elif resp.status_code == 409:
-                # Already liked → unlike (Toggle wie im Frontend)
                 resp.success()
                 self.client.delete(f"/social/{trip_id}/likes")
             else:
@@ -140,16 +135,14 @@ class PowerUser(BaseUser):
         location_id = self._random_location_id(trip_id)
         if not location_id:
             return
-        with self.client.put(f"/locations/{trip_id}/{location_id}", json=generate_location(), catch_response=True) as resp:
-            if resp.status_code in (200, 204):
-                resp.success()
-            elif resp.status_code == 404:
-                resp.success()  # Location schon gelöscht - kein Fehler
-                if location_id in self.location_ids.get(trip_id, []):
-                    self.location_ids[trip_id].remove(location_id)
-                    self.activity_ids[trip_id].pop(location_id, None)
-            else:
-                resp.failure(f"update_location error {resp.status_code}: {resp.text[:200]}")
+        resp = self.client.put(f"/locations/{trip_id}/{location_id}", json=generate_location())
+        if resp.status_code == 404:
+            print(f"[DEBUG] update_location 404 - removing from state")
+            if location_id in self.location_ids.get(trip_id, []):
+                self.location_ids[trip_id].remove(location_id)
+                self.activity_ids[trip_id].pop(location_id, None)
+        elif resp.status_code not in (200, 204):
+            print(f"[DEBUG] update_location error {resp.status_code}: {resp.text[:500]}")
 
     @task(1)
     @with_auth
@@ -175,11 +168,10 @@ class PowerUser(BaseUser):
         location_id = self._random_location_id(trip_id)
         if not location_id:
             return
-        with self.client.delete(f"/locations/{trip_id}/{location_id}", catch_response=True) as resp:
-            if resp.status_code in (204, 404):
-                resp.success()  # 404 = schon gelöscht, kein Fehler
-                if location_id in self.location_ids.get(trip_id, []):
-                    self.location_ids[trip_id].remove(location_id)
-                    self.activity_ids[trip_id].pop(location_id, None)
-            else:
-                resp.failure(f"delete_location error {resp.status_code}: {resp.text[:200]}")
+        resp = self.client.delete(f"/locations/{trip_id}/{location_id}")
+        if resp.status_code in (204, 404):
+            if location_id in self.location_ids.get(trip_id, []):
+                self.location_ids[trip_id].remove(location_id)
+                self.activity_ids[trip_id].pop(location_id, None)
+        else:
+            print(f"[DEBUG] delete_location error {resp.status_code}: {resp.text[:500]}")
