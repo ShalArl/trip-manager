@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -41,6 +42,7 @@ type LocationImage struct {
 type Location struct {
 	ID               string
 	TripID           string
+	TenantID         string
 	CreatedBy        UserSummary
 	Name             string
 	City             string
@@ -64,6 +66,7 @@ type locationRecord struct {
 	ID               uuid.UUID `db:"id"`
 	TripID           uuid.UUID `db:"trip_id"`
 	UserID           uuid.UUID `db:"user_id"`
+	TenantID         string    `db:"tenant_id"`
 	UserName         string    `db:"user_name"`
 	UserEmail        string    `db:"user_email"`
 	UserAvatarKey    *string   `db:"user_avatar_key"`
@@ -85,6 +88,7 @@ type locationRecord struct {
 type locationImageRecord struct {
 	ID         uuid.UUID `db:"id"`
 	LocationID uuid.UUID `db:"location_id"`
+	TenantID   string    `db:"tenant_id"`
 	ImageKey   string    `db:"image_key"`
 	Sequence   int       `db:"sequence"`
 	CreatedAt  time.Time `db:"created_at"`
@@ -92,8 +96,9 @@ type locationImageRecord struct {
 
 func (r *locationRecord) toDomain(images []LocationImage) *Location {
 	return &Location{
-		ID:     r.ID.String(),
-		TripID: r.TripID.String(),
+		ID:       r.ID.String(),
+		TripID:   r.TripID.String(),
+		TenantID: r.TenantID,
 		CreatedBy: UserSummary{
 			ID:        r.UserID.String(),
 			Name:      r.UserName,
@@ -147,9 +152,9 @@ func NewRepository(db *sqlx.DB) Repository {
 	return &repositoryImpl{db: db}
 }
 
-func (r *repositoryImpl) listImages(ctx context.Context, locationID string) ([]LocationImage, error) {
+func (r *repositoryImpl) listImages(ctx context.Context, tx *sqlx.Tx, locationID string) ([]LocationImage, error) {
 	var records []locationImageRecord
-	if err := r.db.SelectContext(ctx, &records,
+	if err := tx.SelectContext(ctx, &records,
 		`SELECT * FROM location_images WHERE location_id = $1 ORDER BY sequence ASC, created_at ASC`,
 		locationID,
 	); err != nil {
@@ -163,46 +168,58 @@ func (r *repositoryImpl) listImages(ctx context.Context, locationID string) ([]L
 }
 
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Location, int, error) {
-	var results []struct {
-		locationRecord
-		TotalCount int `db:"total_count"`
-	}
-	query := `
-		SELECT *, COUNT(*) OVER() as total_count
-		FROM locations
-		WHERE trip_id = $1
-		ORDER BY sequence ASC NULLS LAST, date_from ASC, created_at ASC
-		LIMIT $2 OFFSET $3`
-	if err := r.db.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
-		return nil, 0, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	if len(results) == 0 {
-		return []*Location{}, 0, nil
-	}
-	locations := make([]*Location, len(results))
-	for i, res := range results {
-		images, err := r.listImages(ctx, res.locationRecord.ID.String())
-		if err != nil {
-			return nil, 0, err
+	var locations []*Location
+	var total int
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var results []struct {
+			locationRecord
+			TotalCount int `db:"total_count"`
 		}
-		locations[i] = res.locationRecord.toDomain(images)
-	}
-	return locations, results[0].TotalCount, nil
+		query := `
+			SELECT *, COUNT(*) OVER() as total_count
+			FROM locations
+			WHERE trip_id = $1
+			ORDER BY sequence ASC NULLS LAST, date_from ASC, created_at ASC
+			LIMIT $2 OFFSET $3`
+		if err := tx.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		if len(results) == 0 {
+			locations = []*Location{}
+			return nil
+		}
+		total = results[0].TotalCount
+		locations = make([]*Location, len(results))
+		for i, res := range results {
+			images, err := r.listImages(ctx, tx, res.locationRecord.ID.String())
+			if err != nil {
+				return err
+			}
+			locations[i] = res.locationRecord.toDomain(images)
+		}
+		return nil
+	})
+	return locations, total, err
 }
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Location, error) {
-	var rec locationRecord
-	if err := r.db.GetContext(ctx, &rec, `SELECT * FROM locations WHERE id = $1`, id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Location
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var rec locationRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM locations WHERE id = $1`, id); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	images, err := r.listImages(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return rec.toDomain(images), nil
+		images, err := r.listImages(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		result = rec.toDomain(images)
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, error) {
@@ -214,41 +231,51 @@ func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, er
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-	rec := &locationRecord{
-		TripID:           tripID,
-		UserID:           userID,
-		UserName:         l.CreatedBy.Name,
-		UserEmail:        l.CreatedBy.Email,
-		UserAvatarKey:    l.CreatedBy.AvatarKey,
-		Name:             l.Name,
-		City:             l.City,
-		Country:          l.Country,
-		CountryCode:      l.CountryCode,
-		ShortDescription: l.ShortDescription,
-		DateFrom:         l.DateFrom,
-		DateTo:           l.DateTo,
-		Latitude:         l.Latitude,
-		Longitude:        l.Longitude,
-		Notes:            l.Notes,
-		Sequence:         l.Sequence,
-	}
-	query := `
-		INSERT INTO locations (trip_id, user_id, user_name, user_email, user_avatar_key, name, city, country, country_code, short_description, date_from, date_to, latitude, longitude, notes, sequence)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-		RETURNING id, created_at, updated_at`
-	err = r.db.QueryRowContext(ctx, query,
-		rec.TripID, rec.UserID, rec.UserName, rec.UserEmail, rec.UserAvatarKey,
-		rec.Name, rec.City, rec.Country, rec.CountryCode, rec.ShortDescription,
-		rec.DateFrom, rec.DateTo, rec.Latitude, rec.Longitude, rec.Notes, rec.Sequence,
-	).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
-	if err != nil {
-		var pgErr *pq.Error
-		if errors.As(err, &pgErr) {
-			return nil, fmt.Errorf("%w: %v", ErrInternal, pgErr)
+	tenantID := tenantdb.GetTenantID(ctx)
+
+	var result *Location
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		rec := &locationRecord{
+			TripID:           tripID,
+			UserID:           userID,
+			TenantID:         tenantID,
+			UserName:         l.CreatedBy.Name,
+			UserEmail:        l.CreatedBy.Email,
+			UserAvatarKey:    l.CreatedBy.AvatarKey,
+			Name:             l.Name,
+			City:             l.City,
+			Country:          l.Country,
+			CountryCode:      l.CountryCode,
+			ShortDescription: l.ShortDescription,
+			DateFrom:         l.DateFrom,
+			DateTo:           l.DateTo,
+			Latitude:         l.Latitude,
+			Longitude:        l.Longitude,
+			Notes:            l.Notes,
+			Sequence:         l.Sequence,
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return rec.toDomain([]LocationImage{}), nil
+		query := `
+			INSERT INTO locations (trip_id, user_id, user_name, user_email, user_avatar_key,
+			                       name, city, country, country_code, short_description,
+			                       date_from, date_to, latitude, longitude, notes, sequence, tenant_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			RETURNING id, created_at, updated_at`
+		err := tx.QueryRowContext(ctx, query,
+			rec.TripID, rec.UserID, rec.UserName, rec.UserEmail, rec.UserAvatarKey,
+			rec.Name, rec.City, rec.Country, rec.CountryCode, rec.ShortDescription,
+			rec.DateFrom, rec.DateTo, rec.Latitude, rec.Longitude, rec.Notes, rec.Sequence, rec.TenantID,
+		).Scan(&rec.ID, &rec.CreatedAt, &rec.UpdatedAt)
+		if err != nil {
+			var pgErr *pq.Error
+			if errors.As(err, &pgErr) {
+				return fmt.Errorf("%w: %v", ErrInternal, pgErr)
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		result = rec.toDomain([]LocationImage{})
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Update(ctx context.Context, l *Location) (*Location, error) {
@@ -256,43 +283,50 @@ func (r *repositoryImpl) Update(ctx context.Context, l *Location) (*Location, er
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid id", ErrInvalidInput)
 	}
-	var updatedAt time.Time
-	err = r.db.QueryRowContext(ctx, `
-		UPDATE locations
-		SET name = $1, city = $2, country = $3, country_code = $4, short_description = $5,
-		    date_from = $6, date_to = $7, latitude = $8, longitude = $9,
-		    notes = $10, sequence = $11, updated_at = NOW()
-		WHERE id = $12
-		RETURNING updated_at`,
-		l.Name, l.City, l.Country, l.CountryCode, l.ShortDescription,
-		l.DateFrom, l.DateTo, l.Latitude, l.Longitude,
-		l.Notes, l.Sequence, id,
-	).Scan(&updatedAt)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Location
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var updatedAt time.Time
+		err := tx.QueryRowContext(ctx, `
+			UPDATE locations
+			SET name = $1, city = $2, country = $3, country_code = $4, short_description = $5,
+			    date_from = $6, date_to = $7, latitude = $8, longitude = $9,
+			    notes = $10, sequence = $11, updated_at = NOW()
+			WHERE id = $12
+			RETURNING updated_at`,
+			l.Name, l.City, l.Country, l.CountryCode, l.ShortDescription,
+			l.DateFrom, l.DateTo, l.Latitude, l.Longitude,
+			l.Notes, l.Sequence, id,
+		).Scan(&updatedAt)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	l.UpdatedAt = updatedAt
-	images, err := r.listImages(ctx, l.ID)
-	if err != nil {
-		return nil, err
-	}
-	l.Images = images
-	return l, nil
+		l.UpdatedAt = updatedAt
+		images, err := r.listImages(ctx, tx, l.ID)
+		if err != nil {
+			return err
+		}
+		l.Images = images
+		result = l
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id string) error {
-	result, err := r.db.ExecContext(ctx, `DELETE FROM locations WHERE id = $1`, id)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		result, err := tx.ExecContext(ctx, `DELETE FROM locations WHERE id = $1`, id)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }
 
 func (r *repositoryImpl) AddImage(ctx context.Context, img *LocationImage) (*LocationImage, error) {
@@ -300,36 +334,45 @@ func (r *repositoryImpl) AddImage(ctx context.Context, img *LocationImage) (*Loc
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid location_id", ErrInvalidInput)
 	}
-	rec := &locationImageRecord{
-		LocationID: locationID,
-		ImageKey:   img.ImageKey,
-		Sequence:   img.Sequence,
-	}
-	err = r.db.QueryRowContext(ctx, `
-		INSERT INTO location_images (location_id, image_key, sequence)
-		VALUES ($1, $2, $3)
-		RETURNING id, created_at`,
-		rec.LocationID, rec.ImageKey, rec.Sequence,
-	).Scan(&rec.ID, &rec.CreatedAt)
-	if err != nil {
-		var pgErr *pq.Error
-		if errors.As(err, &pgErr) {
-			return nil, fmt.Errorf("%w: %v", ErrInternal, pgErr)
+	tenantID := tenantdb.GetTenantID(ctx)
+	var result *LocationImage
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		rec := &locationImageRecord{
+			LocationID: locationID,
+			TenantID:   tenantID,
+			ImageKey:   img.ImageKey,
+			Sequence:   img.Sequence,
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	result := rec.toDomain()
-	return &result, nil
+		err := tx.QueryRowContext(ctx, `
+			INSERT INTO location_images (location_id, image_key, sequence, tenant_id)
+			VALUES ($1, $2, $3, $4)
+			RETURNING id, created_at`,
+			rec.LocationID, rec.ImageKey, rec.Sequence, rec.TenantID,
+		).Scan(&rec.ID, &rec.CreatedAt)
+		if err != nil {
+			var pgErr *pq.Error
+			if errors.As(err, &pgErr) {
+				return fmt.Errorf("%w: %v", ErrInternal, pgErr)
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		r := rec.toDomain()
+		result = &r
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) DeleteImage(ctx context.Context, imageID string) error {
-	result, err := r.db.ExecContext(ctx, `DELETE FROM location_images WHERE id = $1`, imageID)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		result, err := tx.ExecContext(ctx, `DELETE FROM location_images WHERE id = $1`, imageID)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }

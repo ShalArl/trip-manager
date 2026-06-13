@@ -21,13 +21,17 @@ import (
 
 func main() {
 	ctx := context.Background()
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config %v", err)
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatal("CORS_ALLOWED_ORIGINS is empty")
 	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)

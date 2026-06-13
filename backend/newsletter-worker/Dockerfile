@@ -14,6 +14,10 @@ COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY shared/userclient/go.mod shared/userclient/go.mod
 COPY shared/userclient/go.sum shared/userclient/go.sum
+COPY shared/tenantdb/go.mod shared/tenantdb/go.mod
+COPY shared/tenantdb/go.sum shared/tenantdb/go.sum
+COPY shared/firebaseclient/go.mod shared/firebaseclient/go.mod
+COPY shared/firebaseclient/go.sum shared/firebaseclient/go.sum
 COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
 COPY trips/go.mod trips/go.mod
@@ -36,6 +40,7 @@ COPY travel-warning/go.sum travel-warning/go.sum
 
 RUN go work sync
 
+COPY shared/ shared/
 COPY newsletter-worker/ newsletter-worker/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/newsletter-worker ./newsletter-worker/cmd/worker

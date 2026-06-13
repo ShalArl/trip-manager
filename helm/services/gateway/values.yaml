@@ -51,7 +51,7 @@ routes:
     healthPath: /health
   newsletter:
     service: newsletter
-    port: 8090
+    port: 8070
     path: /api/newsletter
     healthPath: /health
 

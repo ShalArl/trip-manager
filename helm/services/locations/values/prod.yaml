@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 service:
   healthPath: /health
 
@@ -24,6 +27,8 @@ env:
     value: "https://storage.googleapis.com"
   - name: S3_BUCKET
     value: "trip-manager-bucket"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://neatnode.xyz,https://www.neatnode.xyz"
 
 serviceAccount:
   gcpServiceAccount: "locations-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

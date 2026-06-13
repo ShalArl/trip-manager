@@ -7,6 +7,10 @@
 *.dll
 *.so
 *.dylib
+*.json
+*.overall*
+*.export_metadata
+output-0
 
 # Test binary, built with `go test -c`
 *.test

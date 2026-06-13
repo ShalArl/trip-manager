@@ -4,7 +4,7 @@ image:
   pullPolicy: Always
 
 service:
-  port: 8087
+  port: 8071
 
 replicaCount: 1
 

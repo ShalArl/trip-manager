@@ -22,20 +22,24 @@ func main() {
 	ctx := context.Background()
 
 	// Load cache
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("[Presigner] Failed to load config: %v", err)
+	}
+
 	log.Printf("Starting Presigner Service on port %s\n", cfg.Port)
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("[Presigner] No allowed origin configured")
 	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Load storage provider configuration
-	storageCfg := config.LoadStorageConfig()
 
 	// Create storage provider (S3 or GCS)
-	storage, err := provider.NewFromEnv(ctx, storageCfg)
+	storage, err := provider.NewFromEnv(ctx, *cfg)
 	if err != nil {
 		log.Fatalf("Failed to create storage provider: %v", err)
 	}

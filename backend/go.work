@@ -7,6 +7,8 @@ use (
 	./shared/authclient
 	./shared/middleware
 	./shared/userclient
+	./shared/tenantdb
+	./shared/firebaseclient
 	./social
 	./travel-warning
 	./trips

@@ -29,7 +29,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to redis: %v", err)
 	}
-	defer weatherCache.Close()
+	defer func(weatherCache *cache.WeatherCache) {
+		err := weatherCache.Close()
+		if err != nil {
+			log.Fatalf("failed to close cache: %v", err)
+		}
+	}(weatherCache)
 
 	// Open-Meteo Client
 	meteoClient := fetcher.NewClient(cfg.APIUrl, cfg.ForecastDays)
@@ -50,7 +55,11 @@ func main() {
 
 	// CORS
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = cfg.CORSAllowedOrigins
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("No allowed origin configured")
+	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Server
 	server := &http.Server{

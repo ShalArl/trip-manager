@@ -14,7 +14,11 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("feed-generator: failed to load config: %v", err)
+	}
+	log.Printf("feed-generator: starting with config: %+v", cfg)
 
 	// Neo4j
 	driver, err := neo4j.NewDriverWithContext(

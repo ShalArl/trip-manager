@@ -3,28 +3,29 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/presigner/config"
 )
 
-func NewFromEnv(ctx context.Context, cfg config.StorageConfig) (Storage, error) {
-	switch cfg.Type {
+func NewFromEnv(ctx context.Context, cfg config.Config) (Storage, error) {
+	switch strings.ToLower(cfg.Type) {
 	case "gcs":
 		return NewGCStorage(ctx, GCSConfig{
-			Bucket:   cfg.GCS.Bucket,
-			SignerSA: cfg.GCS.SignerSA,
-			TTL:      cfg.SignedURLTTL,
+			Bucket:   cfg.Bucket,
+			SignerSA: cfg.SignerSA,
+			TTL:      cfg.TTL,
 		})
 	case "s3":
 		return NewS3Storage(S3Config{
-			Bucket:    cfg.S3.Bucket,
-			Region:    cfg.S3.Region,
-			Endpoint:  cfg.S3.Endpoint,
-			PublicURL: cfg.S3.PublicURL,
-			AccessKey: cfg.S3.AccessKey,
-			SecretKey: cfg.S3.SecretKey,
-			TTL:       cfg.SignedURLTTL,
+			Bucket:    cfg.Bucket,
+			Region:    cfg.Region,
+			Endpoint:  cfg.Endpoint,
+			PublicURL: cfg.PublicURL,
+			AccessKey: cfg.AccessKey,
+			SecretKey: cfg.SecretKey,
+			TTL:       cfg.TTL,
 		})
 	default:
 		return nil, fmt.Errorf("unknown storage type: %q", cfg.Type)

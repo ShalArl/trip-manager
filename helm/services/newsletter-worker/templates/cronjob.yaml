@@ -20,7 +20,7 @@ spec:
             - name: worker
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              command: ["/bin/worker"]
+              command: ["/bin/newsletter-worker"]
               {{- with .Values.env }}
               env: {{ toYaml . | nindent 16 }}
               {{- end }}

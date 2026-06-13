@@ -1,30 +1,23 @@
 package config
 
-import "os"
+import "github.com/kelseyhightower/envconfig"
 
 type Config struct {
-	Port            string
-	DatabaseURL     string
-	AuthServiceURL  string
-	UsersServiceURL string
-	S3Endpoint      string
-	S3Bucket        string
+	Port               string   `envconfig:"PORT" default:"8005"`
+	DatabaseURL        string   `envconfig:"DATABASE_URL"`
+	AuthServiceURL     string   `envconfig:"AUTH_SERVICE_URL"`
+	UsersServiceURL    string   `envconfig:"USERS_SERVICE_URL"`
+	S3Endpoint         string   `envconfig:"S3_ENDPOINT"`
+	S3Bucket           string   `envconfig:"S3_BUCKET"`
+	LogLevel           string   `envconfig:"LOG_LEVEL"`
+	PubSubEmulatorHost string   `envconfig:"PUBSUB_EMULATOR_HOST"`
+	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 }
 
-func Load() *Config {
-	return &Config{
-		Port:            getEnv("PORT", "8005"),
-		DatabaseURL:     getEnv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/locations_db?sslmode=disable"),
-		AuthServiceURL:  getEnv("AUTH_SERVICE_URL", "http://localhost:8082"),
-		UsersServiceURL: getEnv("USERS_SERVICE_URL", "http://localhost:8001"),
-		S3Endpoint:      getEnv("S3_ENDPOINT", "http://localhost:9000"),
-		S3Bucket:        getEnv("S3_BUCKET", "trip-manager"),
+func Load() (*Config, error) {
+	var config Config
+	if err := envconfig.Process("", &config); err != nil {
+		return nil, err
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
+	return &config, nil
 }

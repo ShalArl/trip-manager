@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 1
 
 service:
@@ -11,6 +14,9 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
+
+hpa:
+  enabled: false
 
 env:
   - name: PORT
@@ -30,7 +36,7 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: REDIS_URL
-      remoteKey: weather-redis-url
+      remoteKey: redis-url
     - secretKey: LOCATIONS_DB_URL
       remoteKey: locations-database-url
 

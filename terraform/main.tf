@@ -16,21 +16,21 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
-module "gke" {
-  source      = "./modules/gke"
-  project_id  = var.project_id
-  region      = var.region
-  environment = var.environment
-  depends_on = [
-    google_project_service.apis
-  ]
-}
+# module "gke" {
+#   source      = "./modules/gke"
+#   project_id  = var.project_id
+#   region      = var.region
+#   environment = var.environment
+#   depends_on = [
+#     google_project_service.apis
+#   ]
+# }
 
 module "iam" {
   source      = "./modules/iam"
   project_id  = var.project_id
   github_repo = var.github_repo
-  gke_cluster_id = module.gke.cluster_id
+  gke_cluster_id = "gke_project-32c60644-299b-4b05-8cf_europe-west1_trip-manager-prod"
   depends_on = [
     google_project_service.apis
   ]

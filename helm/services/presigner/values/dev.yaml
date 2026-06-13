@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Never
+
 replicaCount: 1
 
 resources:
@@ -15,7 +18,7 @@ env:
   - name: PORT
     value: "8085"
   - name: LOG_LEVEL
-    value: "info"
+    value: "debug"
   - name: STORAGE_PROVIDER
     value: "s3"
   - name: S3_ENDPOINT
@@ -23,7 +26,7 @@ env:
   - name: S3_PUBLIC_URL
     value: "http://192.168.49.2:30900"
   - name: STORAGE_BUCKET
-    value: "my-bucket"
+    value: "trip-manager"
   - name: S3_REGION
     value: "us-east-1"
   - name: S3_ACCESS_KEY
@@ -34,3 +37,5 @@ env:
     value: "false"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "http://localhost:3000"

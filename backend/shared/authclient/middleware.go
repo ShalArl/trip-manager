@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"net/http"
 )
 
@@ -13,6 +14,8 @@ const (
 	contextKeyUserID     contextKey = "userId"
 	contextKeyUserEmail  contextKey = "userEmail"
 	contextKeyUserClaims contextKey = "userClaims"
+	contextKeyTenantID   contextKey = "tenantId"
+	contextKeyUserRole   contextKey = "userRole"
 )
 
 func RequireAuth(client *Client) func(http.HandlerFunc) http.HandlerFunc {
@@ -32,9 +35,17 @@ func RequireAuth(client *Client) func(http.HandlerFunc) http.HandlerFunc {
 				respondError(w, http.StatusUnauthorized, result.Error)
 				return
 			}
+
+			tenantID := extractTenantID(result.Claims)
+			role := extractRole(result.Claims)
+
 			ctx := context.WithValue(r.Context(), contextKeyUserID, result.UserID)
 			ctx = context.WithValue(ctx, contextKeyUserEmail, result.Email)
 			ctx = context.WithValue(ctx, contextKeyUserClaims, result.Claims)
+			ctx = context.WithValue(ctx, contextKeyTenantID, tenantID)
+			ctx = context.WithValue(ctx, contextKeyUserRole, role)
+			ctx = tenantdb.WithTenantID(ctx, tenantID) // ← neu
+
 			next(w, r.WithContext(ctx))
 		}
 	}
@@ -83,5 +94,63 @@ func respondError(w http.ResponseWriter, statusCode int, message string) {
 	err := json.NewEncoder(w).Encode(map[string]string{"error": message})
 	if err != nil {
 		fmt.Println(err)
+	}
+}
+
+func extractTenantID(claims map[string]interface{}) string {
+	if claims == nil {
+		return "default"
+	}
+	if v, ok := claims["tenant_id"].(string); ok && v != "" {
+		return v
+	}
+	return "default"
+}
+
+func extractRole(claims map[string]interface{}) string {
+	if claims == nil {
+		return "tenant_member"
+	}
+	if v, ok := claims["role"].(string); ok && v != "" { // ← "role" statt "tenant_id"
+		return v
+	}
+	return "tenant_member"
+}
+
+func GetTenantID(r *http.Request) string {
+	tenantID, ok := r.Context().Value(contextKeyTenantID).(string)
+	if !ok || tenantID == "" {
+		return "default"
+	}
+	return tenantID
+}
+
+func GetUserRole(r *http.Request) string {
+	role, ok := r.Context().Value(contextKeyUserRole).(string)
+	if !ok || role == "" {
+		return "tenant_member"
+	}
+	return role
+}
+
+func RequireTenantAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		role := GetUserRole(r)
+		if role != "tenant_admin" && role != "tenant_owner" && role != "platform_admin" {
+			respondError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		next(w, r)
+	}
+}
+
+func RequirePlatformAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		role := GetUserRole(r)
+		if role != "platform_admin" {
+			respondError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		next(w, r)
 	}
 }

@@ -18,13 +18,17 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("feed: no allowed origin configured")
 	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Neo4j
 	driver, err := neo4j.NewDriverWithContext(

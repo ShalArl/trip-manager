@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -58,6 +59,7 @@ type accommodationRecord struct {
 	ID                  uuid.UUID  `db:"id"`
 	TripID              uuid.UUID  `db:"trip_id"`
 	UserID              uuid.UUID  `db:"user_id"`
+	TenantID            string     `db:"tenant_id"`
 	UserName            string     `db:"user_name"`
 	UserEmail           string     `db:"user_email"`
 	LocationName        *string    `db:"location_name"`
@@ -130,14 +132,19 @@ func NewRepository(db *sqlx.DB) Repository {
 }
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Accommodation, error) {
-	var rec accommodationRecord
-	if err := r.db.GetContext(ctx, &rec, `SELECT * FROM accommodations WHERE id = $1`, id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Accommodation
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var rec accommodationRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM accommodations WHERE id = $1`, id); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return rec.toDomain(), nil
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Create(ctx context.Context, a *Accommodation) (*Accommodation, error) {
@@ -149,7 +156,6 @@ func (r *repositoryImpl) Create(ctx context.Context, a *Accommodation) (*Accommo
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-
 	var addressPtr *string
 	if a.Address != "" {
 		addressPtr = &a.Address
@@ -158,27 +164,37 @@ func (r *repositoryImpl) Create(ctx context.Context, a *Accommodation) (*Accommo
 	if a.Notes != "" {
 		notesPtr = &a.Notes
 	}
+	tenantID := tenantdb.GetTenantID(ctx)
 
-	var id uuid.UUID
-	query := `
-		INSERT INTO accommodations (
-			trip_id, user_id, user_name, user_email,
-			location_name, location_city, location_country, location_country_code, location_lat, location_lng,
-			name, address, check_in, check_out, price_per_night, notes
-		) VALUES (
-			$1, $2, $3, $4,
-			$5, $6, $7, $8, $9,
-			$10, $11, $12, $13, $14, $15, $16
-		) RETURNING id`
-	err = r.db.QueryRowContext(ctx, query,
-		tripID, userID, a.CreatedBy.Name, a.CreatedBy.Email,
-		a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
-		a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
-	).Scan(&id)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return r.GetByID(ctx, id.String())
+	var result *Accommodation
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var id uuid.UUID
+		query := `
+			INSERT INTO accommodations (
+				trip_id, user_id, user_name, user_email, tenant_id,
+				location_name, location_city, location_country, location_country_code, location_lat, location_lng,
+				name, address, check_in, check_out, price_per_night, notes
+			) VALUES (
+				$1, $2, $3, $4, $5,
+				$6, $7, $8, $9, $10, $11,
+				$12, $13, $14, $15, $16, $17
+			) RETURNING id`
+		err := tx.QueryRowContext(ctx, query,
+			tripID, userID, a.CreatedBy.Name, a.CreatedBy.Email, tenantID,
+			a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
+			a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
+		).Scan(&id)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		var rec accommodationRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM accommodations WHERE id = $1`, id); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommodation, error) {
@@ -190,7 +206,6 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-
 	var addressPtr *string
 	if a.Address != "" {
 		addressPtr = &a.Address
@@ -200,62 +215,79 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 		notesPtr = &a.Notes
 	}
 
-	query := `
-		UPDATE accommodations
-		SET location_name = $1, location_city = $2, location_country = $3,
-		    location_country_code = $4,
-		    location_lat = $5, location_lng = $6,
-		    name = $7, address = $8, check_in = $9, check_out = $10,
-		    price_per_night = $11, notes = $12, updated_at = NOW()
-		WHERE id = $13 AND user_id = $14
-		RETURNING updated_at`
-	err = r.db.QueryRowContext(ctx, query,
-		a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
-		a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
-		id, userID,
-	).Scan(&a.UpdatedAt)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Accommodation
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		query := `
+			UPDATE accommodations
+			SET location_name = $1, location_city = $2, location_country = $3,
+			    location_country_code = $4, location_lat = $5, location_lng = $6,
+			    name = $7, address = $8, check_in = $9, check_out = $10,
+			    price_per_night = $11, notes = $12, updated_at = NOW()
+			WHERE id = $13 AND user_id = $14
+			RETURNING updated_at`
+		err := tx.QueryRowContext(ctx, query,
+			a.Location.Name, a.Location.City, a.Location.Country, a.Location.CountryCode, a.Location.Lat, a.Location.Lng,
+			a.Name, addressPtr, a.CheckIn, a.CheckOut, a.PricePerNight, notesPtr,
+			id, userID,
+		).Scan(&a.UpdatedAt)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return r.GetByID(ctx, a.ID)
+		var rec accommodationRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM accommodations WHERE id = $1`, id); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Accommodation, int, error) {
-	var results []struct {
-		accommodationRecord
-		TotalCount int `db:"total_count"`
-	}
-	query := `
-		SELECT *, COUNT(*) OVER() as total_count
-		FROM accommodations
-		WHERE trip_id = $1
-		ORDER BY check_in ASC NULLS LAST, created_at ASC
-		LIMIT $2 OFFSET $3`
-	if err := r.db.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
-		return nil, 0, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	if len(results) == 0 {
-		return []*Accommodation{}, 0, nil
-	}
-	accommodations := make([]*Accommodation, len(results))
-	for i, res := range results {
-		accommodations[i] = res.accommodationRecord.toDomain()
-	}
-	return accommodations, results[0].TotalCount, nil
+	var accommodations []*Accommodation
+	var total int
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var results []struct {
+			accommodationRecord
+			TotalCount int `db:"total_count"`
+		}
+		query := `
+			SELECT *, COUNT(*) OVER() as total_count
+			FROM accommodations
+			WHERE trip_id = $1
+			ORDER BY check_in ASC NULLS LAST, created_at ASC
+			LIMIT $2 OFFSET $3`
+		if err := tx.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		if len(results) == 0 {
+			accommodations = []*Accommodation{}
+			return nil
+		}
+		total = results[0].TotalCount
+		accommodations = make([]*Accommodation, len(results))
+		for i, res := range results {
+			accommodations[i] = res.accommodationRecord.toDomain()
+		}
+		return nil
+	})
+	return accommodations, total, err
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
-	result, err := r.db.ExecContext(ctx,
-		`DELETE FROM accommodations WHERE id = $1 AND user_id = $2`, id, userID)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		result, err := tx.ExecContext(ctx,
+			`DELETE FROM accommodations WHERE id = $1 AND user_id = $2`, id, userID)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }

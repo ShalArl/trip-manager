@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 1
 
 service:
@@ -10,6 +13,9 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
+hpa:
+  enabled: false
 
 env:
   - name: PORT
@@ -26,7 +32,6 @@ externalSecrets:
   secrets:
     - secretKey: REDIS_URL
       remoteKey: redis-url
-
 
 envFrom:
   - secretRef:

@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 1
 
 resources:
@@ -15,10 +18,16 @@ env:
   - name: PORT
     value: "8086"
   - name: LOG_LEVEL
-    value: "info"
+    value: "debug"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
   - name: DATABASE_URL
     value: "postgres://locations:locations@locations-postgres.trip-manager-dev.svc.cluster.local:5432/locations?sslmode=disable"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+  - name: S3_ENDPOINT
+    value: "http://minio.trip-manager-dev.svc.cluster.local:9000"
+  - name: S3_BUCKET
+    value: "trip-manager"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "http://localhost:3000"

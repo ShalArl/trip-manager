@@ -21,6 +21,10 @@ COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY shared/userclient/go.mod shared/userclient/go.mod
 COPY shared/userclient/go.sum shared/userclient/go.sum
+COPY shared/tenantdb/go.mod shared/tenantdb/go.mod
+COPY shared/tenantdb/go.sum shared/tenantdb/go.sum
+COPY shared/firebaseclient/go.mod shared/firebaseclient/go.mod
+COPY shared/firebaseclient/go.sum shared/firebaseclient/go.sum
 COPY users/go.mod users/go.mod
 COPY users/go.sum users/go.sum
 COPY trips/go.mod trips/go.mod
@@ -38,11 +42,7 @@ COPY newsletter-worker/go.sum newsletter-worker/go.sum
 RUN go work sync
 
 # Source Code
-COPY shared/authclient/ shared/authclient/
-COPY shared/middleware/ shared/middleware/
-COPY shared/userclient/ shared/userclient/
-
-
+COPY shared/ shared/
 COPY locations/ locations/
 
 # Aus dem locations-Verzeichnis bauen

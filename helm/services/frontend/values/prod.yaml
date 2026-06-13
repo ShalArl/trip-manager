@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 2
 
 hpa:
