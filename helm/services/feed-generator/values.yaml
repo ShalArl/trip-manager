@@ -1,11 +1,9 @@
 image:
   repository: ""
   tag: ""
-  pullPolicy: Always
 
 service:
   port: 8090
-  healthPath: /health
 
 probes:
   liveness: /health

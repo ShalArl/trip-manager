@@ -5,12 +5,13 @@ import (
 )
 
 type Config struct {
-	Port               string   `envconfig:"PORT" default:"8001"`
-	DatabaseURL        string   `envconfig:"DATABASE_URL"`
-	AuthServiceURL     string   `envconfig:"AUTH_SERVICE_URL"`
-	LogLevel           string   `envconfig:"LOG_LEVEL"`
-	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
-	FirebaseProjectID  string   `envconfig:"FIREBASE_PROJECT_ID"`
+	Port                     string   `envconfig:"PORT" default:"8001"`
+	DatabaseURL              string   `envconfig:"DATABASE_URL"`
+	AuthServiceURL           string   `envconfig:"AUTH_SERVICE_URL"`
+	LogLevel                 string   `envconfig:"LOG_LEVEL"`
+	CORSAllowedOrigins       []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	FirebaseProjectID        string   `envconfig:"FIREBASE_PROJECT_ID"`
+	FirebaseAuthEmulatorHost string   `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
 }
 
 func Load() (*Config, error) {

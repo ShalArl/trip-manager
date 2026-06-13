@@ -19,12 +19,25 @@ ALTER TABLE users
 
 CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
 
--- RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY tenant_isolation_users ON users
-    USING (tenant_id = current_setting('app.tenant_id', true));
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'users' AND policyname = 'tenant_isolation_users'
+    ) THEN
+        CREATE POLICY tenant_isolation_users ON users
+            USING (tenant_id = current_setting('app.tenant_id', true));
+    END IF;
+END $$;
 
-CREATE POLICY tenant_isolation_tenants ON tenants
-    USING (id = current_setting('app.tenant_id', true));
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'tenants' AND policyname = 'tenant_isolation_tenants'
+    ) THEN
+        CREATE POLICY tenant_isolation_tenants ON tenants
+            USING (id = current_setting('app.tenant_id', true));
+    END IF;
+END $$;

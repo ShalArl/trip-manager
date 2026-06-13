@@ -1,3 +1,9 @@
+image:
+  pullPolicy: Always
+
+service:
+  healthPath: /health
+
 env:
   - name: PORT
     value: "8089"

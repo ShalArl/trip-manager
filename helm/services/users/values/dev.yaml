@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Never
+
 replicaCount: 1
 
 resources:
@@ -20,3 +23,9 @@ env:
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
   - name: DATABASE_URL
     value: "postgres://users:users@users-postgres.trip-manager-dev.svc.cluster.local:5432/users?sslmode=disable"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "http://localhost:3000"
+  - name: FIREBASE_AUTH_EMULATOR_HOST
+    value: "firebase-emulator.trip-manager-dev.svc.cluster.local:9099"
+  - name: FIREBASE_PROJECT_ID
+    value: "trip-manager-local"

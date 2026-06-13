@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Never
+
 replicaCount: 1
 
 resources:
@@ -10,6 +13,10 @@ resources:
 
 hpa:
   enabled: false
+
+externalSecrets:
+  enabled: false
+  secrets: []
 
 env:
   - name: PORT
@@ -26,3 +33,6 @@ env:
     value: "debug"
   - name: CORS_ALLOWED_ORIGINS
     value: "http://localhost:3000"
+
+serviceAccount:
+  gcpServiceAccount: ""

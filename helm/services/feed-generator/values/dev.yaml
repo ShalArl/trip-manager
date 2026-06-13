@@ -1,7 +1,7 @@
-replicaCount: 1
+image:
+  pullPolicy: Never
 
-service:
-  healthPath: /health
+replicaCount: 1
 
 probes:
   liveness: ""
@@ -24,7 +24,7 @@ env:
   - name: GCP_PROJECT_ID
     value: "trip-manager-local"
   - name: PUBSUB_SUBSCRIPTION_ID
-    value: "feed-generator-trip-created,feed-generator-trip-liked,feed-generator-trip-commented"
+    value: "trip-events-sub"
   - name: PUBSUB_EMULATOR_HOST
     value: "pubsub-emulator.trip-manager-dev.svc.cluster.local:8085"
   - name: NEO4J_URI

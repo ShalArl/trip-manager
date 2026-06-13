@@ -4,6 +4,9 @@ image:
 
 storage: 8Gi
 
+externalSecrets:
+  enabled: false
+
 resources:
   requests:
     cpu: 250m
