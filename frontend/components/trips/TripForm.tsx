@@ -50,7 +50,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Familienreise nach Norwegen"
-                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
                     />
                 </div>
 
@@ -62,7 +62,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
                     />
                 </div>
 
@@ -74,7 +74,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
                     />
                 </div>
 
@@ -89,7 +89,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         onChange={(e) => setShortDescription(e.target.value)}
                         placeholder="Erkunde die Fjorde Südnorwegens."
                         maxLength={80}
-                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+                        className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
                     />
                 </div>
 
@@ -102,7 +102,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
                         onChange={(e) => setLongDescription(e.target.value)}
                         placeholder="Beschreibe deine Reise im Detail..."
                         rows={5}
-                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm resize-none"
                     />
                 </div>
 
@@ -114,7 +114,7 @@ export default function TripForm({ onCreateTripAction }: Props) {
 
                 <button
                     type="submit"
-                    className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20"
+                    className="w-full h-12 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20"
                 >
                     Reise erstellen
                 </button>

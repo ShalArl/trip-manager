@@ -24,25 +24,10 @@ routes:
     port: 8084
     path: /api/trips
     healthPath: /health
-  presigner:
-    service: presigner
-    port: 8085
-    path: /api/presign
-    healthPath: /health
-  locations:
-    service: locations
-    port: 8086
-    path: /api/locations
-    healthPath: /health
-  travelWarning:
-    service: travel-warning
+  travelInfo:
+    service: travel-info
     port: 8087
-    path: /api/warnings
-    healthPath: /health
-  weatherInfo:
-    service: weather-info
-    port: 8088
-    path: /api/weather
+    path: /api/info
     healthPath: /health
   feed:
     service: feed
@@ -53,6 +38,11 @@ routes:
     service: newsletter
     port: 8070
     path: /api/newsletter
+    healthPath: /health
+  tenants:
+    service: users
+    port: 8083
+    path: /api/tenants
     healthPath: /health
 
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/kelseyhightower/envconfig"
@@ -22,6 +23,18 @@ type Config struct {
 	GoogleApplicationCredentials string   `envconfig:"GOOGLE_APPLICATION_CREDENTIALS"`
 	CORSAllowedOrigins           []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 	PubSubEmulatorHost           string   `envconfig:"PUBSUB_EMULATOR_HOST"`
+	OTELCollectorEndpoint        string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
+
+	StorageBucket   string        `envconfig:"STORAGE_BUCKET"`
+	StorageTTL      time.Duration `envconfig:"STORAGE_TTL" default:"15m"`
+	StorageProvider string        `envconfig:"STORAGE_PROVIDER" default:"s3"`
+	S3Endpoint      string        `envconfig:"S3_ENDPOINT"`
+	S3Region        string        `envconfig:"S3_REGION"`
+	S3AccessKey     string        `envconfig:"S3_ACCESS_KEY"`
+	S3SecretKey     string        `envconfig:"S3_SECRET_KEY"`
+	S3PublicURL     string        `envconfig:"S3_PUBLIC_URL"`
+	S3UseSSL        bool          `envconfig:"S3_USE_SSL" default:"false"`
+	GCSSignerSA     string        `envconfig:"GCS_SIGNER_SA"`
 }
 
 func LoadConfig() (*Config, error) {

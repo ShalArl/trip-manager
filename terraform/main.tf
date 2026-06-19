@@ -9,6 +9,8 @@ resource "google_project_service" "apis" {
     "compute.googleapis.com",
     "certificatemanager.googleapis.com",
     "pubsub.googleapis.com",
+    "firestore.googleapis.com",
+
   ])
 
   project            = var.project_id
@@ -16,15 +18,16 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
+// Comment that block out to save costs
 # module "gke" {
-#   source      = "./modules/gke"
-#   project_id  = var.project_id
-#   region      = var.region
-#   environment = var.environment
-#   depends_on = [
-#     google_project_service.apis
-#   ]
-# }
+#    source      = "./modules/gke"
+#    project_id  = var.project_id
+#    region      = var.region
+#    environment = var.environment
+#    depends_on = [
+#      google_project_service.apis
+#    ]
+#  }
 
 module "iam" {
   source      = "./modules/iam"
@@ -58,6 +61,14 @@ module "secrets" {
 
 module "pubsub" {
   source     = "./modules/pubsub"
+  project_id = var.project_id
+  depends_on = [
+    google_project_service.apis
+  ]
+}
+
+module "firestore" {
+  source     = "./modules/firestore"
   project_id = var.project_id
   depends_on = [
     google_project_service.apis

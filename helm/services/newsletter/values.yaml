@@ -1,6 +1,7 @@
 image:
   repository: ""
   tag: ""
+  pullPolicy: Always
 
 service:
   port: 8070
@@ -31,12 +32,8 @@ env:
     value: "8070"
   - name: LOG_LEVEL
     value: "info"
-  - name: AUTH_SERVICE_URL
-    value: "http://auth.trip-manager.svc.cluster.local:8082"
-  - name: DATABASE_URL
-    value: "postgres://newsletter:newsletter@newsletter-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
-  - name: USERS_SERVICE_URL
-    value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+  - name: CRON_SCHEDULE
+    value: "0 0 * * *" # Einmal täglich um Mitternacht als Standard
 
 envFrom: []
 

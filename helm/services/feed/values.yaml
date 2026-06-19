@@ -1,8 +1,7 @@
 image:
   repository: ""
   tag: ""
-
-storage: 8Gi
+  pullPolicy: Always
 
 service:
   port: 8089
@@ -31,8 +30,6 @@ resources:
 env:
   - name: PORT
     value: "8089"
-  - name: AUTH_CLIENT_CONNECTION_STRING
-    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
 
 externalSecrets:
   enabled: false

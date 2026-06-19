@@ -26,13 +26,6 @@ spec:
                 name: {{ .Values.routes.auth.service }}
                 port:
                   number: {{ .Values.routes.auth.port }}
-          - path: {{ .Values.routes.presigner.path }}(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ .Values.routes.presigner.service }}
-                port:
-                  number: {{ .Values.routes.presigner.port }}
           - path: {{ .Values.routes.social.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -54,27 +47,13 @@ spec:
                 name: {{ .Values.routes.trips.service }}
                 port:
                   number: {{ .Values.routes.trips.port }}
-          - path: {{ .Values.routes.locations.path }}(/|$)(.*)
+          - path: {{ .Values.routes.travelInfo.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ .Values.routes.locations.service }}
+                name: {{ .Values.routes.travelInfo.service }}
                 port:
-                  number: {{ .Values.routes.locations.port }}
-          - path: {{ .Values.routes.travelWarning.path }}(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ .Values.routes.travelWarning.service }}
-                port:
-                  number: {{ .Values.routes.travelWarning.port }}
-          - path: {{ .Values.routes.weatherInfo.path }}(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ .Values.routes.weatherInfo.service }}
-                port:
-                  number: {{ .Values.routes.weatherInfo.port }}
+                  number: {{ .Values.routes.travelInfo.port }}
           - path: {{ .Values.routes.feed.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:

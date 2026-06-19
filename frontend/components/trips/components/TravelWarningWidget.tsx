@@ -28,7 +28,7 @@ export default function TravelWarningWidget({ countryCode, countryName }: Props)
         setLoading(true);
         setError(false);
 
-        fetch(`${API_URL}/api/warnings/${countryCode.toUpperCase()}`)
+        fetch(`${API_URL}/api/info/warning/${countryCode.toUpperCase()}`)
             .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
             .then((json: WarningResponse) => { setData(json); setLoading(false); })
             .catch(() => { setError(true); setLoading(false); });

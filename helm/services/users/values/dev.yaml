@@ -29,3 +29,5 @@ env:
     value: "firebase-emulator.trip-manager-dev.svc.cluster.local:9099"
   - name: FIREBASE_PROJECT_ID
     value: "trip-manager-local"
+  - name: PROMETHEUS_URL
+    value: "http://prometheus-server.trip-manager-dev.svc.cluster.local"

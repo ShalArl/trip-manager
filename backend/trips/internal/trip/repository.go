@@ -143,6 +143,7 @@ type Repository interface {
 	List(ctx context.Context, userID string, limit, offset int) ([]*Trip, int, error)
 	ListRecent(ctx context.Context, limit, offset int) ([]*Trip, int, error)
 	Search(ctx context.Context, query string, limit, offset int) ([]*Trip, int, error)
+	CountActiveByUser(ctx context.Context, userID string) (int, error)
 }
 
 type repositoryImpl struct {
@@ -336,4 +337,18 @@ func (r *repositoryImpl) Search(ctx context.Context, query string, limit, offset
 		return nil
 	})
 	return trips, total, err
+}
+
+func (r *repositoryImpl) CountActiveByUser(ctx context.Context, userID string) (int, error) {
+	var count int
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		return tx.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM trips WHERE user_id = $1 AND status IN ('planned', 'ongoing')`,
+			userID,
+		).Scan(&count)
+	})
+	if err != nil {
+		return 0, fmt.Errorf("%w: %v", ErrInternal, err)
+	}
+	return count, nil
 }

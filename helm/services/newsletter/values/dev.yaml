@@ -4,15 +4,19 @@ image:
 replicaCount: 1
 
 resources:
+  requests:
+    cpu: 30m
+    memory: 64Mi
   limits:
     cpu: 200m
     memory: 128Mi
-  requests:
-    cpu: 50m
-    memory: 64Mi
 
 hpa:
   enabled: false
+
+externalSecrets:
+  enabled: false
+  secrets: []
 
 env:
   - name: PORT
@@ -23,5 +27,20 @@ env:
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
   - name: NEWSLETTER_DB_URL
     value: "postgres://newsletter:newsletter@newsletter-postgres.trip-manager-dev.svc.cluster.local:5432/newsletter?sslmode=disable"
+  - name: USERS_DB_URL
+    value: "postgres://users:users@users-postgres.trip-manager-dev.svc.cluster.local:5432/users?sslmode=disable"
+  - name: NEO4J_URI
+    value: "bolt://neo4j.trip-manager-dev.svc.cluster.local:7687"
+  - name: NEO4J_USERNAME
+    value: "neo4j"
+  - name: NEO4J_PASSWORD
+    value: "neo4jpassword"
+  - name: CRON_SCHEDULE
+    value: "0 */12 * * *" # Im Dev-System z.B. alle 12 Stunden
   - name: CORS_ALLOWED_ORIGINS
     value: "http://localhost:3000"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-dev.svc.cluster.local:4317"
+
+serviceAccount:
+  gcpServiceAccount: ""

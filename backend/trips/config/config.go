@@ -5,14 +5,17 @@ import (
 )
 
 type Config struct {
-	Port               string   `envconfig:"PORT" default:"8002"`
-	DatabaseURL        string   `envconfig:"DATABASE_URL"`
-	AuthServiceURL     string   `envconfig:"AUTH_SERVICE_URL"`
-	UsersServiceURL    string   `envconfig:"USERS_SERVICE_URL"`
-	GCPProjectID       string   `envconfig:"GCP_PROJECT_ID"`
-	PubSubTopicID      string   `envconfig:"PUBSUB_TOPIC_ID" default:""`
-	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
-	PubSubEmulatorHost string   `envconfig:"PUBSUB_EMULATOR_HOST"`
+	Port                  string   `envconfig:"PORT" default:"8002"`
+	DatabaseURL           string   `envconfig:"DATABASE_URL"`
+	AuthServiceURL        string   `envconfig:"AUTH_SERVICE_URL"`
+	UsersServiceURL       string   `envconfig:"USERS_SERVICE_URL"`
+	GCPProjectID          string   `envconfig:"GCP_PROJECT_ID"`
+	PubSubTopicID         string   `envconfig:"PUBSUB_TOPIC_ID" default:""`
+	CORSAllowedOrigins    []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	PubSubEmulatorHost    string   `envconfig:"PUBSUB_EMULATOR_HOST"`
+	OTELCollectorEndpoint string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
+	S3Endpoint            string   `envconfig:"S3_ENDPOINT"`
+	S3Bucket              string   `envconfig:"S3_BUCKET"`
 }
 
 func Load() (*Config, error) {

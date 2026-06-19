@@ -44,6 +44,12 @@ env:
     value: "trip-events"
   - name: CORS_ALLOWED_ORIGINS
     value: "https://neatnode.xyz,https://www.neatnode.xyz"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
+  - name: S3_ENDPOINT
+    value: "https://storage.googleapis.com"
+  - name: S3_BUCKET
+    value: "trip-manager-bucket"
 
 serviceAccount:
   gcpServiceAccount: "trips-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

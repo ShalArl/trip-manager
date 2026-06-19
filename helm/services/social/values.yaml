@@ -1,6 +1,7 @@
 image:
   repository: ""
   tag: ""
+  pullPolicy: Always
 
 service:
   port: 8081
@@ -31,10 +32,16 @@ env:
     value: "8081"
   - name: LOG_LEVEL
     value: "info"
-
-
+  - name: STORAGE_PROVIDER
+    value: "s3" # Default Provider, wird in Prod durch GCS überschrieben
+  - name: STORAGE_TTL
+    value: "15m"
 
 envFrom: []
 
 serviceAccount:
   gcpServiceAccount: ""
+
+externalSecrets:
+  enabled: false
+  secrets: []

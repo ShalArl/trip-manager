@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
  * The storage backend (GCS in prod, MinIO locally) is opaque to the client.
  */
 export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
-    const response = await fetch(`${API_URL}/api/presign/uploads/presigned`, {
+    const response = await fetch(`${API_URL}/api/social/uploads/presigned`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify(req),
@@ -66,7 +66,7 @@ export async function uploadAvatar(file: File): Promise<string> {
  * Get a presigned URL for downloading/viewing a file.
  */
 export async function getDownloadUrl(key: string): Promise<string> {
-    const response = await fetch(`${API_URL}/api/presign/uploads/download-url`, {
+    const response = await fetch(`${API_URL}/api/social/uploads/download-url`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({ key }),

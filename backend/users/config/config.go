@@ -12,6 +12,8 @@ type Config struct {
 	CORSAllowedOrigins       []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 	FirebaseProjectID        string   `envconfig:"FIREBASE_PROJECT_ID"`
 	FirebaseAuthEmulatorHost string   `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
+	PrometheusURL            string   `envconfig:"PROMETHEUS_URL" default:""`
+	OTELCollectorEndpoint    string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 }
 
 func Load() (*Config, error) {

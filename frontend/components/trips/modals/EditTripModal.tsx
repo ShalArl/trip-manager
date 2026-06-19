@@ -88,10 +88,10 @@ export default function EditTripModal({
                 if (errors.title) setErrors({ ...errors, title: "" });
               }}
               placeholder="z.B. Frankreich 2026"
-              className={`w-full px-4 py-3 rounded-xl border-2 transition-all bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+              className={`w-full px-4 py-3 rounded-xl border-2 transition-all bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] ${
                 errors.title
                   ? "border-red-300 dark:border-red-700"
-                  : "border-zinc-200 dark:border-zinc-700 focus:border-sky-500"
+                  : "border-zinc-200 dark:border-zinc-700 focus:border-[var(--brand-primary)]"
               }`}
             />
             {errors.title && (
@@ -119,10 +119,10 @@ export default function EditTripModal({
               }}
               placeholder="z.B. Wochenendtrip nach Paris"
               maxLength={80}
-              className={`w-full px-4 py-3 rounded-xl border-2 transition-all bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+              className={`w-full px-4 py-3 rounded-xl border-2 transition-all bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] ${
                 errors.shortDescription
                   ? "border-red-300 dark:border-red-700"
-                  : "border-zinc-200 dark:border-zinc-700 focus:border-sky-500"
+                  : "border-zinc-200 dark:border-zinc-700 focus:border-[var(--brand-primary)]"
               }`}
             />
             <div className="flex justify-between items-center mt-2">
@@ -156,7 +156,7 @@ export default function EditTripModal({
               }
               placeholder="Erzähle mehr über deine Reise..."
               rows={4}
-              className="w-full px-4 py-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] resize-none transition-all"
             />
           </div>
 

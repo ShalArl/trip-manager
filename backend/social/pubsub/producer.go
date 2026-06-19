@@ -41,12 +41,14 @@ type TripLikedEvent struct {
 	TripID    string `json:"tripId"`
 	UserID    string `json:"userId"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 type TripCommentedEvent struct {
 	TripID    string `json:"tripId"`
 	UserID    string `json:"userId"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 func (p *Producer) PublishTripLiked(ctx context.Context, e TripLikedEvent) error {
@@ -60,7 +62,6 @@ func (p *Producer) PublishTripLiked(ctx context.Context, e TripLikedEvent) error
 		Attributes: map[string]string{
 			AttrEventType: EventTypeTripLiked,
 		},
-		OrderingKey: e.TripID,
 	})
 
 	_, err = result.Get(ctx)
@@ -78,7 +79,6 @@ func (p *Producer) PublishTripCommented(ctx context.Context, e TripCommentedEven
 		Attributes: map[string]string{
 			AttrEventType: EventTypeTripCommented,
 		},
-		OrderingKey: e.TripID,
 	})
 
 	_, err = result.Get(ctx)

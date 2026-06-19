@@ -12,7 +12,7 @@ export async function getFeed(
 ): Promise<{ data: FeedTrip[]; total: number }> {
   const response = await fetch(
     `${API_URL}/api/feed?limit=${limit}&offset=${offset}`,
-    { method: "GET" }
+    { method: "GET", headers: await getAuthHeaders() }
   );
   if (!response.ok) {
     throw new Error(`Fehler beim Laden des Feeds: ${response.status}`);

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
+	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
 	"github.com/jmoiron/sqlx"
@@ -34,6 +36,16 @@ func main() {
 		log.Fatalf("No allowed origin configured")
 	}
 	corsConfig.AllowedOrigins = allowedOrigins
+
+	otelProvider, err := sharedotel.New(ctx, "users", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "users")
+	}
 
 	// DB
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
@@ -63,6 +75,8 @@ func main() {
 
 	// Wire up
 	repo := repository.NewRepository(db)
+	tenantRepo := tenant.NewRepository(db)
+
 	svc := service.NewService(repo, fbClient)
 
 	// Middleware
@@ -80,15 +94,26 @@ func main() {
 		}
 	})
 
+	prometheusURL := cfg.PrometheusURL
+
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
 	mux.HandleFunc("GET /{id}", handler.GetByIDHandler(svc))
+	mux.HandleFunc("POST /tenants/register", requireAuth(tenant.RegisterHandler(tenantRepo, svc)))
+	mux.HandleFunc("GET /tenants/me", requireAuth(tenant.GetTenantHandler(tenantRepo)))
+	mux.HandleFunc("GET /tenants/by-slug/{slug}", tenant.GetTenantBySlugHandler(tenantRepo))
+	mux.HandleFunc("GET /tenants/me/branding", requireAuth(tenant.GetBrandingHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/branding", requireAuth(tenant.UpdateBrandingHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo)))
+	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, prometheusURL)))
+	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
 
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

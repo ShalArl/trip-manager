@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -17,6 +18,9 @@ import (
 	"github.com/ShalArl/trip-manager/backend/social/config"
 	"github.com/ShalArl/trip-manager/backend/social/internal/comment"
 	"github.com/ShalArl/trip-manager/backend/social/internal/like"
+	"github.com/ShalArl/trip-manager/backend/social/internal/presigner/handler"
+	presignerPrv "github.com/ShalArl/trip-manager/backend/social/internal/presigner/provider"
+	presignerSvc "github.com/ShalArl/trip-manager/backend/social/internal/presigner/service"
 	"github.com/ShalArl/trip-manager/backend/social/pubsub"
 )
 
@@ -28,6 +32,16 @@ func main() {
 	}
 
 	log.Printf("Starting Social Service on port %s\n", cfg.Port)
+
+	otelProvider, err := sharedotel.New(ctx, "social", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "social")
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
 	allowedOrigins := cfg.CORSAllowedOrigins
@@ -67,6 +81,7 @@ func main() {
 
 	authClient := authclient.NewClient(cfg.AuthClientConnectionString)
 	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
+	requireAuth := authclient.RequireAuth(authClient)
 
 	likeRepo := like.NewLikeRepository(firestoreClient)
 	likeService := like.NewServiceImpl(likeRepo)
@@ -74,17 +89,30 @@ func main() {
 	commentRepo := comment.NewCommentRepository(firestoreClient)
 	commentService := comment.NewServiceImpl(commentRepo)
 
+	provider, err := presignerPrv.NewFromEnv(ctx, *cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize provider %v", err)
+	}
+	presignerService := presignerSvc.NewService(provider, cfg.StorageTTL)
+
+	// Setup routes
 	mux := http.NewServeMux()
 
-	// Like endpoints
-	mux.HandleFunc("GET /{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	mux.HandleFunc("POST /{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService, pubsubProducer)))
-	mux.HandleFunc("DELETE /{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
+	// Presigner endpoints
+	mux.HandleFunc("POST /uploads/presigned",
+		authclient.RequireAuth(authClient)(handler.GetPresignedUploadURLHandler(presignerService, authClient)))
+	mux.HandleFunc("POST /uploads/download-url",
+		handler.GetPresignedDownloadURLHandler(presignerService))
 
-	// Comment endpoints
-	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService, usersClient))
-	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient, pubsubProducer)))
-	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
+	// Like endpoints – alle requireAuth, da tenantId zwingend benötigt wird
+	mux.HandleFunc("GET /{tripId}/likes", requireAuth(like.GetTripLikesHandler(likeService)))
+	mux.HandleFunc("POST /{tripId}/likes", requireAuth(like.LikeTripHandler(likeService, pubsubProducer)))
+	mux.HandleFunc("DELETE /{tripId}/likes", requireAuth(like.UnlikeTripHandler(likeService)))
+
+	// Comment endpoints – alle requireAuth, da tenantId zwingend benötigt wird
+	mux.HandleFunc("GET /{tripId}/comments", requireAuth(comment.ListTripCommentsHandler(commentService, usersClient)))
+	mux.HandleFunc("POST /{tripId}/comments", requireAuth(comment.CreateTripCommentHandler(commentService, usersClient, pubsubProducer)))
+	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", requireAuth(comment.DeleteCommentHandler(commentService)))
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +126,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	go func() {

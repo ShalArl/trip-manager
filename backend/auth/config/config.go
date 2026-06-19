@@ -18,6 +18,7 @@ type Config struct {
 	LogLevel                 string   `envconfig:"LOG_LEVEL"`
 	FirebaseAuthEmulatorHost string   `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
 	CORSAllowedOrigins       []string `envconfig:"CORS_ALLOWED_ORIGINS" default:"*"`
+	OTELCollectorEndpoint    string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 }
 
 // LoadConfig loads configuration from environment variables
