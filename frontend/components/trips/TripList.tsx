@@ -14,7 +14,7 @@ export default function TripList({ trips }: Props) {
                 <p className="text-zinc-500 dark:text-zinc-400">Noch keine Reisen geplant.</p>
                 <Link
                     href="/trips/new"
-                    className="mt-4 inline-flex items-center text-sky-600 dark:text-sky-400 font-medium hover:underline"
+                    className="mt-4 inline-flex items-center text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] font-medium hover:underline"
                 >
                     Erste Reise erstellen →
                 </Link>
@@ -39,7 +39,7 @@ export default function TripList({ trips }: Props) {
                                 ✈️
                             </div>
                             <div>
-                                <p className="font-semibold text-zinc-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                <p className="font-semibold text-zinc-900 dark:text-white group-hover:text-[var(--brand-primary)] dark:group-hover:text-[var(--brand-primary-light)] transition-colors">
                                     {trip.title}
                                 </p>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">

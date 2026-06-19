@@ -24,18 +24,21 @@ type TripCreatedEvent struct {
 	UserName  string `json:"userName"`
 	Title     string `json:"title"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 type TripLikedEvent struct {
 	TripID    string `json:"tripId"`
 	UserID    string `json:"userId"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 type TripCommentedEvent struct {
 	TripID    string `json:"tripId"`
 	UserID    string `json:"userId"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 // ── Consumer ──────────────────────────────────────────────────────────────────
@@ -122,9 +125,9 @@ func (c *Consumer) handle(ctx context.Context, eventType string, payload []byte)
 func (c *Consumer) onTripCreated(ctx context.Context, e TripCreatedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
-        SET u.name = $userName
+        SET u.name = $userName, u.tenantId = $tenantId
         MERGE (t:Trip {id: $tripId})
-        SET t.title = $title, t.createdAt = $createdAt
+        SET t.title = $title, t.createdAt = $createdAt, t.tenantId = $tenantId
         MERGE (u)-[r:CREATED]->(t)
         SET r.createdAt = $createdAt`,
 		map[string]any{
@@ -133,6 +136,7 @@ func (c *Consumer) onTripCreated(ctx context.Context, e TripCreatedEvent) error 
 			"tripId":    e.TripID,
 			"title":     e.Title,
 			"createdAt": e.CreatedAt,
+			"tenantId":  e.TenantID,
 		},
 		neo4j.EagerResultTransformer,
 	)
@@ -142,13 +146,16 @@ func (c *Consumer) onTripCreated(ctx context.Context, e TripCreatedEvent) error 
 func (c *Consumer) onTripLiked(ctx context.Context, e TripLikedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
+        SET u.tenantId = $tenantId
         MERGE (t:Trip {id: $tripId})
+        SET t.tenantId = $tenantId
         MERGE (u)-[r:LIKED]->(t)
         SET r.createdAt = $createdAt`,
 		map[string]any{
 			"userId":    e.UserID,
 			"tripId":    e.TripID,
 			"createdAt": e.CreatedAt,
+			"tenantId":  e.TenantID,
 		},
 		neo4j.EagerResultTransformer,
 	)
@@ -158,13 +165,16 @@ func (c *Consumer) onTripLiked(ctx context.Context, e TripLikedEvent) error {
 func (c *Consumer) onTripCommented(ctx context.Context, e TripCommentedEvent) error {
 	_, err := neo4j.ExecuteQuery(ctx, c.driver,
 		`MERGE (u:User {id: $userId})
+        SET u.tenantId = $tenantId
         MERGE (t:Trip {id: $tripId})
+        SET t.tenantId = $tenantId
         MERGE (u)-[r:COMMENTED]->(t)
         SET r.createdAt = $createdAt`,
 		map[string]any{
 			"userId":    e.UserID,
 			"tripId":    e.TripID,
 			"createdAt": e.CreatedAt,
+			"tenantId":  e.TenantID,
 		},
 		neo4j.EagerResultTransformer,
 	)

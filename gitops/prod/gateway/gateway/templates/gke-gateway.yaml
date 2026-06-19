@@ -1,0 +1,24 @@
+---
+# Source: gateway/templates/gke-gateway.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: trip-manager-gateway
+  namespace: trip-manager-prod
+  annotations:
+    networking.gke.io/certmap: "trip-manager-cert-map"
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same

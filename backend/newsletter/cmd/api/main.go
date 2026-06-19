@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -19,11 +20,12 @@ import (
 )
 
 type config struct {
-	Port               string   `envconfig:"PORT" default:"8008"`
-	NewsletterDBURL    string   `envconfig:"NEWSLETTER_DB_URL"`
-	AuthServiceURL     string   `envconfig:"AUTH_SERVICE_URL"`
-	LogLevel           string   `envconfig:"LOG_LEVEL"`
-	CORSAllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	Port                  string   `envconfig:"PORT" default:"8008"`
+	NewsletterDBURL       string   `envconfig:"NEWSLETTER_DB_URL"`
+	AuthServiceURL        string   `envconfig:"AUTH_SERVICE_URL"`
+	LogLevel              string   `envconfig:"LOG_LEVEL"`
+	CORSAllowedOrigins    []string `envconfig:"CORS_ALLOWED_ORIGINS"`
+	OTELCollectorEndpoint string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 }
 
 func load() (*config, error) {
@@ -35,9 +37,20 @@ func load() (*config, error) {
 }
 
 func main() {
+	ctx := context.Background()
 	cfg, err := load()
 	if err != nil {
 		log.Fatal("Failed to load config")
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "newsletter", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "newsletter")
 	}
 
 	corsConfig := middleware.DefaultCORSConfig()
@@ -46,7 +59,7 @@ func main() {
 		log.Fatal("No allowed origins configured")
 	}
 	corsConfig.AllowedOrigins = allowedOrigins
-	
+
 	db, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
 	if err != nil {
 		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)
@@ -81,7 +94,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	go func() {

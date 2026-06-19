@@ -12,6 +12,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
+	sharedotel "github.com/ShalArl/trip-manager/backend/shared/otel"
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	"github.com/ShalArl/trip-manager/backend/trips/config"
 	"github.com/ShalArl/trip-manager/backend/trips/database"
@@ -27,6 +28,16 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "trips", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "trips")
 	}
 
 	corsConfig := middleware.DefaultCORSConfig()
@@ -76,7 +87,6 @@ func main() {
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
 	requireAuth := authclient.RequireAuth(authClient)
-	optionalAuth := authclient.OptionalAuth(authClient)
 
 	// Wire up – trips
 	tripRepo := trip.NewRepository(db)
@@ -106,20 +116,20 @@ func main() {
 	// Trips
 	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient, pubsubProducer)))
-	mux.HandleFunc("GET /recent", optionalAuth(trip.ListRecentTripsHandler(tripSvc, usersClient)))
-	mux.HandleFunc("GET /search", optionalAuth(trip.SearchTripsHandler(tripSvc, usersClient)))
-	mux.HandleFunc("GET /{tripId}", optionalAuth(trip.GetTripHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /recent", requireAuth(trip.ListRecentTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /search", requireAuth(trip.SearchTripsHandler(tripSvc, usersClient)))
+	mux.HandleFunc("GET /{tripId}", requireAuth(trip.GetTripHandler(tripSvc, usersClient)))
 	mux.HandleFunc("PUT /{tripId}", requireAuth(trip.UpdateTripHandler(tripSvc, usersClient)))
 	mux.HandleFunc("DELETE /{tripId}", requireAuth(trip.DeleteTripHandler(tripSvc, usersClient)))
 
 	// Transports
-	mux.HandleFunc("GET /{tripId}/transports", optionalAuth(transport.ListHandler(transportSvc)))
+	mux.HandleFunc("GET /{tripId}/transports", requireAuth(transport.ListHandler(transportSvc)))
 	mux.HandleFunc("POST /{tripId}/transports", requireAuth(transport.CreateHandler(transportSvc, usersClient)))
 	mux.HandleFunc("PUT /{tripId}/transports/{transportId}", requireAuth(transport.UpdateHandler(transportSvc, usersClient)))
 	mux.HandleFunc("DELETE /{tripId}/transports/{transportId}", requireAuth(transport.DeleteHandler(transportSvc, usersClient)))
 
 	// Accommodations
-	mux.HandleFunc("GET /{tripId}/accommodations", optionalAuth(accommodation.ListHandler(accommodationSvc)))
+	mux.HandleFunc("GET /{tripId}/accommodations", requireAuth(accommodation.ListHandler(accommodationSvc)))
 	mux.HandleFunc("POST /{tripId}/accommodations", requireAuth(accommodation.CreateHandler(accommodationSvc, usersClient)))
 	mux.HandleFunc("PUT /{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.UpdateHandler(accommodationSvc, usersClient)))
 	mux.HandleFunc("DELETE /{tripId}/accommodations/{accommodationId}", requireAuth(accommodation.DeleteHandler(accommodationSvc, usersClient)))
@@ -127,7 +137,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

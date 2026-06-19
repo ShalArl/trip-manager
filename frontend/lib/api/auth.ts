@@ -38,7 +38,7 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
 /**
  * Register a new user with Firebase and provision the backend record.
  */
-export async function register(req: CreateUserRequest): Promise<UserResponse> {
+export async function register(req: CreateUserRequest, tenantId?: string): Promise<UserResponse> {
     const credential = await createUserWithEmailAndPassword(
         firebaseAuth,
         req.email,
@@ -48,7 +48,8 @@ export async function register(req: CreateUserRequest): Promise<UserResponse> {
     if (req.name) {
         await updateProfile(credential.user, { displayName: req.name });
     }
-    return provisionMe({ name: req.name });
+
+    return provisionMe({ name: req.name }, tenantId);
 }
 
 /**
@@ -72,12 +73,12 @@ export async function logout(): Promise<void> {
  * Create the backend user record after Firebase sign-up/sign-in.
  * Idempotent: returns existing record if already provisioned.
  */
-async function provisionMe(data?: ProvisionUserRequest): Promise<UserResponse> {
+async function provisionMe(data?: ProvisionUserRequest, tenantId?: string): Promise<UserResponse> {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/users/provision`, {
         method: "POST",
         headers,
-        body: JSON.stringify(data ?? {}),
+        body: JSON.stringify({ ...data ?? {}, tenantId }),
     });
 
     if (!response.ok) {
@@ -86,6 +87,7 @@ async function provisionMe(data?: ProvisionUserRequest): Promise<UserResponse> {
         throw new Error(`Provisioning failed: ${response.status}`);
     }
 
+    await firebaseAuth.currentUser?.getIdToken(true);
     return response.json();
 }
 
@@ -146,6 +148,70 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
     }
 
     await firebaseUpdatePassword(user, data.newPassword);
+}
+
+// Tenant Related:
+
+export interface RegisterTenantRequest {
+    tenantName: string;
+    tier: "free" | "standard";
+}
+
+export interface TenantResponse {
+    tenantId: string;
+    name: string;
+    tier: string;
+    slug: string;
+}
+
+export async function registerTenant(req: RegisterTenantRequest): Promise<TenantResponse> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/tenants/register`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(req),
+    });
+
+    if (!response.ok) {
+        await response.text();
+        throw new Error(`Tenant registration failed: ${response.status}`);
+    }
+
+    // Token refreshen damit neue Claims aktiv werden
+    await firebaseAuth.currentUser?.getIdToken(true);
+
+    return response.json();
+}
+
+export async function getTenantBySlug(slug: string): Promise<TenantResponse | null> {
+    const response = await fetch(`${API_URL}/api/tenants/by-slug/${slug}`);
+    if (!response.ok) return null;
+    return response.json();
+}
+
+export async function getTenant(): Promise<TenantResponse | null> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/tenants/me`, {
+        method: "GET",
+        headers,
+    });
+
+    if (!response.ok) return null;
+    return response.json();
+}
+
+export interface TenantSettings {
+    maxActiveTrips: number;
+}
+
+export async function getTenantSettings(): Promise<TenantSettings | null> {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/tenants/me/settings`, {
+        method: "GET",
+        headers,
+    });
+    if (!response.ok) return null;
+    return response.json();
 }
 
 /**

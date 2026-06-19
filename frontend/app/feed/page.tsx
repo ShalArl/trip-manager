@@ -26,7 +26,7 @@ type FeedMode = "global" | "personal";
 const PAGE_SIZE = 20;
 
 export default function FeedPage() {
-  const { user } = useUserContext();
+  const { user, isLoading: userLoading } = useUserContext();
   const [mode, setMode] = useState<FeedMode>("global");
   const [trips, setTrips] = useState<FeedTrip[]>([]);
   const [total, setTotal] = useState(0);
@@ -34,13 +34,15 @@ export default function FeedPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (userLoading) return; // warten bis Firebase Auth-State geladen ist
+
     const fetchFeed = async () => {
       setIsLoading(true);
       try {
         const result =
-          mode === "personal" && user
-            ? await getPersonalFeed(PAGE_SIZE, page * PAGE_SIZE)
-            : await getFeed(PAGE_SIZE, page * PAGE_SIZE);
+            mode === "personal" && user
+                ? await getPersonalFeed(PAGE_SIZE, page * PAGE_SIZE)
+                : await getFeed(PAGE_SIZE, page * PAGE_SIZE);
         setTrips(result.data);
         setTotal(result.total);
       } catch (error) {
@@ -50,7 +52,7 @@ export default function FeedPage() {
       }
     };
     fetchFeed();
-  }, [page, mode, user]);
+  }, [page, mode, user, userLoading]);
 
   const handleModeChange = (newMode: FeedMode) => {
     setMode(newMode);
@@ -176,7 +178,7 @@ export default function FeedPage() {
 
                     {/* Rank Badge */}
                     <div className="flex flex-col items-center justify-center flex-shrink-0 w-12 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/50">
-                      <p className="text-[10px] uppercase tracking-wider text-sky-600 dark:text-sky-400 font-semibold">
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] font-semibold">
                         #
                       </p>
                       <p className="text-xl font-bold text-sky-900 dark:text-sky-200 leading-none mt-0.5">
@@ -186,7 +188,7 @@ export default function FeedPage() {
 
                     {/* Main Content */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-base truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors mb-2">
+                      <h3 className="font-semibold text-base truncate group-hover:text-[var(--brand-primary)] dark:group-hover:text-[var(--brand-primary-light)] transition-colors mb-2">
                         {trip.title}
                       </h3>
 
@@ -197,7 +199,7 @@ export default function FeedPage() {
                           <span>{trip.likes}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-                          <MessageCircle className="h-3.5 w-3.5 text-sky-400" />
+                          <MessageCircle className="h-3.5 w-3.5 text-[var(--brand-primary-light)]" />
                           <span>{trip.comments}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">

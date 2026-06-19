@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -18,9 +19,20 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "feed", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "feed")
 	}
 
 	corsConfig := middleware.DefaultCORSConfig()
@@ -57,7 +69,6 @@ func main() {
 	// Auth
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 	requireAuth := authclient.RequireAuth(authClient)
-	optionalAuth := authclient.OptionalAuth(authClient)
 
 	// Router
 	mux := http.NewServeMux()
@@ -73,7 +84,7 @@ func main() {
 	})
 
 	// Globaler Feed – öffentlich, Gäste + eingeloggte User
-	mux.HandleFunc("GET /", optionalAuth(feed.GetGlobalFeedHandler(feedSvc)))
+	mux.HandleFunc("GET /", requireAuth(feed.GetGlobalFeedHandler(feedSvc)))
 
 	// Personalisierter Feed – nur für eingeloggte User
 	mux.HandleFunc("GET /personal", requireAuth(feed.GetPersonalFeedHandler(feedSvc)))
@@ -81,7 +92,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	go func() {

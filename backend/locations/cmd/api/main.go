@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -24,6 +25,16 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load config %v", err)
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "locations", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "locations")
 	}
 
 	corsConfig := middleware.DefaultCORSConfig()
@@ -54,7 +65,6 @@ func main() {
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
 	requireAuth := authclient.RequireAuth(authClient)
-	optionalAuth := authclient.OptionalAuth(authClient)
 
 	// Wire up
 	repo := location.NewRepository(db)
@@ -75,7 +85,7 @@ func main() {
 
 	// Locations
 	mux.HandleFunc("GET /{tripId}",
-		optionalAuth(location.ListHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
+		requireAuth(location.ListHandler(svc, cfg.S3Endpoint, cfg.S3Bucket)))
 	mux.HandleFunc("POST /{tripId}",
 		requireAuth(location.CreateHandler(svc, usersClient, cfg.S3Endpoint, cfg.S3Bucket)))
 	mux.HandleFunc("PUT /{tripId}/{locationId}",
@@ -92,7 +102,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

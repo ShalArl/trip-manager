@@ -22,6 +22,7 @@ type Config struct {
 	GoogleApplicationCredentials string   `envconfig:"GOOGLE_APPLICATION_CREDENTIALS"`
 	CORSAllowedOrigins           []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 	PubSubEmulatorHost           string   `envconfig:"PUBSUB_EMULATOR_HOST"`
+	OTELCollectorEndpoint        string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 }
 
 func LoadConfig() (*Config, error) {

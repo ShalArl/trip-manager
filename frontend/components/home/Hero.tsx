@@ -9,14 +9,14 @@ export default function Hero() {
         </div>
         <h1 className="mb-6 text-5xl sm:text-6xl font-bold tracking-tight text-zinc-950 dark:text-white leading-tight">
           Freizeitstress adé.<br />
-          <span className="text-sky-600 dark:text-sky-400">Reiseplanung juche.</span>
+          <span className="text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)]">Reiseplanung juche.</span>
         </h1>
         <p className="mb-10 max-w-2xl text-xl leading-relaxed text-zinc-500 dark:text-zinc-400">
           Organisiere deine Trips, erstelle Packlisten und behalte dein Budget im Griff.
         </p>
         <Link
           href="/trips/new"
-          className="h-14 rounded-2xl bg-sky-600 px-12 font-semibold text-white hover:bg-sky-700 active:scale-[0.98] transition-all shadow-lg shadow-sky-500/25 text-base inline-flex items-center"
+          className="h-14 rounded-2xl bg-[var(--brand-primary)] px-12 font-semibold text-white hover:bg-[var(--brand-primary-dark)] active:scale-[0.98] transition-all shadow-lg shadow-sky-500/25 text-base inline-flex items-center"
         >
           Reise planen
         </Link>

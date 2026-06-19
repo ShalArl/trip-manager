@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/weather-info/config"
 	"github.com/ShalArl/trip-manager/backend/weather-info/internal/cache"
@@ -18,10 +20,21 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
 		return
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "weather-info", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "weather-info")
 	}
 
 	// Redis Cache
@@ -61,10 +74,13 @@ func main() {
 	}
 	corsConfig.AllowedOrigins = allowedOrigins
 
+	// Auth client
+	authClient := authclient.NewClient(cfg.AuthServiceURL)
+
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

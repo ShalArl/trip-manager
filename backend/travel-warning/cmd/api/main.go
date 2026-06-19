@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/travel-warning/config"
 	"github.com/ShalArl/trip-manager/backend/travel-warning/internal/cache"
@@ -17,9 +19,20 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	otelProvider, err := sharedotel.New(ctx, "travel-warning", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "travel-warning")
 	}
 
 	warningCache, err := cache.NewWarningCache(cfg.RedisUrl)
@@ -50,9 +63,12 @@ func main() {
 	}
 	corsConfig.AllowedOrigins = allowedOrigins
 
+	// Auth client
+	authClient := authclient.NewClient(cfg.AuthServiceURL)
+
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	go func() {

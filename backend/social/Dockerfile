@@ -23,6 +23,8 @@ COPY shared/tenantdb/go.mod shared/tenantdb/go.mod
 COPY shared/tenantdb/go.sum shared/tenantdb/go.sum
 COPY shared/firebaseclient/go.mod shared/firebaseclient/go.mod
 COPY shared/firebaseclient/go.sum shared/firebaseclient/go.sum
+COPY shared/otel/go.mod shared/otel/go.mod
+COPY shared/otel/go.sum shared/otel/go.sum
 COPY social/go.mod social/go.mod
 COPY social/go.sum social/go.sum
 COPY users/go.mod users/go.mod

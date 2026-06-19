@@ -11,6 +11,8 @@ env:
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: CORS_ALLOWED_ORIGINS
     value: "https://www.trip-manager.com,https://app.trip-manager.com"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
 
 externalSecrets:
   enabled: true

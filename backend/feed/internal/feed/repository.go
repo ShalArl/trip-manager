@@ -12,8 +12,8 @@ import (
 )
 
 type Repository interface {
-	GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error)
-	GetPersonalizedFeed(ctx context.Context, userID string, limit, offset int) ([]generated.FeedTrip, int, error)
+	GetFeed(ctx context.Context, tenantID string, limit, offset int) ([]generated.FeedTrip, int, error)
+	GetPersonalizedFeed(ctx context.Context, tenantID, userID string, limit, offset int) ([]generated.FeedTrip, int, error)
 }
 
 type repository struct {
@@ -24,17 +24,14 @@ func NewRepository(driver neo4j.DriverWithContext) Repository {
 	return &repository{driver: driver}
 }
 
-func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]generated.FeedTrip, int, error) {
+func (r *repository) GetFeed(ctx context.Context, tenantID string, limit, offset int) ([]generated.FeedTrip, int, error) {
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer func(session neo4j.SessionWithContext, ctx context.Context) {
-		err := session.Close(ctx)
-		if err != nil {
-
-		}
+		_ = session.Close(ctx)
 	}(session, ctx)
 
 	result, err := session.Run(ctx, `
-		MATCH (t:Trip)
+		MATCH (t:Trip {tenantId: $tenantId})
 		OPTIONAL MATCH (t)<-[:CREATED]-(creator:User)
 		OPTIONAL MATCH (t)<-[l:LIKED]-()
 		OPTIONAL MATCH (t)<-[c:COMMENTED]-()
@@ -51,7 +48,7 @@ func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]generate
 		ORDER BY score DESC, t.createdAt DESC
 		SKIP $offset
 		LIMIT $limit
-	`, map[string]any{"limit": limit, "offset": offset})
+	`, map[string]any{"tenantId": tenantID, "limit": limit, "offset": offset})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -61,7 +58,7 @@ func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]generate
 		return nil, 0, err
 	}
 
-	total, err := countTrips(ctx, session)
+	total, err := countTrips(ctx, session, tenantID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -69,18 +66,15 @@ func (r *repository) GetFeed(ctx context.Context, limit, offset int) ([]generate
 	return trips, total, nil
 }
 
-func (r *repository) GetPersonalizedFeed(ctx context.Context, userID string, limit, offset int) ([]generated.FeedTrip, int, error) {
+func (r *repository) GetPersonalizedFeed(ctx context.Context, tenantID, userID string, limit, offset int) ([]generated.FeedTrip, int, error) {
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer func(session neo4j.SessionWithContext, ctx context.Context) {
-		err := session.Close(ctx)
-		if err != nil {
-
-		}
+		_ = session.Close(ctx)
 	}(session, ctx)
 
 	result, err := session.Run(ctx, `
-		MATCH (me:User {id: $userId})
-		MATCH (t:Trip)
+		MATCH (me:User {id: $userId, tenantId: $tenantId})
+		MATCH (t:Trip {tenantId: $tenantId})
 		WHERE NOT (me)-[:LIKED]->(t) AND NOT (me)-[:CREATED]->(t)
 		OPTIONAL MATCH (t)<-[:CREATED]-(creator:User)
 		OPTIONAL MATCH (t)<-[l:LIKED]-()
@@ -109,9 +103,10 @@ func (r *repository) GetPersonalizedFeed(ctx context.Context, userID string, lim
 		SKIP $offset
 		LIMIT $limit
 	`, map[string]any{
-		"userId": userID,
-		"limit":  limit,
-		"offset": offset,
+		"userId":   userID,
+		"tenantId": tenantID,
+		"limit":    limit,
+		"offset":   offset,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -147,8 +142,11 @@ func collectTrips(ctx context.Context, result neo4j.ResultWithContext) ([]genera
 	return trips, result.Err()
 }
 
-func countTrips(ctx context.Context, session neo4j.SessionWithContext) (int, error) {
-	countResult, err := session.Run(ctx, `MATCH (t:Trip) RETURN count(t) AS total`, nil)
+func countTrips(ctx context.Context, session neo4j.SessionWithContext, tenantID string) (int, error) {
+	countResult, err := session.Run(ctx,
+		`MATCH (t:Trip {tenantId: $tenantId}) RETURN count(t) AS total`,
+		map[string]any{"tenantId": tenantID},
+	)
 	if err != nil {
 		return 0, err
 	}

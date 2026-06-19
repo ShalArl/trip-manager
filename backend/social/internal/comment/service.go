@@ -8,10 +8,10 @@ import (
 )
 
 type Service interface {
-	CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, entityID, text string) (*CommentResponse, error)
-	ListComments(ctx context.Context, entityID string) (*CommentListResponse, error)
-	DeleteComment(ctx context.Context, firebaseUID, commentID string) error
-	UpdateComment(ctx context.Context, firebaseUID, commentID, text string) (*CommentResponse, error)
+	CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, tenantID, entityID, text string) (*CommentResponse, error)
+	ListComments(ctx context.Context, tenantID, entityID string) (*CommentListResponse, error)
+	DeleteComment(ctx context.Context, firebaseUID, tenantID, commentID string) error
+	UpdateComment(ctx context.Context, firebaseUID, tenantID, commentID, text string) (*CommentResponse, error)
 }
 
 type ServiceImpl struct {
@@ -24,12 +24,13 @@ func NewServiceImpl(repository Repository) Service {
 	}
 }
 
-func (s *ServiceImpl) CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, entityID, text string) (*CommentResponse, error) {
+func (s *ServiceImpl) CreateComment(ctx context.Context, firebaseUID, postgresID, userName, userEmail, userAvatarKey, tenantID, entityID, text string) (*CommentResponse, error) {
 	if text == "" {
 		return nil, fmt.Errorf("%w: comment text cannot be empty", shared.ErrInvalidInput)
 	}
 	comment := &Comment{
 		EntityID:    entityID,
+		TenantID:    tenantID,
 		FirebaseUID: firebaseUID,
 		User: UserSummary{
 			ID:        postgresID,
@@ -58,8 +59,8 @@ func toCommentResponse(c *Comment) *CommentResponse {
 	}
 }
 
-func (s *ServiceImpl) ListComments(ctx context.Context, entityID string) (*CommentListResponse, error) {
-	comments, err := s.repo.ListComments(ctx, entityID)
+func (s *ServiceImpl) ListComments(ctx context.Context, tenantID, entityID string) (*CommentListResponse, error) {
+	comments, err := s.repo.ListComments(ctx, tenantID, entityID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list comments: %w", err)
 	}
@@ -70,18 +71,18 @@ func (s *ServiceImpl) ListComments(ctx context.Context, entityID string) (*Comme
 	return &CommentListResponse{Data: responses}, nil
 }
 
-func (s *ServiceImpl) DeleteComment(ctx context.Context, firebaseUID, commentID string) error {
-	if err := s.repo.DeleteComment(ctx, commentID, firebaseUID); err != nil {
+func (s *ServiceImpl) DeleteComment(ctx context.Context, firebaseUID, tenantID, commentID string) error {
+	if err := s.repo.DeleteComment(ctx, commentID, firebaseUID, tenantID); err != nil {
 		return fmt.Errorf("failed to delete comment: %w", err)
 	}
 	return nil
 }
 
-func (s *ServiceImpl) UpdateComment(ctx context.Context, firebaseUID, commentID, text string) (*CommentResponse, error) {
+func (s *ServiceImpl) UpdateComment(ctx context.Context, firebaseUID, tenantID, commentID, text string) (*CommentResponse, error) {
 	if text == "" {
 		return nil, fmt.Errorf("%w: comment text cannot be empty", shared.ErrInvalidInput)
 	}
-	existing, err := s.repo.GetComment(ctx, commentID)
+	existing, err := s.repo.GetComment(ctx, commentID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get comment: %w", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -28,6 +29,16 @@ func main() {
 	}
 
 	log.Printf("Starting Social Service on port %s\n", cfg.Port)
+
+	otelProvider, err := sharedotel.New(ctx, "social", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "social")
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
 	allowedOrigins := cfg.CORSAllowedOrigins
@@ -67,6 +78,7 @@ func main() {
 
 	authClient := authclient.NewClient(cfg.AuthClientConnectionString)
 	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
+	requireAuth := authclient.RequireAuth(authClient)
 
 	likeRepo := like.NewLikeRepository(firestoreClient)
 	likeService := like.NewServiceImpl(likeRepo)
@@ -76,15 +88,15 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Like endpoints
-	mux.HandleFunc("GET /{tripId}/likes", authclient.OptionalAuth(authClient)(like.GetTripLikesHandler(likeService)))
-	mux.HandleFunc("POST /{tripId}/likes", authclient.RequireAuth(authClient)(like.LikeTripHandler(likeService, pubsubProducer)))
-	mux.HandleFunc("DELETE /{tripId}/likes", authclient.RequireAuth(authClient)(like.UnlikeTripHandler(likeService)))
+	// Like endpoints – alle requireAuth, da tenantId zwingend benötigt wird
+	mux.HandleFunc("GET /{tripId}/likes", requireAuth(like.GetTripLikesHandler(likeService)))
+	mux.HandleFunc("POST /{tripId}/likes", requireAuth(like.LikeTripHandler(likeService, pubsubProducer)))
+	mux.HandleFunc("DELETE /{tripId}/likes", requireAuth(like.UnlikeTripHandler(likeService)))
 
-	// Comment endpoints
-	mux.HandleFunc("GET /{tripId}/comments", comment.ListTripCommentsHandler(commentService, usersClient))
-	mux.HandleFunc("POST /{tripId}/comments", authclient.RequireAuth(authClient)(comment.CreateTripCommentHandler(commentService, usersClient, pubsubProducer)))
-	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", authclient.RequireAuth(authClient)(comment.DeleteCommentHandler(commentService)))
+	// Comment endpoints – alle requireAuth, da tenantId zwingend benötigt wird
+	mux.HandleFunc("GET /{tripId}/comments", requireAuth(comment.ListTripCommentsHandler(commentService, usersClient)))
+	mux.HandleFunc("POST /{tripId}/comments", requireAuth(comment.CreateTripCommentHandler(commentService, usersClient, pubsubProducer)))
+	mux.HandleFunc("DELETE /{tripId}/comments/{commentId}", requireAuth(comment.DeleteCommentHandler(commentService)))
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +110,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	go func() {

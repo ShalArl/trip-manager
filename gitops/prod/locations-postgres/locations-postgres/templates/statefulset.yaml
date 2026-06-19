@@ -1,0 +1,46 @@
+---
+# Source: locations-postgres/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: locations-postgres
+  namespace: trip-manager-prod
+spec:
+  serviceName: locations-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locations-postgres
+  template:
+    metadata:
+      labels:
+        app: locations-postgres
+    spec:
+      containers:
+        - name: locations-postgres
+          image: "postgres:16-alpine"
+          env:
+            - name: POSTGRES_DB
+              value: locations
+            - name: POSTGRES_USER
+              value: locations
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: locations-postgres-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: premium-rwo
+        resources:
+          requests:
+            storage: 8Gi

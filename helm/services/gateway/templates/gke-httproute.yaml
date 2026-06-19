@@ -129,6 +129,19 @@ spec:
       backendRefs:
         - name: {{ .Values.routes.feed.service }}
           port: {{ .Values.routes.feed.port }}
+    - matches:
+          - path:
+              type: PathPrefix
+              value: /api/tenants/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /tenants/
+      backendRefs:
+        - name: {{ .Values.routes.tenants.service }}
+          port: {{ .Values.routes.tenants.port }}
 ---
 # Frontend Route
 apiVersion: gateway.networking.k8s.io/v1

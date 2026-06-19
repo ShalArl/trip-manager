@@ -61,7 +61,10 @@ func ProvisionHandler(svc service.Service) http.HandlerFunc {
 			return
 		}
 
-		var req generated.ProvisionUserRequest
+		var req struct {
+			Name     *string `json:"name"`
+			TenantID string  `json:"tenantId"`
+		}
 		if r.ContentLength > 0 {
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				respondError(w, http.StatusBadRequest, "invalid request body")
@@ -75,10 +78,17 @@ func ProvisionHandler(svc service.Service) http.HandlerFunc {
 			name = *req.Name
 		}
 
+		// tenantId aus Body oder aus JWT Claims
+		tenantID := req.TenantID
+		if tenantID == "" {
+			tenantID = authclient.GetTenantID(r)
+		}
+
 		user, created, err := svc.Provision(r.Context(), service.ProvisionInput{
 			FirebaseUID: firebaseUID,
 			Email:       email,
 			Name:        name,
+			TenantID:    tenantID,
 		})
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())

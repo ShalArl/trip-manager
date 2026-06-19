@@ -1,0 +1,27 @@
+---
+# Source: newsletter-postgres/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: newsletter-postgres
+  namespace: trip-manager-prod
+spec:
+  selector:
+    app: newsletter-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Source: newsletter-postgres/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: newsletter-postgres-headless
+  namespace: trip-manager-prod
+spec:
+  clusterIP: None   # Headless
+  selector:
+    app: newsletter-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

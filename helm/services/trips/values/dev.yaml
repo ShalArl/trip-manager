@@ -33,3 +33,5 @@ env:
     value: "pubsub-emulator.trip-manager-dev.svc.cluster.local:8085"
   - name: CORS_ALLOWED_ORIGINS
     value: "http://localhost:3000"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-dev.svc.cluster.local:4317"

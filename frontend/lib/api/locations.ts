@@ -10,6 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export async function getLocations(tripId: string): Promise<LocationResponse[]> {
     const response = await fetch(`${API_URL}/api/locations/${tripId}`, {
         method: "GET",
+        headers: await getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error(`Fehler beim Laden der Locations: ${response.status}`);

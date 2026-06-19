@@ -1,0 +1,76 @@
+---
+# Source: users/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: users
+    app.kubernetes.io/instance: users
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: users
+      app.kubernetes.io/instance: users
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: users
+        app.kubernetes.io/instance: users
+      annotations:
+        checksum/config: 81a16424d1a2542e6dec8e86cbc013a5dc4a6cda12165114a50b6aac5a80660c
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: users
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8083"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: STORAGE_BUCKET_URL
+              value: https://storage.googleapis.com/trip-manager-bucket
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://neatnode.xyz,https://www.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: users-secrets
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: users

@@ -18,9 +18,9 @@ const collComments = "comments"
 
 type Repository interface {
 	CreateComment(ctx context.Context, comment *Comment) (*Comment, error)
-	GetComment(ctx context.Context, commentID string) (*Comment, error)
-	ListComments(ctx context.Context, entityID string) ([]*Comment, error)
-	DeleteComment(ctx context.Context, commentID, userID string) error
+	GetComment(ctx context.Context, commentID, tenantID string) (*Comment, error)
+	ListComments(ctx context.Context, tenantID, entityID string) ([]*Comment, error)
+	DeleteComment(ctx context.Context, commentID, userID, tenantID string) error
 	UpdateComment(ctx context.Context, comment *Comment) (*Comment, error)
 }
 
@@ -52,7 +52,7 @@ func (r *RepositoryImpl) CreateComment(ctx context.Context, comment *Comment) (*
 	return comment, nil
 }
 
-func (r *RepositoryImpl) GetComment(ctx context.Context, commentID string) (*Comment, error) {
+func (r *RepositoryImpl) GetComment(ctx context.Context, commentID, tenantID string) (*Comment, error) {
 	doc, err := r.client.Collection(collComments).Doc(commentID).Get(ctx)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -64,12 +64,16 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, commentID string) (*Com
 	if err := doc.DataTo(&comment); err != nil {
 		return nil, fmt.Errorf("%w: failed to parse comment: %v", shared.ErrInternal, err)
 	}
+	if comment.TenantID != tenantID {
+		return nil, shared.ErrNotFound
+	}
 	return &comment, nil
 }
 
-func (r *RepositoryImpl) ListComments(ctx context.Context, entityID string) ([]*Comment, error) {
+func (r *RepositoryImpl) ListComments(ctx context.Context, tenantID, entityID string) ([]*Comment, error) {
 	iter := r.client.Collection(collComments).
 		Where("entityId", "==", entityID).
+		Where("tenantId", "==", tenantID).
 		OrderBy("createdAt", firestore.Desc).
 		Documents(ctx)
 	defer iter.Stop()
@@ -92,8 +96,8 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, entityID string) ([]*
 	return comments, nil
 }
 
-func (r *RepositoryImpl) DeleteComment(ctx context.Context, commentID, userID string) error {
-	comment, err := r.GetComment(ctx, commentID)
+func (r *RepositoryImpl) DeleteComment(ctx context.Context, commentID, userID, tenantID string) error {
+	comment, err := r.GetComment(ctx, commentID, tenantID)
 	if err != nil {
 		return err
 	}

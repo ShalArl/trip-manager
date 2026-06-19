@@ -1,0 +1,80 @@
+---
+# Source: locations/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locations
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: locations
+    app.kubernetes.io/instance: locations
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: locations
+      app.kubernetes.io/instance: locations
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: locations
+        app.kubernetes.io/instance: locations
+      annotations:
+        checksum/config: c02869455249c443d12ab2897e16039f3a7f67700bd43ff1bb4981f43cbbe252
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: locations
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/locations:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8086
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8086"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: USERS_SERVICE_URL
+              value: http://users.trip-manager-prod.svc.cluster.local:8083
+            - name: S3_ENDPOINT
+              value: https://storage.googleapis.com
+            - name: S3_BUCKET
+              value: trip-manager-bucket
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://neatnode.xyz,https://www.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: locations-secrets
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: locations

@@ -1,0 +1,49 @@
+---
+# Source: feed/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: feed
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: feed
+    app.kubernetes.io/instance: feed
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+  annotations:
+    cloud.google.com/backend-config: "{\"default\": \"feed-backend-config\"}"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8089
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: feed
+    app.kubernetes.io/instance: feed
+---
+# Source: feed/templates/service.yaml
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: feed-hc-policy
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: feed
+    app.kubernetes.io/instance: feed
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8089
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: feed

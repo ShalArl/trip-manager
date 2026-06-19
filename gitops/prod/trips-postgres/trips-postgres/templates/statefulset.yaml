@@ -1,0 +1,46 @@
+---
+# Source: trips-postgres/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trips-postgres
+  namespace: trip-manager-prod
+spec:
+  serviceName: trips-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trips-postgres
+  template:
+    metadata:
+      labels:
+        app: trips-postgres
+    spec:
+      containers:
+        - name: trips-postgres
+          image: "postgres:16-alpine"
+          env:
+            - name: POSTGRES_DB
+              value: trips
+            - name: POSTGRES_USER
+              value: trips
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: trips-postgres-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: premium-rwo
+        resources:
+          requests:
+            storage: 8Gi

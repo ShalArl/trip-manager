@@ -1,0 +1,78 @@
+---
+# Source: social/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: social
+    app.kubernetes.io/instance: social
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: social
+      app.kubernetes.io/instance: social
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: social
+        app.kubernetes.io/instance: social
+      annotations:
+        checksum/config: 8a9a3d2631f3dc0d5108509e9cda3ad79ff6de00b41097373ac96e2d79ede604
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: social
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/social:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8081"
+            - name: LOG_LEVEL
+              value: info
+            - name: FIRESTORE_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: AUTH_CLIENT_CONNECTION_STRING
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: USERS_SERVICE_URL
+              value: http://users.trip-manager-prod.svc.cluster.local:8083
+            - name: GCP_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: PUBSUB_TOPIC_ID
+              value: trip-events
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://neatnode.xyz,https://www.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: social

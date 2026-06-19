@@ -1,0 +1,24 @@
+---
+# Source: newsletter-worker/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: newsletter-worker
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: newsletter-worker
+    app.kubernetes.io/instance: newsletter-worker
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8071
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: newsletter-worker
+    app.kubernetes.io/instance: newsletter-worker
+

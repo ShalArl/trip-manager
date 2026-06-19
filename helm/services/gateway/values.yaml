@@ -54,6 +54,11 @@ routes:
     port: 8070
     path: /api/newsletter
     healthPath: /health
+  tenants:
+    service: users
+    port: 8083
+    path: /api/tenants
+    healthPath: /health
 
 
   frontend:

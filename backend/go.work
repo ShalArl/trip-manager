@@ -9,6 +9,7 @@ use (
 	./shared/userclient
 	./shared/tenantdb
 	./shared/firebaseclient
+	./shared/otel
 	./social
 	./travel-warning
 	./trips

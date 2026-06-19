@@ -1,0 +1,52 @@
+---
+# Source: weather-info/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weather-info-worker
+  namespace: trip-manager-prod
+spec:
+  schedule: "0 6 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: weather-info
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: worker
+              image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/weather-info:dev"
+              imagePullPolicy: Always
+              command: ["/bin/worker"]
+              env: 
+                - name: PORT
+                  value: "8088"
+                - name: LOG_LEVEL
+                  value: info
+                - name: API_URL
+                  value: https://api.open-meteo.com/v1/forecast
+                - name: FORECAST_DAYS
+                  value: "3"
+                - name: CACHE_TTL_HOURS
+                  value: "25"
+                - name: CORS_ALLOWED_ORIGINS
+                  value: https://neatnode.xyz,https://www.neatnode.xyz
+                - name: OTEL_COLLECTOR_ENDPOINT
+                  value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+                - name: AUTH_SERVICE_URL
+                  value: http://auth.trip-manager-prod.svc.cluster.local:8082
+              envFrom: 
+                - secretRef:
+                    name: weather-info-secrets
+              resources: 
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+                requests:
+                  cpu: 50m
+                  memory: 128Mi

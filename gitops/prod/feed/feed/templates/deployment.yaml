@@ -1,0 +1,71 @@
+---
+# Source: feed/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feed
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: feed
+    app.kubernetes.io/instance: feed
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: feed
+      app.kubernetes.io/instance: feed
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: feed
+        app.kubernetes.io/instance: feed
+      annotations:
+        checksum/config: ff22cce7072d8522157aa3bc4cbe8bfb1919ca81f70430de522367228bfa9df9
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: feed
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/feed:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8089
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8089"
+            - name: AUTH_CLIENT_CONNECTION_STRING
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://www.trip-manager.com,https://app.trip-manager.com
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: feed-secrets
+          resources: 
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: feed

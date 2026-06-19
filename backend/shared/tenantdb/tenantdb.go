@@ -24,26 +24,19 @@ func GetTenantID(ctx context.Context) string {
 
 func WithTenant(ctx context.Context, db *sqlx.DB, fn func(*sqlx.Tx) error) error {
 	tenantID := GetTenantID(ctx)
-
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	if _, err := tx.ExecContext(ctx, "SET LOCAL app.tenant_id = $1", tenantID); err != nil {
-		err := tx.Rollback()
-		if err != nil {
-			return fmt.Errorf("failed to rollback transaction after setting tenant_id: %w", err)
-		}
-		return fmt.Errorf("failed to set tenant_id: %w", err)
+	if _, execErr := tx.ExecContext(ctx, fmt.Sprintf("SET LOCAL app.tenant_id = '%s'", tenantID)); execErr != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("failed to set tenant_id: %w", execErr)
 	}
 
-	if err := fn(tx); err != nil {
-		err := tx.Rollback()
-		if err != nil {
-			return fmt.Errorf("failed to rollback transaction: %w", err)
-		}
-		return err
+	if fnErr := fn(tx); fnErr != nil {
+		_ = tx.Rollback()
+		return fnErr
 	}
 
 	return tx.Commit()

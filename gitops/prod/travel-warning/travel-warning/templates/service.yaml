@@ -1,0 +1,50 @@
+---
+# Source: travel-warning/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: travel-warning
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: travel-warning
+    app.kubernetes.io/instance: travel-warning
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+  annotations:
+    cloud.google.com/backend-config: "{\"default\": \"travel-warning-backend-config\"}"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8087
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: travel-warning
+    app.kubernetes.io/instance: travel-warning
+---
+# Source: travel-warning/templates/service.yaml
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: travel-warning-hc-policy
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: travel-warning
+    app.kubernetes.io/instance: travel-warning
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8087
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: travel-warning
+

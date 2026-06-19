@@ -1,0 +1,73 @@
+---
+# Source: newsletter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: newsletter
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: newsletter
+    app.kubernetes.io/instance: newsletter
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: newsletter
+      app.kubernetes.io/instance: newsletter
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: newsletter
+        app.kubernetes.io/instance: newsletter
+      annotations:
+        checksum/config: 63b6ce2195f32c1563605c50c52f434957120e47529c906b5727c05fb549c265
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: newsletter
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/newsletter:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8070
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8070"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://neatnode.xyz,https://www.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: newsletter-secrets
+          resources: 
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: newsletter

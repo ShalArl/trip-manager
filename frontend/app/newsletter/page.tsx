@@ -32,7 +32,7 @@ function TripCard({ trip, accent }: { trip: NewsletterTrip; accent: string }) {
         <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${accent.replace("text-", "bg-")}`} />
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate">
+          <p className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-[var(--brand-primary)] dark:group-hover:text-[var(--brand-primary-light)] transition-colors truncate">
             {trip.title || "Untitled Trip"}
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -44,7 +44,7 @@ function TripCard({ trip, accent }: { trip: NewsletterTrip; accent: string }) {
               {trip.likeCount ?? 0}
             </span>
             <span className="flex items-center gap-1 text-xs text-zinc-400">
-              <MessageCircle className="h-3 w-3 text-sky-400" />
+              <MessageCircle className="h-3 w-3 text-[var(--brand-primary-light)]" />
               {trip.commentCount ?? 0}
             </span>
           </div>
@@ -105,7 +105,7 @@ export default function NewsletterPage() {
         </p>
         <Link
           href="/auth"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-xl transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-sm font-medium rounded-xl transition-colors"
         >
           Jetzt anmelden
           <ArrowRight className="h-4 w-4" />

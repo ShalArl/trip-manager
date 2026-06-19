@@ -103,6 +103,25 @@ releases:
     values:
       - helm/infrastructure/firebase-emulator/values.yaml
 
+  - name: otel-collector
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/infrastructure/otel-collector
+    values:
+      - helm/infrastructure/otel-collector/values.yaml
+    set:
+      - name: environment
+        value: {{ .Environment.Name }}
+      - name: gcpProjectID
+        value: project-32c60644-299b-4b05-8cf
+
+  - name: prometheus
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: prometheus-community/prometheus
+    version: "25.21.0"
+    values:
+      - helm/infrastructure/prometheus/values.yaml
+    installed: {{ eq .Environment.Name "dev" }}
+
   - name: users-postgres
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
@@ -342,6 +361,8 @@ releases:
       - trip-manager-{{ .Environment.Name }}/trips
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/auth
+    installed: {{ eq .Environment.Name "prod" }}
+
 
 
   # Gateway

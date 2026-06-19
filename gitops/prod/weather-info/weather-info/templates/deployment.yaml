@@ -1,0 +1,80 @@
+---
+# Source: weather-info/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-info
+  namespace: trip-manager-prod
+  labels:
+    app.kubernetes.io/name: weather-info
+    app.kubernetes.io/instance: weather-info
+    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weather-info
+      app.kubernetes.io/instance: weather-info
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: weather-info
+        app.kubernetes.io/instance: weather-info
+      annotations:
+        checksum/config: 85422a2a8328da21f43840cec6c164f32ea05cf4c6d0128b4f78ab965fef7244
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: weather-info
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/weather-info:dev"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8088
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8088"
+            - name: LOG_LEVEL
+              value: info
+            - name: API_URL
+              value: https://api.open-meteo.com/v1/forecast
+            - name: FORECAST_DAYS
+              value: "3"
+            - name: CACHE_TTL_HOURS
+              value: "25"
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://neatnode.xyz,https://www.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+          envFrom: 
+            - secretRef:
+                name: weather-info-secrets
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: weather-info

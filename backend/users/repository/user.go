@@ -203,11 +203,14 @@ func (r *repositoryImpl) Update(ctx context.Context, user *User) (*User, error) 
 	}
 	var result *User
 	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
-		query := `UPDATE users SET email = $1, name = $2, bio = $3, avatar_key = $4, updated_at = NOW()
-		          WHERE id = $5
-		          RETURNING id, email, name, bio, avatar_key, firebase_uid, tenant_id, role, created_at, updated_at`
+		query := `UPDATE users 
+                  SET email = $1, name = $2, bio = $3, avatar_key = $4, 
+                      tenant_id = $5, role = $6, updated_at = NOW()
+                  WHERE id = $7
+                  RETURNING id, email, name, bio, avatar_key, firebase_uid, tenant_id, role, created_at, updated_at`
 		err := tx.QueryRowContext(ctx, query,
-			rec.Email, rec.Name, rec.Bio, rec.AvatarKey, rec.ID,
+			rec.Email, rec.Name, rec.Bio, rec.AvatarKey,
+			rec.TenantID, rec.Role, rec.ID,
 		).Scan(&rec.ID, &rec.Email, &rec.Name, &rec.Bio, &rec.AvatarKey,
 			&rec.FirebaseUID, &rec.TenantID, &rec.Role, &rec.CreatedAt, &rec.UpdatedAt)
 		if err != nil {

@@ -130,7 +130,7 @@ export default function WeatherWidget({lat, lng, locationName, startDate}: Props
                                 href={p.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+                                className="text-xs text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] hover:underline"
                             >
                                 {p.name}
                             </a>
@@ -167,7 +167,7 @@ export default function WeatherWidget({lat, lng, locationName, startDate}: Props
                                 className="text-zinc-400 font-normal">/ {Math.round(day.tempMin)}°</span>
                             </p>
                             {day.precipitationMm > 0 && (
-                                <p className="text-xs text-sky-500 dark:text-sky-400">{day.precipitationMm} mm</p>
+                                <p className="text-xs text-sky-500 dark:text-[var(--brand-primary-light)]">{day.precipitationMm} mm</p>
                             )}
                         </div>
                     </div>

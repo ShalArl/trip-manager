@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      shadcn:
+        specifier: ^4.1.0
+        version: 4.1.0(@types/node@20.19.37)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4
+        version: 4.2.2
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
       mkdirp:
         specifier: ^3.0.1

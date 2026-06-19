@@ -1,0 +1,40 @@
+---
+# Source: newsletter-worker/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: newsletter-worker
+  namespace: trip-manager-prod
+spec:
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: newsletter-worker
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: worker
+              image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/newsletter-worker:dev"
+              imagePullPolicy: Always
+              command: ["/bin/newsletter-worker"]
+              env: 
+                - name: LOG_LEVEL
+                  value: info
+                - name: RUN_MODE
+                  value: oneshot
+              envFrom: 
+                - secretRef:
+                    name: newsletter-worker-secrets
+              resources: 
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+                requests:
+                  cpu: 50m
+                  memory: 128Mi

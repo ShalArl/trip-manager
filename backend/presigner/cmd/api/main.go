@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
@@ -29,6 +30,16 @@ func main() {
 
 	log.Printf("Starting Presigner Service on port %s\n", cfg.Port)
 
+	otelProvider, err := sharedotel.New(ctx, "presigner", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "presigner")
+	}
+
 	corsConfig := middleware.DefaultCORSConfig()
 	allowedOrigins := cfg.CORSAllowedOrigins
 	if len(allowedOrigins) == 0 {
@@ -46,7 +57,7 @@ func main() {
 
 	// Create presigner service
 	presignerService := service.NewService(storage, cfg.TTL)
-	authClient := authclient.NewClient(os.Getenv("AUTH_SERVICE_URL"))
+	authClient := authclient.NewClient(cfg.AuthServiceUrl)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -67,7 +78,7 @@ func main() {
 	// Start server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

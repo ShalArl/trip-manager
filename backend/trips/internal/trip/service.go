@@ -41,6 +41,7 @@ type Service interface {
 	List(ctx context.Context, userID string, limit, offset int) ([]*Trip, int, error)
 	ListRecent(ctx context.Context, limit, offset int) ([]*Trip, int, error)
 	Search(ctx context.Context, query string, limit, offset int) ([]*Trip, int, error)
+	CountActiveByUser(ctx context.Context, userID string) (int, error)
 }
 
 // ── Implementation ────────────────────────────────────────────────────────────
@@ -140,4 +141,8 @@ func (s *serviceImpl) ListRecent(ctx context.Context, limit, offset int) ([]*Tri
 
 func (s *serviceImpl) Search(ctx context.Context, query string, limit, offset int) ([]*Trip, int, error) {
 	return s.repo.Search(ctx, query, limit, offset)
+}
+
+func (s *serviceImpl) CountActiveByUser(ctx context.Context, userID string) (int, error) {
+	return s.repo.CountActiveByUser(ctx, userID)
 }

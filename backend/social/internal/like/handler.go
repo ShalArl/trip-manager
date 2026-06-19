@@ -11,7 +11,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/social/pubsub"
 )
 
-// GetTripLikesHandler handles GET /trips/{tripId}/likes (optional authclient)
+// GetTripLikesHandler handles GET /trips/{tripId}/likes (authclient required)
 func GetTripLikesHandler(svc Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tripID := r.PathValue("tripId")
@@ -19,11 +19,10 @@ func GetTripLikesHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusBadRequest, "Trip ID is required")
 			return
 		}
-
-		// userID is optional for this endpoint
+		tenantID := authclient.GetTenantID(r)
 		userID, _ := authclient.GetUserID(r)
 
-		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, tripID, TargetTypeTrip)
+		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, tenantID, tripID, TargetTypeTrip)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -34,7 +33,6 @@ func GetTripLikesHandler(svc Service) http.HandlerFunc {
 }
 
 // LikeTripHandler handles POST /trips/{tripId}/likes (authclient required)
-
 func LikeTripHandler(svc Service, producer *pubsub.Producer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := authclient.GetUserID(r)
@@ -42,6 +40,7 @@ func LikeTripHandler(svc Service, producer *pubsub.Producer) http.HandlerFunc {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		tenantID := authclient.GetTenantID(r)
 
 		tripID := r.PathValue("tripId")
 		if tripID == "" {
@@ -49,7 +48,7 @@ func LikeTripHandler(svc Service, producer *pubsub.Producer) http.HandlerFunc {
 			return
 		}
 
-		err := svc.LikeEntity(r.Context(), userID, tripID, TargetTypeTrip)
+		err := svc.LikeEntity(r.Context(), userID, tenantID, tripID, TargetTypeTrip)
 		if err != nil {
 			if errors.Is(err, shared.ErrConflict) {
 				shared.RespondError(w, http.StatusConflict, "already liked")
@@ -65,6 +64,7 @@ func LikeTripHandler(svc Service, producer *pubsub.Producer) http.HandlerFunc {
 				TripID:    tripID,
 				UserID:    userID, // Firebase UID
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+				TenantID:  tenantID,
 			}); err != nil {
 				log.Printf("warn: failed to publish trip.commented for trip %s: %v", tripID, err)
 			}
@@ -98,7 +98,7 @@ func UnlikeTripHandler(svc Service) http.HandlerFunc {
 	}
 }
 
-// GetCommentLikesHandler handles GET /comments/{commentId}/likes (optional authclient)
+// GetCommentLikesHandler handles GET /comments/{commentId}/likes (authclient required)
 func GetCommentLikesHandler(svc Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		commentID := r.PathValue("commentId")
@@ -106,10 +106,10 @@ func GetCommentLikesHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusBadRequest, "Comment ID is required")
 			return
 		}
-
+		tenantID := authclient.GetTenantID(r)
 		userID, _ := authclient.GetUserID(r)
 
-		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, commentID, TargetTypeComment)
+		resp, err := svc.GetEntityLikeInfo(r.Context(), userID, tenantID, commentID, TargetTypeComment)
 		if err != nil {
 			shared.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -127,6 +127,7 @@ func LikeCommentHandler(svc Service) http.HandlerFunc {
 			shared.RespondError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		tenantID := authclient.GetTenantID(r)
 
 		commentID := r.PathValue("commentId")
 		if commentID == "" {
@@ -134,7 +135,7 @@ func LikeCommentHandler(svc Service) http.HandlerFunc {
 			return
 		}
 
-		err := svc.LikeEntity(r.Context(), userID, commentID, TargetTypeComment)
+		err := svc.LikeEntity(r.Context(), userID, tenantID, commentID, TargetTypeComment)
 		if err != nil {
 			if errors.Is(err, shared.ErrConflict) {
 				shared.RespondError(w, http.StatusConflict, "already liked")
