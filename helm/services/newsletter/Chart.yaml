@@ -1,8 +1,0 @@
-apiVersion: v2
-name: newsletter
-version: 0.1.0
-description: A Helm chart for the newsletter service
-dependencies:
-  - name: common
-    version: 1.0.0
-    repository: "file://../../charts/common"

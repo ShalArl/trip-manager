@@ -1,8 +1,0 @@
-apiVersion: v2
-name: users
-version: 0.1.0
-description: User management service for trip-manager application
-dependencies:
-  - name: common
-    version: "1.0.0"
-    repository: "file://../../charts/common"

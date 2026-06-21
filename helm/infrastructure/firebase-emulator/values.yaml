@@ -1,9 +1,0 @@
-image:
-  repository: "andreysenov/firebase-tools"
-  tag: "latest"
-
-projectId: "trip-manager-local"
-
-service:
-  authPort: 9099
-  firestore: 8080

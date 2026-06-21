@@ -1,5 +1,0 @@
-# Only used in local development environment, not for production deployment
-apiVersion: v2
-name: minio
-version: 0.1.0
-description: MinIO deployment for local development environment

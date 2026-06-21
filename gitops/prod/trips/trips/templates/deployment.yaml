@@ -22,7 +22,7 @@ spec:
         app.kubernetes.io/name: trips
         app.kubernetes.io/instance: trips
       annotations:
-        checksum/config: 2e22de6ec3d5127fcd54c0e118f072415036cd313a0766aa17e7ab2ed62fd903
+        checksum/config: 8584129964eb080b8ea9efdb41231ebda82ce18f9f69a4561fa46e8145c86d1d
     spec:
       securityContext:
         runAsNonRoot: true
@@ -52,6 +52,10 @@ spec:
               value: https://neatnode.xyz,https://www.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+            - name: S3_ENDPOINT
+              value: https://storage.googleapis.com
+            - name: S3_BUCKET
+              value: trip-manager-bucket
           envFrom: 
             - secretRef:
                 name: trips-secrets

@@ -1,56 +1,63 @@
 ---
-# Source: feed/templates/deployment.yaml
+# Source: travel-warning/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: feed
+  name: travel-info
   namespace: trip-manager-prod
   labels:
-    app.kubernetes.io/name: feed
-    app.kubernetes.io/instance: feed
+    app.kubernetes.io/name: travel-warning
+    app.kubernetes.io/instance: travel-info
     app.kubernetes.io/version: "dev"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: feed
-      app.kubernetes.io/instance: feed
+      app.kubernetes.io/name: travel-warning
+      app.kubernetes.io/instance: travel-info
   template:
     metadata:
       labels: 
-        app.kubernetes.io/name: feed
-        app.kubernetes.io/instance: feed
+        app.kubernetes.io/name: travel-warning
+        app.kubernetes.io/instance: travel-info
       annotations:
-        checksum/config: 0e6504628a81c4a2673d129d4a52ebdb51ff278fcd7ee56065d8c09da7cb140b
+        checksum/config: 55b3a70ee53218c140703118564892564dd4a5cf426ad1e0e1b04d49e2964cc7
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
-        - name: feed
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/feed:dev"
+        - name: travel-warning
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:dev"
           imagePullPolicy: Always
           ports:
-            - containerPort: 8089
+            - containerPort: 8087
               name: http
               protocol: TCP
           env: 
             - name: PORT
-              value: "8089"
-            - name: AUTH_CLIENT_CONNECTION_STRING
+              value: "8087"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
               value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: TRAVEL_API_URL
+              value: https://www.auswaertiges-amt.de/opendata/travelwarning
+            - name: WEATHER_API_URL
+              value: https://api.open-meteo.com/v1/forecast
+            - name: FORECAST_DAYS
+              value: "3"
+            - name: CACHE_TTL_HOURS
+              value: "25"
             - name: CORS_ALLOWED_ORIGINS
-              value: https://www.trip-manager.com,https://app.trip-manager.com
+              value: https://neatnode.xyz,https://www.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
-            - name: GCP_PROJECT_ID
-              value: project-32c60644-299b-4b05-8cf
-            - name: PUBSUB_SUBSCRIPTION_ID
-              value: trip-events-sub
           envFrom: 
             - secretRef:
-                name: feed-secrets
+                name: travel-info-secrets
           resources: 
             limits:
               cpu: 500m
@@ -72,4 +79,4 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
-      serviceAccountName: feed
+      serviceAccountName: travel-info

@@ -1,8 +1,0 @@
-apiVersion: v2
-name: social
-description: A Helm chart for the social service
-version: 0.1.0
-dependencies:
-  - name: common
-    version: "1.0.0"
-    repository: "file://../../charts/common"

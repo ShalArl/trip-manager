@@ -1,8 +1,0 @@
-apiVersion: v2
-name: weather-info
-version: 0.1.0
-description: Weather Info service for locations
-dependencies:
-  - name: common
-    version: "1.0.0"
-    repository: "file://../../charts/common"

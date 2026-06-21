@@ -1,4 +1,0 @@
-apiVersion: v2
-name: users-postgres
-version: 0.1.0
-description: Postgres database for users service

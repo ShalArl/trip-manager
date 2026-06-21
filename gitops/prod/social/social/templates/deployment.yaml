@@ -22,7 +22,7 @@ spec:
         app.kubernetes.io/name: social
         app.kubernetes.io/instance: social
       annotations:
-        checksum/config: 8a9a3d2631f3dc0d5108509e9cda3ad79ff6de00b41097373ac96e2d79ede604
+        checksum/config: fcbdc91edcefb900c6fc89e4dd82dda45dde32a325ad3dbbf824d2f78edc14d4
     spec:
       securityContext:
         runAsNonRoot: true
@@ -54,6 +54,14 @@ spec:
               value: https://neatnode.xyz,https://www.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+            - name: STORAGE_PROVIDER
+              value: gcs
+            - name: STORAGE_BUCKET
+              value: trip-manager-bucket
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: GCS_SIGNER_SA
+              value: presigner-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com
           resources: 
             limits:
               cpu: 200m

@@ -1,5 +1,0 @@
-imageRegistry: "localhost/trip-manager"
-imagePrefix: "backend/"
-imageTag: "dev"
-projectId: "trip-manager-local"
-imagePullPolicy: "Never"

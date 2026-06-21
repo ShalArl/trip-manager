@@ -1,5 +1,0 @@
-# Only used in local development environment, not for production deployment
-apiVersion: v2
-name: firebase-emulator
-version: 0.1.0
-description: Firebase Emulator deployment for local development environment

@@ -41,19 +41,6 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /api/presign/
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /
-      backendRefs:
-        - name: presigner
-          port: 8085
-    - matches:
-        - path:
-            type: PathPrefix
             value: /api/social/
       filters:
         - type: URLRewrite
@@ -80,7 +67,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /api/locations/
+            value: /api/info/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -88,35 +75,8 @@ spec:
               type: ReplacePrefixMatch
               replacePrefixMatch: /
       backendRefs:
-        - name: locations
-          port: 8086
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api/warnings/
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /
-      backendRefs:
-        - name: travel-warning
+        - name: travel-info
           port: 8087
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api/weather/
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /
-      backendRefs:
-        - name: weather-info
-          port: 8088
-
     - matches:
         - path:
             type: PathPrefix

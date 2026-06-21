@@ -1,4 +1,0 @@
-apiVersion: v2
-name: otel-collector
-version: 0.1.0
-description: OpenTelemetry Collector
