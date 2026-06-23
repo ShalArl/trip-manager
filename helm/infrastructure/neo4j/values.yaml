@@ -1,17 +1,11 @@
 image:
-  registry: docker.io
   repository: neo4j
   tag: 5.19-community
 
-auth:
-  enabled: true
-  password: "neo4jpassword"  # wird in prod überschrieben
+storage: 8Gi
 
-plugins:
-  - apoc
-
-config:
-  dbms.security.procedures.unrestricted: "apoc.*"
+externalSecrets:
+  enabled: false
 
 resources:
   requests:
@@ -20,7 +14,3 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
-
-persistence:
-  enabled: true
-  size: 8Gi

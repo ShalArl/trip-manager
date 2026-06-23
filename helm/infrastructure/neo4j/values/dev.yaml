@@ -1,17 +1,16 @@
-redis:
-  master:
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 200m
-        memory: 128Mi
-
 env:
-  - name: NEO4J_PASSWORD
-    value: "devpassword"
+  - name: _NEO4J_PASS
+    value: "neo4jpassword"
   - name: NEO4J_AUTH
-    value: "neo4j/$(NEO4J_PASSWORD)"
+    value: "neo4j/$(_NEO4J_PASS)"
+  - name: NEO4J_PLUGINS
+    value: '["apoc"]'
+  - name: NEO4J_dbms_security_procedures_unrestricted
+    value: "apoc.*"
+
+devPassword: "neo4jpassword"
+
+externalSecrets:
+  enabled: false
 
 storage: 8Gi

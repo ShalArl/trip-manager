@@ -1,0 +1,46 @@
+image:
+  pullPolicy: Never
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 10m       # Radikal runtergeschraubt für Dev
+    memory: 45Mi
+  limits:
+    cpu: 100m
+    memory: 90Mi
+
+hpa:
+  enabled: false
+
+externalSecrets:
+  enabled: false
+  secrets: []
+
+env:
+  - name: PORT
+    value: "8089"
+  - name: AUTH_CLIENT_CONNECTION_STRING
+    value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
+  - name: NEO4J_URI
+    value: "bolt://neo4j.trip-manager-dev.svc.cluster.local:7687"
+  - name: NEO4J_USERNAME
+    value: "neo4j"
+  - name: NEO4J_PASSWORD
+    value: "neo4jpassword"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "http://localhost:3000"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-dev.svc.cluster.local:4317"
+  - name: GCP_PROJECT_ID
+    value: "trip-manager-dev"
+  - name: PUBSUB_SUBSCRIPTION_ID
+    value: "trip-events-sub-dev"
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.trip-manager-dev.svc.cluster.local:8681"
+
+serviceAccount:
+  gcpServiceAccount: ""

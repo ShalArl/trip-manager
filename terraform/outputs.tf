@@ -1,5 +1,5 @@
 output "gke_cluster_name" {
-  value = module.gke.cluster_name
+  value = "gke_project-32c60644-299b-4b05-8cf_europe-west1_trip-manager-prod"
 }
 
 output "name_servers" {

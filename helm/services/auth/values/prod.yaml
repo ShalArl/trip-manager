@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 2
 
 service:
@@ -21,11 +24,10 @@ env:
     value: "8082"
   - name: LOG_LEVEL
     value: "info"
-  - name: FIREBASE_PROJECT_ID
-    valueFrom:
-      secretKeyRef:
-        name: auth-secrets
-        key: FIREBASE_PROJECT_ID
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://www.neatnode.xyz,https://neatnode.xyz"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
 
 externalSecrets:
   enabled: true

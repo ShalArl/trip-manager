@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"tenantdb"
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
@@ -236,6 +238,26 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, produce
 			respondError(w, http.StatusInternalServerError, "failed to get user")
 			return
 		}
+
+		// Tenant-Limit prüfen (pro User)
+		settings, err := usersClient.GetTenantSettings(r.Context(), token)
+		if err != nil {
+			log.Printf("warn: failed to fetch tenant settings, skipping limit check: %v", err)
+		} else if settings.MaxActiveTrips > 0 {
+			activeCount, err := svc.CountActiveByUser(r.Context(), user.ID)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, "failed to check trip limit")
+				return
+			}
+			if activeCount >= settings.MaxActiveTrips {
+				respondError(w, http.StatusForbidden, fmt.Sprintf(
+					"trip limit reached: your plan allows a maximum of %d active trips",
+					settings.MaxActiveTrips,
+				))
+				return
+			}
+		}
+
 		var req generated.CreateTripRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, "invalid request body")
@@ -272,6 +294,7 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, produce
 				UserName:  user.Name,
 				Title:     trip.Title,
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
+				TenantID:  tenantdb.GetTenantID(r.Context()),
 			}); err != nil {
 				log.Printf("warn: failed to publish trip.created for trip %s: %v", trip.ID, err)
 			}

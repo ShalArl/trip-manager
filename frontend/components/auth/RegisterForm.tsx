@@ -67,7 +67,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Max Mustermann"
-            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
           />
         </div>
 
@@ -80,7 +80,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="du@beispiel.de"
-            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
           />
         </div>
 
@@ -94,7 +94,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full h-12 px-4 pr-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition text-sm"
+              className="w-full h-12 px-4 pr-10 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition text-sm"
             />
             <button
               type="button"
@@ -192,7 +192,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
         <button
           type="submit"
           disabled={!name.trim() || !email.trim() || !passwordValidation.isValid || isLoading}
-          className="w-full h-12 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-600 text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2 flex items-center justify-center"
+          className="w-full h-12 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--brand-primary)] text-white font-semibold text-sm transition-all shadow-md shadow-sky-500/20 mt-2 flex items-center justify-center"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
@@ -209,7 +209,7 @@ export default function RegisterForm({ onRegisterAction, onSwitchToLoginAction }
         Bereits registriert?{" "}
         <button
           onClick={onSwitchToLoginAction}
-          className="text-sky-600 dark:text-sky-400 font-semibold hover:underline"
+          className="text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] font-semibold hover:underline"
         >
           Anmelden
         </button>

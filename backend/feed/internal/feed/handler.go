@@ -15,8 +15,9 @@ func GetGlobalFeedHandler(svc Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := queryInt(r, "limit", 20)
 		offset := queryInt(r, "offset", 0)
+		tenantID := authclient.GetTenantID(r)
 
-		trips, total, err := svc.GetGlobalFeed(r.Context(), limit, offset)
+		trips, total, err := svc.GetGlobalFeed(r.Context(), tenantID, limit, offset)
 		if err != nil {
 			log.Printf("feed: error getting global feed: %v", err)
 			respondError(w, http.StatusInternalServerError, err.Error())
@@ -41,10 +42,11 @@ func GetPersonalFeedHandler(svc Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := queryInt(r, "limit", 20)
 		offset := queryInt(r, "offset", 0)
+		tenantID := authclient.GetTenantID(r)
 
 		userID, _ := authclient.GetUserID(r)
 
-		trips, total, err := svc.GetPersonalizedFeed(r.Context(), userID, limit, offset)
+		trips, total, err := svc.GetPersonalizedFeed(r.Context(), tenantID, userID, limit, offset)
 		if err != nil {
 			log.Printf("feed: error getting personalized feed for user %s: %v", userID, err)
 			respondError(w, http.StatusInternalServerError, err.Error())

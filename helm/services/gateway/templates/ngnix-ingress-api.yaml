@@ -9,7 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://192.168.49.2"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:3000"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
@@ -26,13 +26,6 @@ spec:
                 name: {{ .Values.routes.auth.service }}
                 port:
                   number: {{ .Values.routes.auth.port }}
-          - path: {{ .Values.routes.presigner.path }}(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ .Values.routes.presigner.service }}
-                port:
-                  number: {{ .Values.routes.presigner.port }}
           - path: {{ .Values.routes.social.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -54,24 +47,25 @@ spec:
                 name: {{ .Values.routes.trips.service }}
                 port:
                   number: {{ .Values.routes.trips.port }}
-          - path: {{ .Values.routes.locations.path }}(/|$)(.*)
+          - path: {{ .Values.routes.travelInfo.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ .Values.routes.locations.service }}
+                name: {{ .Values.routes.travelInfo.service }}
                 port:
-                  number: {{ .Values.routes.locations.port }}
-          - path: {{ .Values.routes.travelWarning.path }}(/|$)(.*)
-            backend:
-              service:
-                name: {{ .Values.routes.travelWarning.service }}
-                port:
-                  number: {{ .Values.routes.travelWarning.port }}
-          - path: {{ .Values.routes.weatherInfo.path }}(/|$)(.*)
+                  number: {{ .Values.routes.travelInfo.port }}
+          - path: {{ .Values.routes.feed.path }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ .Values.routes.weatherInfo.service }}
+                name: {{ .Values.routes.feed.service }}
                 port:
-                  number: {{ .Values.routes.weatherInfo.port }}
-         {{- end }}
+                  number: {{ .Values.routes.feed.port }}
+          - path: {{ .Values.routes.newsletter.path }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ .Values.routes.newsletter.service }}
+                port:
+                  number: {{ .Values.routes.newsletter.port }}
+{{- end }}

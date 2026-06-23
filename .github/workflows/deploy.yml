@@ -56,25 +56,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.prepare.outputs.environment }}
     permissions:
-      contents: read
-      id-token: write
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare.outputs.sha }}
+          path: source
 
-      - name: Authenticate to Google Cloud
-        id: gcp-auth
-        uses: google-github-actions/auth@v2
+      - name: Checkout gitops branch
+        uses: actions/checkout@v4
         with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SA }}
-
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v3
-        with:
-          cluster_name: ${{ vars.GKE_CLUSTER }}
-          location: ${{ vars.GKE_REGION }}
+          ref: gitops-prod
+          path: gitops-repo
 
       - name: Install Helmfile
         run: |
@@ -89,11 +83,31 @@ jobs:
         run: |
           helm plugin install https://github.com/databus23/helm-diff || true
 
-      - name: Deploy
+      - name: Render manifests
         env:
           IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
           ENVIRONMENT: ${{ needs.prepare.outputs.environment }}
+        working-directory: source
         run: |
+          rm -rf ../gitops-repo/gitops/$ENVIRONMENT
+          mkdir -p ../gitops-repo/gitops/$ENVIRONMENT
           helmfile -e $ENVIRONMENT \
             --state-values-set imageTag=$IMAGE_TAG \
-            sync
+            template --output-dir-template "../gitops-repo/gitops/$ENVIRONMENT/{{.Release.Name}}"
+
+      - name: Commit and push rendered manifests
+        env:
+          ENVIRONMENT: ${{ needs.prepare.outputs.environment }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.sha }}
+        working-directory: gitops-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/$ENVIRONMENT
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "deploy(${ENVIRONMENT}): ${IMAGE_TAG} (source ${SOURCE_SHA})"
+            git push origin gitops-prod
+          fi

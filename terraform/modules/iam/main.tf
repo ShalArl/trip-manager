@@ -75,7 +75,7 @@ resource "google_project_iam_member" "external_secrets_secretmanager" {
 
 resource "google_service_account_iam_member" "workload_identity" {
   for_each = toset([
-    "auth", "social", "presigner", "users", "trips", "newsletter-worker", "feed-generator"
+    "auth", "social", "presigner", "users", "trips", "newsletter",
   ])
   member             = "serviceAccount:${var.project_id}.svc.id.goog[trip-manager-prod/${each.value}]"
   role               = "roles/iam.workloadIdentityUser"
@@ -175,14 +175,9 @@ resource "google_project_iam_member" "newsletter_pubsub" {
   member  = "serviceAccount:${google_service_account.services["newsletter"].email}"
 }
 
-resource "google_project_iam_member" "newsletter_worker_pubsub" {
-  project = var.project_id
-  role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${google_service_account.services["newsletter-worker"].email}"
-}
 
-resource "google_project_iam_member" "feed_worker_pub_sub" {
+resource "google_project_iam_member" "feed_pub_sub" {
   project = var.project_id
   role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${google_service_account.services["feed-generator"].email}"
+  member  = "serviceAccount:${google_service_account.services["feed"].email}"
 }

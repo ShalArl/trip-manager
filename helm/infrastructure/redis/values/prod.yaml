@@ -4,6 +4,9 @@ redis:
     existingSecret: redis-secret
     existingSecretPasswordKey: REDIS_PASSWORD
   master:
+    persistence:
+      enabled: true
+      size: 2Gi
     resources:
       requests:
         cpu: 100m

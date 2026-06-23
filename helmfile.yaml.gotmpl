@@ -87,6 +87,14 @@ releases:
       - helm/infrastructure/minio/values.yaml
     installed: {{ eq .Environment.Name "dev" }}
 
+  - name: pubsub-emulator
+    namespace: trip-manager-{{ .Environment.Name }}
+    createNamespace: true
+    chart: ./helm/infrastructure/pubsub-emulator
+    values:
+      - helm/infrastructure/pubsub-emulator/values.yaml
+    installed: {{ eq .Environment.Name "dev" }}
+
   - name: firebase-emulator
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
@@ -94,6 +102,25 @@ releases:
     installed: {{ eq .Environment.Name "dev" }}
     values:
       - helm/infrastructure/firebase-emulator/values.yaml
+
+  - name: otel-collector
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: ./helm/infrastructure/otel-collector
+    values:
+      - helm/infrastructure/otel-collector/values.yaml
+    set:
+      - name: environment
+        value: {{ .Environment.Name }}
+      - name: gcpProjectID
+        value: project-32c60644-299b-4b05-8cf
+
+  - name: prometheus
+    namespace: trip-manager-{{ .Environment.Name }}
+    chart: prometheus-community/prometheus
+    version: "25.21.0"
+    values:
+      - helm/infrastructure/prometheus/values.yaml
+    installed: {{ eq .Environment.Name "dev" }}
 
   - name: users-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -110,14 +137,6 @@ releases:
     values:
       - helm/infrastructure/trips-postgres/values.yaml
       - helm/infrastructure/trips-postgres/values/{{ .Environment.Name }}.yaml
-
-  - name: locations-postgres
-    namespace: trip-manager-{{ .Environment.Name }}
-    createNamespace: true
-    chart: ./helm/infrastructure/locations-postgres
-    values:
-      - helm/infrastructure/locations-postgres/values.yaml
-      - helm/infrastructure/locations-postgres/values/{{ .Environment.Name }}.yaml
 
   - name: newsletter-postgres
     namespace: trip-manager-{{ .Environment.Name }}
@@ -164,41 +183,6 @@ releases:
       {{- end }}
       - trip-manager-{{ .Environment.Name }}/neo4j
 
-  - name: feed-generator
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: helm/services/feed-generator
-    values:
-      - helm/services/feed-generator/values.yaml
-      - helm/services/feed-generator/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}feed-generator"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      {{- if eq .Environment.Name "prod" }}
-      - external-secrets/external-secrets
-      - trip-manager-{{ .Environment.Name }}/cluster-config
-      {{- end }}
-      - trip-manager-{{ .Environment.Name }}/neo4j
-
-  - name: presigner
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/presigner
-    values:
-      - helm/services/presigner/values.yaml
-      - helm/services/presigner/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}presigner"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      {{- if eq .Environment.Name "prod" }}
-      - external-secrets/external-secrets
-      - trip-manager-{{ .Environment.Name }}/cluster-config
-      {{- end }}
-
   - name: social
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/social
@@ -243,50 +227,19 @@ releases:
       - trip-manager-{{ .Environment.Name }}/auth
       - trip-manager-{{ .Environment.Name }}/trips-postgres
 
-  - name: locations
+  - name: travel-info
     namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/locations
+    chart: ./helm/services/travel-info
     values:
-      - helm/services/locations/values.yaml
-      - helm/services/locations/values/{{ .Environment.Name }}.yaml
+      - helm/services/travel-info/values.yaml
+      - helm/services/travel-info/values/{{ .Environment.Name }}.yaml
     set:
       - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}locations"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      - trip-manager-{{ .Environment.Name }}/auth
-      - trip-manager-{{ .Environment.Name }}/users
-      - trip-manager-{{ .Environment.Name }}/locations-postgres
-
-  - name: travel-warning
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/travel-warning
-    values:
-      - helm/services/travel-warning/values.yaml
-      - helm/services/travel-warning/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}travel-warning"
+        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}travel-info"
       - name: image.tag
         value: "{{ .Values.imageTag }}"
     needs:
       - trip-manager-{{ .Environment.Name }}/redis
-
-  - name: weather-info
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/weather-info
-    values:
-      - helm/services/weather-info/values.yaml
-      - helm/services/weather-info/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}weather-info"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      - trip-manager-{{ .Environment.Name }}/redis
-      - trip-manager-{{ .Environment.Name }}/locations-postgres
 
   - name: newsletter
     namespace: trip-manager-{{ .Environment.Name }}
@@ -301,22 +254,6 @@ releases:
         value: "{{ .Values.imageTag }}"
     needs:
       - trip-manager-{{ .Environment.Name }}/newsletter-postgres
-
-
-  - name: newsletter-worker
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/newsletter-worker
-    values:
-      - helm/services/newsletter-worker/values.yaml
-      - helm/services/newsletter-worker/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}newsletter-worker"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      - trip-manager-{{ .Environment.Name }}/newsletter-postgres
-      - trip-manager-{{ .Environment.Name }}/neo4j
 
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
@@ -334,6 +271,8 @@ releases:
       - trip-manager-{{ .Environment.Name }}/trips
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/auth
+    installed: {{ eq .Environment.Name "prod" }}
+
 
 
   # Gateway
@@ -345,10 +284,8 @@ releases:
       - helm/services/gateway/values/{{ .Environment.Name }}.yaml
     needs:
       - trip-manager-{{ .Environment.Name }}/auth
-      - trip-manager-{{ .Environment.Name }}/presigner
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/users
       - trip-manager-{{ .Environment.Name }}/trips
-      - trip-manager-{{ .Environment.Name }}/locations
       - trip-manager-{{ .Environment.Name }}/frontend
 

@@ -8,7 +8,7 @@ servers:
     description: Development server
 
 security:
-  - firebaseAuth: []
+  - firebaseAuth: [ ]
 
 paths:
 
@@ -18,7 +18,7 @@ paths:
     get:
       summary: Get like count and like status for a trip
       operationId: getTripLikes
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -33,7 +33,7 @@ paths:
     post:
       summary: Like a trip
       operationId: likeTrip
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -49,7 +49,7 @@ paths:
     delete:
       summary: Unlike a trip
       operationId: unlikeTrip
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -69,7 +69,7 @@ paths:
     get:
       summary: List comments for a trip
       operationId: listTripComments
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -84,7 +84,7 @@ paths:
     post:
       summary: Add a comment to a trip
       operationId: createTripComment
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -108,7 +108,7 @@ paths:
     delete:
       summary: Delete a comment
       operationId: deleteTripComment
-      tags: [social]
+      tags: [ social ]
       parameters:
         - name: tripId
           in: path
@@ -128,6 +128,35 @@ paths:
         '404':
           description: Comment not found
 
+  /uploads/presigned:
+    post:
+      summary: Get a presigned URL for direct file upload
+      description: >
+        Request a presigned URL to upload files directly to S3/MinIO without routing through the backend.
+        Presigned URLs are valid for 15 minutes and can be used with PUT requests to upload files directly.
+      operationId: getPresignedUrl
+      tags:
+        - Uploads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequest'
+      responses:
+        '200':
+          description: Presigned URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedURLResponse'
+        '400':
+          description: Invalid mediaType or missing required fields
+        '401':
+          description: Unauthorized
+        '500':
+          description: Failed to generate presigned URL
+
 components:
   securitySchemes:
     firebaseAuth:
@@ -139,7 +168,7 @@ components:
 
     UserSummary:
       type: object
-      required: [id, name, email]
+      required: [ id, name, email ]
       properties:
         id:
           type: string
@@ -155,7 +184,7 @@ components:
 
     TripLikeResponse:
       type: object
-      required: [likeCount, hasLiked]
+      required: [ likeCount, hasLiked ]
       properties:
         likeCount:
           type: integer
@@ -164,14 +193,14 @@ components:
 
     CreateTripCommentRequest:
       type: object
-      required: [text]
+      required: [ text ]
       properties:
         text:
           type: string
 
     TripCommentResponse:
       type: object
-      required: [id, tripId, user, text, createdAt, updatedAt]
+      required: [ id, tripId, user, text, createdAt, updatedAt ]
       properties:
         id:
           type: string
@@ -190,9 +219,46 @@ components:
 
     TripCommentListResponse:
       type: object
-      required: [data]
+      required: [ data ]
       properties:
         data:
           type: array
           items:
             $ref: '#/components/schemas/TripCommentResponse'
+
+    PresignedURLRequest:
+      description: Request for a presigned URL to upload files directly to S3/MinIO
+      type: object
+      required:
+        - fileName
+        - mediaType
+      properties:
+        fileName:
+          type: string
+          description: Name of the file to upload (e.g., "avatar.jpg")
+          example: avatar.jpg
+        mediaType:
+          type: string
+          enum: [ avatar, trip, location, activity ]
+          description: Type of media being uploaded
+
+    PresignedURLResponse:
+      description: Presigned URL response for direct file uploads
+      type: object
+      required:
+        - presignedUrl
+        - expiresIn
+        - key
+      properties:
+        presignedUrl:
+          type: string
+          format: uri
+          description: URL that can be used to upload the file directly to S3/MinIO
+          example: "http://minio:9000/trip-manager/avatars/user-id.jpg?X-Amz-Algorithm=..."
+        expiresIn:
+          type: integer
+          description: Presigned URL expiration time in seconds (typically 900 = 15 minutes)
+          example: 900
+        key:
+          type: string
+          description: Object key to reference this upload in subsequent requests

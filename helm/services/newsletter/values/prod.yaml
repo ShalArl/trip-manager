@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 2
 
 service:
@@ -19,8 +22,16 @@ hpa:
 externalSecrets:
   enabled: true
   secrets:
-    - secretKey: DATABASE_URL
-      remoteKey: newsletter-database-url
+    - secretKey: NEWSLETTER_DB_URL
+      remoteKey: newsletter-postgres-url
+    - secretKey: USERS_DB_URL
+      remoteKey: users-postgres-url
+    - secretKey: NEO4J_URI
+      remoteKey: neo4j-url
+    - secretKey: NEO4J_USERNAME
+      remoteKey: neo4j-username
+    - secretKey: NEO4J_PASSWORD
+      remoteKey: neo4j-password
 
 envFrom:
   - secretRef:
@@ -33,6 +44,10 @@ env:
     value: "info"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://neatnode.xyz,https://www.neatnode.xyz"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
 
 serviceAccount:
   gcpServiceAccount: "newsletter-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

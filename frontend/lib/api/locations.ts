@@ -8,8 +8,9 @@ type LocationImageResponse = components["schemas"]["LocationImageResponse"];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getLocations(tripId: string): Promise<LocationResponse[]> {
-    const response = await fetch(`${API_URL}/api/locations/${tripId}`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations`, {
         method: "GET",
+        headers: await getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error(`Fehler beim Laden der Locations: ${response.status}`);
@@ -20,7 +21,7 @@ export async function getLocations(tripId: string): Promise<LocationResponse[]> 
 
 export async function createLocation(tripId: string, req: CreateLocationRequest): Promise<LocationResponse> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/locations/${tripId}`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations`, {
         method: "POST",
         headers,
         body: JSON.stringify(req),
@@ -35,7 +36,7 @@ export async function createLocation(tripId: string, req: CreateLocationRequest)
 
 export async function updateLocation(tripId: string, locationId: string, req: UpdateLocationRequest): Promise<LocationResponse> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations/${locationId}`, {
         method: "PUT",
         headers,
         body: JSON.stringify(req),
@@ -50,7 +51,7 @@ export async function updateLocation(tripId: string, locationId: string, req: Up
 
 export async function deleteLocation(tripId: string, locationId: string): Promise<void> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations/${locationId}`, {
         method: "DELETE",
         headers,
     });
@@ -78,7 +79,7 @@ export async function addLocationImage(
 
     // 3. Key ans Backend schicken
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}/images`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations/${locationId}/images`, {
         method: "POST",
         headers,
         body: JSON.stringify({ imageKey: ticket.key, sequence }),
@@ -99,7 +100,7 @@ export async function deleteLocationImage(
     imageId: string
 ): Promise<void> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/locations/${tripId}/${locationId}/images/${imageId}`, {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}/locations/${locationId}/images/${imageId}`, {
         method: "DELETE",
         headers,
     });

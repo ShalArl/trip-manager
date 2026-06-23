@@ -123,7 +123,7 @@ export default function TripLocationsSection({
                     {isEditable && (
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg transition-colors"
                         >
                             <Plus className="w-4 h-4" />
                             Ort hinzufügen
@@ -177,7 +177,7 @@ export default function TripLocationsSection({
                                                 {isEditable && (
                                                     <button
                                                         onClick={(e) => handleEditClick(e, location)}
-                                                        className="p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                                        className="p-2 text-zinc-400 hover:text-[var(--brand-primary)] hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
                                                         aria-label="Ort bearbeiten"
                                                     >
                                                         <Pencil className="w-4 h-4" />

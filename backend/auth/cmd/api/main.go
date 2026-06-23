@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
-	"github.com/ShalArl/trip-manager/backend/auth/internal/config"
+	"github.com/ShalArl/trip-manager/backend/auth/config"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/handler"
 	"github.com/ShalArl/trip-manager/backend/auth/internal/service"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
@@ -18,16 +19,29 @@ import (
 
 func main() {
 	ctx := context.Background()
+	// Load cache
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config %v", err)
+	}
+	log.Printf("Starting Auth Service on port %s\n", cfg.Port)
 
-	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	otelProvider, err := sharedotel.New(ctx, "auth", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "auth")
 	}
 
-	// Load cache
-	cfg := config.LoadConfig()
-	log.Printf("Starting Auth Service on port %s\n", cfg.Port)
+	corsConfig := middleware.DefaultCORSConfig()
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("Allowed Origins is empty!")
+	}
+	corsConfig.AllowedOrigins = allowedOrigins
 
 	// Initialize Firebase
 	authClient, err := config.InitializeFirebase(ctx, cfg)
@@ -55,8 +69,15 @@ func main() {
 
 	// Start server
 	server := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Addr: ":" + cfg.Port,
+		Handler: middleware.CORS(corsConfig)(func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				h.ServeHTTP(w, r)
+				if metrics != nil && r.URL.Path != "/health" {
+					metrics.RecordAPICall(r.Context(), "default", r.URL.Path, r.Method)
+				}
+			})
+		}(mux)),
 	}
 
 	// Graceful shutdown

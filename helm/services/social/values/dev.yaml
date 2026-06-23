@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Never
+
 replicaCount: 1
 
 resources:
@@ -17,10 +20,39 @@ env:
   - name: LOG_LEVEL
     value: "debug"
   - name: FIRESTORE_PROJECT_ID
-    value: "trip-manager-dev"
+    value: "trip-manager-local"
   - name: FIRESTORE_EMULATOR_HOST
-    value: firebase-emulator:8080
+    value: "firebase-emulator.trip-manager-dev.svc.cluster.local:8080"
   - name: AUTH_CLIENT_CONNECTION_STRING
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-dev.svc.cluster.local:8083"
+  - name: GCP_PROJECT_ID
+    value: "trip-manager-local"
+  - name: PUBSUB_TOPIC_ID
+    value: "trip-events"
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.trip-manager-dev.svc.cluster.local:8085"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "http://localhost:3000"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-dev.svc.cluster.local:4317"
+  - name: STORAGE_PROVIDER
+    value: "s3"
+  - name: STORAGE_BUCKET
+    value: "trip-manager"
+  - name: S3_ENDPOINT
+    value: "http://minio.trip-manager-dev.svc.cluster.local:9000"
+  - name: S3_PUBLIC_URL
+    value: "http://192.168.49.2:30900"
+  - name: S3_REGION
+    value: "us-east-1"
+  - name: S3_ACCESS_KEY
+    value: "minioadmin"
+  - name: S3_SECRET_KEY
+    value: "minioadmin"
+  - name: S3_USE_SSL
+    value: "false"
+
+serviceAccount:
+  gcpServiceAccount: ""

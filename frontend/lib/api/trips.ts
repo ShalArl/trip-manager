@@ -69,6 +69,7 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
 export async function getRecentPublicTrips(limit: number, offset: number): Promise<{ data: TripResponse[], total: number }> {
   const response = await fetch(`${API_URL}/api/trips/recent?limit=${limit}&offset=${offset}`, {
       method: "GET",
+      headers: await getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -82,6 +83,7 @@ export async function getRecentPublicTrips(limit: number, offset: number): Promi
 export async function searchTrips(query: string, limit: number, offset: number): Promise<{ data: TripResponse[], total: number }> {
   const response = await fetch(`${API_URL}/api/trips/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`, {
       method: "GET",
+      headers: await getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -92,4 +94,17 @@ export async function searchTrips(query: string, limit: number, offset: number):
 
   const data = await response.json();
   return { data: data.data as TripResponse[], total: data.total as number };
+}
+
+export async function deleteTrip(tripId: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`Fehler beim Löschen der Reise (${response.status}):`, errorData);
+        throw new Error(`Fehler beim Löschen der Reise: ${response.status}`);
+    }
 }
