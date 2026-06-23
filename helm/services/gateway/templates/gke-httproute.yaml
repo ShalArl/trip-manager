@@ -111,7 +111,7 @@ spec:
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /
+              replacePrefixMatch: /tenants/
       backendRefs:
         - name: {{ .Values.routes.newsletter.service }}
           port: {{ .Values.routes.newsletter.port }}
