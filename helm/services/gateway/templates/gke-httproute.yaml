@@ -72,7 +72,7 @@ spec:
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /
+              replacePrefixMatch: /info/
       backendRefs:
         - name: {{ .Values.routes.travelInfo.service }}
           port: {{ .Values.routes.travelInfo.port }}
@@ -90,9 +90,9 @@ spec:
         - name: {{ .Values.routes.feed.service }}
           port: {{ .Values.routes.feed.port }}
     - matches:
-          - path:
-              type: PathPrefix
-              value: /api/tenants/
+        - path:
+            type: PathPrefix
+            value: /api/tenants/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -102,6 +102,19 @@ spec:
       backendRefs:
         - name: {{ .Values.routes.tenants.service }}
           port: {{ .Values.routes.tenants.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/newsletter/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.newsletter.service }}
+          port: {{ .Values.routes.newsletter.port }}
 ---
 # Frontend Route
 apiVersion: gateway.networking.k8s.io/v1

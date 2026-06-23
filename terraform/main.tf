@@ -19,15 +19,15 @@ resource "google_project_service" "apis" {
 }
 
 // Comment that block out to save costs
-# module "gke" {
-#    source      = "./modules/gke"
-#    project_id  = var.project_id
-#    region      = var.region
-#    environment = var.environment
-#    depends_on = [
-#      google_project_service.apis
-#    ]
-#  }
+module "gke" {
+   source      = "./modules/gke"
+   project_id  = var.project_id
+   region      = var.region
+   environment = var.environment
+   depends_on = [
+     google_project_service.apis
+   ]
+ }
 
 module "iam" {
   source      = "./modules/iam"

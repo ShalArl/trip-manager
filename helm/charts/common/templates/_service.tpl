@@ -5,10 +5,6 @@ metadata:
   name: {{ include "common.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels: {{- include "common.labels" . | nindent 4 }}
-  {{- if .Values.service.healthPath }}
-  annotations:
-    cloud.google.com/backend-config: {{ printf `{"default": "%s-backend-config"}` (include "common.fullname" .) | quote }}
-  {{- end }}
 spec:
   type: ClusterIP
   ports:

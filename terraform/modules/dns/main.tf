@@ -11,7 +11,7 @@ resource "google_dns_record_set" "root" {
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary.name
   project      = var.project_id
-  rrdatas      = ["8.233.215.125"]
+  rrdatas      = ["8.232.170.119"]
 }
 
 resource "google_dns_record_set" "api" {
@@ -20,7 +20,7 @@ resource "google_dns_record_set" "api" {
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary.name
   project      = var.project_id
-  rrdatas      = ["8.233.215.125"] # TODO: Add the IP address of the API server here
+  rrdatas      = ["8.232.170.119"] # TODO: Add the IP address of the API server here
 }
 
 resource "google_dns_record_set" "www" {
@@ -29,7 +29,7 @@ resource "google_dns_record_set" "www" {
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary.name
   project      = var.project_id
-  rrdatas      = ["8.233.215.125"]
+  rrdatas      = ["8.232.170.119"]
 }
 
 resource "google_certificate_manager_certificate" "primary" {

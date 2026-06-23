@@ -10,4 +10,4 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: POSTGRES_PASSWORD
-      remoteKey: users-postgres-password
+      remoteKey: users-database-password

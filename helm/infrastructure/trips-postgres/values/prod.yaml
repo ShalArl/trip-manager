@@ -10,4 +10,4 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: POSTGRES_PASSWORD
-      remoteKey: trips-postgres-password
+      remoteKey: trips-database-password
