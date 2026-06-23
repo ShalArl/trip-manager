@@ -73,7 +73,7 @@ spec:
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /
+              replacePrefixMatch: /info/
       backendRefs:
         - name: travel-info
           port: 8087
@@ -91,9 +91,9 @@ spec:
         - name: feed
           port: 8089
     - matches:
-          - path:
-              type: PathPrefix
-              value: /api/tenants/
+        - path:
+            type: PathPrefix
+            value: /api/tenants/
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -103,6 +103,19 @@ spec:
       backendRefs:
         - name: users
           port: 8083
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/newsletter/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: newsletter
+          port: 8070
 ---
 # Source: gateway/templates/gke-httproute.yaml
 # Frontend Route
