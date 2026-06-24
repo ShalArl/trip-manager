@@ -22,7 +22,7 @@ spec:
         app.kubernetes.io/name: social
         app.kubernetes.io/instance: social
       annotations:
-        checksum/config: fcbdc91edcefb900c6fc89e4dd82dda45dde32a325ad3dbbf824d2f78edc14d4
+        checksum/config: 57b1875efee9d0cfdb642818f95364654262429c0e9af0679425e9bf729dad94
     spec:
       securityContext:
         runAsNonRoot: true
@@ -61,7 +61,7 @@ spec:
             - name: AUTH_SERVICE_URL
               value: http://auth.trip-manager-prod.svc.cluster.local:8082
             - name: GCS_SIGNER_SA
-              value: presigner-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com
+              value: social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com
           resources: 
             limits:
               cpu: 200m
