@@ -60,8 +60,8 @@ func main() {
 		_, _ = w.Write([]byte(`{"status": "ok"}`))
 	})
 
-	mux.HandleFunc("GET /info/warning/{countryCode}", warningHandler.GetWarning)
-	mux.HandleFunc("GET /info/weather", weatherHandler.GetWeather)
+	mux.HandleFunc("GET /warning/{countryCode}", warningHandler.GetWarning)
+	mux.HandleFunc("GET /weather", weatherHandler.GetWeather)
 
 	corsConfig := middleware.DefaultCORSConfig()
 	if len(cfg.CORSAllowedOrigins) == 0 {
