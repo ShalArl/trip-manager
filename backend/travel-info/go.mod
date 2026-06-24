@@ -3,9 +3,7 @@ module github.com/ShalArl/trip-manager/backend/travel-info
 go 1.25.8
 
 require (
-	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.12.3
 	github.com/redis/go-redis/v9 v9.19.0
 	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
 
