@@ -1,4 +1,4 @@
-package main
+package task
 
 import (
 	"context"
@@ -11,23 +11,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/travel-info/internal/fetcher"
 )
 
-func main() {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	ctx := context.Background()
-
-	// 1. Gemeinsamen Redis-Cache initialisieren
-	sharedCache, err := cache.NewCache(cfg.RedisUrl, cfg.WeatherCacheTTLHours)
-	if err != nil {
-		log.Fatalf("failed to connect to redis: %v", err)
-	}
-	defer sharedCache.Close()
-
-	// ==========================================
-	// PART 1: TRAVEL WARNINGS WORKER
-	// ==========================================
+func RunSyncTasks(ctx context.Context, sharedCache *cache.Cache, cfg *config.Config, meteoClient *fetcher.OpenMeteoClient) {
 	log.Println("--- Starting Travel Warnings Sync ---")
 	travelClient := fetcher.NewWarningClient(cfg.TravelWarningUrl)
 
@@ -55,23 +39,20 @@ func main() {
 		}
 	}
 
-	// ==========================================
-	// PART 2: WEATHER INFO WORKER
-	// ==========================================
 	log.Println("--- Starting Weather Info Sync ---")
 
 	locationsDB, err := db.NewLocationsDB(cfg.LocationsDBURL)
 	if err != nil {
-		log.Fatalf("failed to connect to locations db: %v", err)
+		log.Printf("ERROR: failed to connect to locations db: %v", err)
+		return // Weiche Landung: Task abbrechen, API lebt weiter
 	}
 	defer locationsDB.Close()
-
-	meteoClient := fetcher.NewOpenMeteoClient(cfg.WeatherAPIUrl, cfg.WeatherForecastDays)
 
 	log.Println("Fetching unique locations from DB...")
 	locations, err := locationsDB.GetUniqueLocations(ctx)
 	if err != nil {
-		log.Fatalf("failed to get locations: %v", err)
+		log.Printf("ERROR: failed to get locations from db: %v", err)
+		return // Weiche Landung
 	}
 	log.Printf("Found %d unique locations", len(locations))
 
@@ -82,6 +63,14 @@ func main() {
 		failed := 0
 
 		for _, loc := range locations {
+			// Falls die API runterfährt, Loop sofort abbrechen
+			select {
+			case <-ctx.Done():
+				log.Println("Sync aborted: context cancelled")
+				return
+			default:
+			}
+
 			weather, err := meteoClient.FetchForecast(ctx, loc.Lat, loc.Lng, "")
 			if err != nil {
 				log.Printf("failed to fetch weather for lat=%.2f lng=%.2f: %v", loc.Lat, loc.Lng, err)
@@ -96,7 +85,7 @@ func main() {
 			}
 
 			success++
-			time.Sleep(100 * time.Millisecond) // Rate limiting Schutz
+			time.Sleep(100 * time.Millisecond)
 		}
 		log.Printf("Weather cache updated: %d success, %d failed", success, failed)
 	}

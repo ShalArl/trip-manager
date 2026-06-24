@@ -23,9 +23,9 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: NEWSLETTER_DB_URL
-      remoteKey: newsletter-postgres-url
+      remoteKey: newsletter-database-url
     - secretKey: USERS_DB_URL
-      remoteKey: users-postgres-url
+      remoteKey: users-database-url
     - secretKey: NEO4J_URI
       remoteKey: neo4j-url
     - secretKey: NEO4J_USERNAME

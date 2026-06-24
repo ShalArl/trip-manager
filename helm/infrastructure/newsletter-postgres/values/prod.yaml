@@ -10,4 +10,4 @@ externalSecrets:
   enabled: true
   secrets:
     - secretKey: POSTGRES_PASSWORD
-      remoteKey: newsletter-postgres-password
+      remoteKey: newsletter-database-password

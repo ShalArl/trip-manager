@@ -36,14 +36,12 @@ COPY travel-info/ travel-info/
 
 # Beide Binaries bauen
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/api ./travel-info/cmd/api
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/worker ./travel-info/cmd/worker
 
 FROM alpine:3.21
 RUN addgroup -S app && adduser -S -G app app
 USER app
 
 COPY --from=builder /bin/api /bin/api
-COPY --from=builder /bin/worker /bin/worker
 
 EXPOSE 8090
 CMD ["/bin/api"]
