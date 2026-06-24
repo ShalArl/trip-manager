@@ -45,7 +45,7 @@ env:
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: GCS_SIGNER_SA
-    value: "presigner-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
+    value: "social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
 
 serviceAccount:
   gcpServiceAccount: "social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
