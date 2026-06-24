@@ -14,8 +14,8 @@ type Config struct {
 	TravelWarningUrl string `envconfig:"TRAVEL_API_URL"`
 	// Weather
 	WeatherAPIUrl        string `envconfig:"WEATHER_API_URL"`
-	WeatherCacheTTLHours int    `envconfig:"FORECAST_DAYS" default:"3"`
-	WeatherForecastDays  int    `envconfig:"CACHE_TTL_HOURS" default:"24"`
+	WeatherCacheTTLHours int    `envconfig:"CACHE_TTL_HOURS" default:"3"`
+	WeatherForecastDays  int    `envconfig:"FORECAST_DAYS" default:"24"`
 }
 
 func LoadConfig() (*Config, error) {

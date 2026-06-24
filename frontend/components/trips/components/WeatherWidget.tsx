@@ -77,7 +77,7 @@ export default function WeatherWidget({lat, lng, locationName, startDate}: Props
             params.set("date", startDate);
         }
 
-        fetch(`${API_URL}/api/info/weather/?lat=${lat}&lng=${lng}${startDate ? `&date=${startDate}` : ""}`)
+        fetch(`${API_URL}/api/info/weather?lat=${lat}&lng=${lng}${startDate ? `&date=${startDate}` : ""}`)
             .then((r) => {
                 if (!r.ok) throw new Error("no data");
                 return r.json();
