@@ -91,6 +91,19 @@ spec:
         - name: feed
           port: 8089
     - matches:
+        - path:
+            type: PathPrefix
+            value: /api/newsletter/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: newsletter
+          port: 8070
+    - matches:
           - path:
               type: PathPrefix
               value: /api/tenants/
