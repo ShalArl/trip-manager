@@ -13,7 +13,7 @@ spec:
       labels:
         app: otel-collector
     spec:
-      serviceAccountName: otel-collector-sa
+      serviceAccountName: otel-collector
       containers:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
