@@ -35,11 +35,12 @@ type config struct {
 	OTELCollectorEndpoint string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 
 	// Worker Configs (aus dem Worker-Service integriert)
-	UsersDBURL    string `envconfig:"USERS_DB_URL"`
-	Neo4jURI      string `envconfig:"NEO4J_URI"`
-	Neo4jUser     string `envconfig:"NEO4J_USERNAME"`
-	Neo4jPassword string `envconfig:"NEO4J_PASSWORD"`
-	CronSchedule  string `envconfig:"CRON_SCHEDULE" default:"0 0 * * *"` // Standard: Täglich um Mitternacht
+	UsersDBURL           string `envconfig:"USERS_DB_URL"`
+	Neo4jURI             string `envconfig:"NEO4J_URI"`
+	Neo4jUser            string `envconfig:"NEO4J_USERNAME"`
+	Neo4jPassword        string `envconfig:"NEO4J_PASSWORD"`
+	CronSchedule         string `envconfig:"CRON_SCHEDULE" default:"0 0 * * *"`          // Standard: Täglich um Mitternacht
+	InsightsCronSchedule string `envconfig:"INSIGHTS_CRON_SCHEDULE" default:"0 0 * * *"` // siehe oben
 }
 
 func load() (*config, error) {
@@ -103,7 +104,7 @@ func main() {
 	}
 
 	// ==========================================
-	// CRON WORKER THREAD STARTEN
+	// CRON WORKER THREAD(s) STARTEN
 	// ==========================================
 	log.Println("newsletter: running initial background generation...")
 	go runGeneration(usersDB, newsletterDB, neo4jDriver) // Einmalig asynchron beim Start anwerfen
@@ -119,6 +120,13 @@ func main() {
 		c.Start()
 		log.Printf("newsletter-worker: cron scheduler started with schedule '%s'", cfg.CronSchedule)
 	}
+
+	go runInsightsGeneration(usersDB, newsletterDB, neo4jDriver) // Initial
+
+	_, err = c.AddFunc(cfg.InsightsCronSchedule, func() {
+		log.Println("insights: cron triggered...")
+		runInsightsGeneration(usersDB, newsletterDB, neo4jDriver)
+	})
 
 	// ==========================================
 	// API ROUTER & SERVER STARTEN
@@ -138,6 +146,44 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /", requireAuth(newsletter.GetNewsletterHandler(svc)))
+
+	mux.HandleFunc("GET /insights", requireAuth(func(w http.ResponseWriter, r *http.Request) {
+		firebaseUID := r.Header.Get("X-Firebase-UID")
+		if firebaseUID == "" {
+			// aus JWT lesen
+			if result, err := authClient.ValidateBearerToken(r.Context(), r.Header.Get("Authorization")); err == nil {
+				firebaseUID = result.UserID
+			}
+		}
+
+		var insights []json.RawMessage
+		rows, err := newsletterDB.QueryContext(r.Context(), `
+        SELECT content FROM advertiser_insights
+        WHERE advertiser_id = (
+            SELECT id FROM advertisers WHERE firebase_uid = $1
+        )
+        ORDER BY generated_at DESC
+    `, firebaseUID)
+		if err != nil {
+			http.Error(w, `{"error":"failed to load insights"}`, http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var content json.RawMessage
+			if err := rows.Scan(&content); err == nil {
+				insights = append(insights, content)
+			}
+		}
+
+		if insights == nil {
+			insights = []json.RawMessage{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(insights)
+	}))
 
 	corsConfig := middleware.DefaultCORSConfig()
 	corsConfig.AllowedOrigins = cfg.CORSAllowedOrigins
@@ -171,25 +217,34 @@ func main() {
 
 func migrate(db *sqlx.DB) error {
 	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS newsletters (
-			firebase_uid TEXT         NOT NULL,
-			tenant_id    VARCHAR(255) NOT NULL DEFAULT 'default',
-			content      JSONB        NOT NULL,
-			generated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
-			PRIMARY KEY (firebase_uid, tenant_id)
-		);
-		CREATE INDEX IF NOT EXISTS idx_newsletters_tenant_id ON newsletters(tenant_id);
-		ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
-		DO $$ BEGIN
-			IF NOT EXISTS (
-				SELECT 1 FROM pg_policies 
-				WHERE tablename = 'newsletters' AND policyname = 'tenant_isolation_newsletters'
-			) THEN
-				CREATE POLICY tenant_isolation_newsletters ON newsletters
-					USING (tenant_id = current_setting('app.tenant_id', true));
-			END IF;
-		END $$;
-	`)
+        CREATE TABLE IF NOT EXISTS newsletters (
+            firebase_uid TEXT         NOT NULL,
+            tenant_id    VARCHAR(255) NOT NULL DEFAULT 'default',
+            content      JSONB        NOT NULL,
+            generated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (firebase_uid, tenant_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_newsletters_tenant_id ON newsletters(tenant_id);
+        ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_policies 
+                WHERE tablename = 'newsletters' AND policyname = 'tenant_isolation_newsletters'
+            ) THEN
+                CREATE POLICY tenant_isolation_newsletters ON newsletters
+                    USING (tenant_id = current_setting('app.tenant_id', true));
+            END IF;
+        END $$;
+
+        CREATE TABLE IF NOT EXISTS advertiser_insights (
+            advertiser_id VARCHAR(255) NOT NULL,
+            tenant_id     VARCHAR(255) NOT NULL,
+            content       JSONB        NOT NULL,
+            generated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (advertiser_id, tenant_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_advertiser_insights_advertiser ON advertiser_insights(advertiser_id);
+    `)
 	return err
 }
 
@@ -237,4 +292,48 @@ func runGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverW
 		}
 	}
 	log.Println("newsletter-worker: generation complete")
+}
+
+func runInsightsGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverWithContext) {
+	ctx := context.Background()
+
+	// Alle Advertiser + ihre Tenants holen
+	var advTenants []struct {
+		AdvertiserID string `db:"advertiser_id"`
+		TenantID     string `db:"tenant_id"`
+	}
+	if err := usersDB.SelectContext(ctx, &advTenants,
+		`SELECT advertiser_id, tenant_id FROM advertiser_tenants`); err != nil {
+		log.Printf("insights: failed to fetch advertiser tenants: %v", err)
+		return
+	}
+
+	log.Printf("insights: generating for %d advertiser-tenant pairs", len(advTenants))
+
+	for _, at := range advTenants {
+		insights, err := db.GenerateInsightsForTenant(ctx, driver, at.TenantID)
+		if err != nil {
+			log.Printf("insights: error for tenant %s: %v", at.TenantID, err)
+			continue
+		}
+
+		content, err := json.Marshal(insights)
+		if err != nil {
+			log.Printf("insights: marshal error: %v", err)
+			continue
+		}
+
+		_, err = newsletterDB.ExecContext(ctx, `
+            INSERT INTO advertiser_insights (advertiser_id, tenant_id, content, generated_at)
+            VALUES ($1, $2, $3, NOW())
+            ON CONFLICT (advertiser_id, tenant_id) DO UPDATE
+            SET content = EXCLUDED.content,
+                generated_at = EXCLUDED.generated_at
+        `, at.AdvertiserID, at.TenantID, content)
+		if err != nil {
+			log.Printf("insights: db write error: %v", err)
+			continue
+		}
+	}
+	log.Println("insights: generation complete")
 }

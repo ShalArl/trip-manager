@@ -17,6 +17,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
+	advertiser "github.com/ShalArl/trip-manager/backend/users/internal/advertisers"
 	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
@@ -102,6 +103,7 @@ func main() {
 		metricsClient = tenant.NewPrometheusMetricsClient(cfg.PrometheusURL)
 	}
 
+	// USER
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
@@ -122,6 +124,14 @@ func main() {
 	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl)))
 	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
 	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
+	// ADVERTISER
+	advRepo := advertiser.NewRepository(db)
+	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers", requireAuth(advertiser.CreateHandler(advRepo)))
+	mux.HandleFunc("GET /advertisers/me", requireAuth(advertiser.GetMeHandler(advRepo)))
+	mux.HandleFunc("GET /advertisers/{id}", requireAuth(advertiser.GetByIDHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers/{id}/tenants", requireAuth(advertiser.AssignTenantHandler(advRepo)))
+	mux.HandleFunc("DELETE /advertisers/{id}/tenants/{tenantId}", requireAuth(advertiser.RemoveTenantHandler(advRepo)))
 
 	// Server
 	server := &http.Server{
