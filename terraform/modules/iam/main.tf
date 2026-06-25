@@ -188,3 +188,9 @@ resource "google_project_iam_member" "otel_monitoring" {
   role    = "roles/monitoring.metricWriter"
   member  = "serviceAccount:${google_service_account.services["otel-collector"].email}"
 }
+
+resource "google_project_iam_member" "otel_trace" {
+  project = var.project_id
+  role    = "roles/cloudtrace.agent"
+  member  = "serviceAccount:${google_service_account.services["otel-collector"].email}"
+}

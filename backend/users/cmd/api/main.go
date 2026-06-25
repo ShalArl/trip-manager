@@ -95,7 +95,12 @@ func main() {
 		}
 	})
 
-	prometheusURL := cfg.PrometheusURL
+	var metricsClient tenant.MetricsClient
+	if cfg.GCPProjectID != "" {
+		metricsClient = tenant.NewGCMMetricsClient(cfg.GCPProjectID)
+	} else {
+		metricsClient = tenant.NewPrometheusMetricsClient(cfg.PrometheusURL)
+	}
 
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
@@ -108,7 +113,7 @@ func main() {
 	mux.HandleFunc("GET /tenants/me/branding", requireAuth(tenant.GetBrandingHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/branding", requireAuth(tenant.UpdateBrandingHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo)))
-	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, prometheusURL)))
+	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, metricsClient)))
 	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
 	mux.HandleFunc("GET /tenants/me/members", requireAuth(tenant.ListMembersHandler(repo)))
