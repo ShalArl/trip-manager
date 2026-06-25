@@ -23,7 +23,7 @@ spec:
         app.kubernetes.io/name: users
         app.kubernetes.io/instance: users
       annotations:
-        checksum/config: 81a16424d1a2542e6dec8e86cbc013a5dc4a6cda12165114a50b6aac5a80660c
+        checksum/config: a912e6bad28927efeb4f03ac6991e31d4ae475f1038248abbe0ef0264e5fe032
     spec:
       securityContext:
         runAsNonRoot: true
@@ -49,6 +49,8 @@ spec:
               value: https://neatnode.xyz,https://www.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+            - name: GCP_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
           envFrom: 
             - secretRef:
                 name: users-secrets
