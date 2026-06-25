@@ -33,7 +33,7 @@ type PricingInfo struct {
 	Currency    string  `json:"currency"`
 }
 
-func GetUsageHandler(repo Repository, prometheusURL string) http.HandlerFunc {
+func GetUsageHandler(repo Repository, metricsClient MetricsClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		if tenantID == "" || tenantID == "default" {
@@ -41,13 +41,7 @@ func GetUsageHandler(repo Repository, prometheusURL string) http.HandlerFunc {
 			return
 		}
 
-		// Prometheus abfragen – API Calls pro Service für diesen Tenant
-		query := fmt.Sprintf(
-			`sum by (service) (trip_manager_api_calls_total{tenant_id="%s"})`,
-			tenantID,
-		)
-
-		result, err := queryPrometheus(prometheusURL, query)
+		serviceMap, err := metricsClient.QueryAPICallsByService(r.Context(), tenantID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query metrics: %v", err))
 			return
@@ -55,26 +49,19 @@ func GetUsageHandler(repo Repository, prometheusURL string) http.HandlerFunc {
 
 		var totalCalls int64
 		var breakdown []ServiceUsage
-		for _, r := range result {
-			svc := r.Metric["service"]
-			calls := r.Value
+		for svc, calls := range serviceMap {
 			totalCalls += calls
-			breakdown = append(breakdown, ServiceUsage{
-				Service: svc,
-				Calls:   calls,
-			})
+			breakdown = append(breakdown, ServiceUsage{Service: svc, Calls: calls})
 		}
 
-		// Pricing berechnen
-		ctx := tenantdb.WithTenantID(r.Context(), tenantID)
-		tenant, err := repo.GetByID(ctx, tenantID)
+		tenantCtx := tenantdb.WithTenantID(r.Context(), tenantID)
+		tenant, err := repo.GetByID(tenantCtx, tenantID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "tenant not found")
 			return
 		}
 
 		pricing := calculatePricing(tenant.Tier, totalCalls)
-		
 		respondJSON(w, http.StatusOK, UsageResponse{
 			TenantID:  tenantID,
 			Period:    time.Now().Format("2006-01"),

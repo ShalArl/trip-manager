@@ -15,6 +15,7 @@ type Config struct {
 	PrometheusURL            string   `envconfig:"PROMETHEUS_URL" default:""`
 	OTELCollectorEndpoint    string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 	BaseUrl                  string   `envconfig:"BASE_URL" default:""`
+	GCPProjectID             string   `envconfig:"GCP_PROJECT_ID" default:""`
 }
 
 func Load() (*Config, error) {
