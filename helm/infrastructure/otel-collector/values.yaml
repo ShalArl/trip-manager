@@ -13,3 +13,9 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
+
+environment: dev
+gcpProjectID: ""
+
+serviceAccount:
+  gcpServiceAccount: ""
