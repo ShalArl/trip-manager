@@ -50,6 +50,7 @@ type Repository interface {
 	GetBySlug(ctx context.Context, slug string) (*Tenant, error)
 	Update(ctx context.Context, t *Tenant) (*Tenant, error)
 	Delete(ctx context.Context, id string) error
+	ListAll(ctx context.Context) ([]*Tenant, error)
 }
 
 type repositoryImpl struct {
@@ -175,6 +176,22 @@ func (r *repositoryImpl) Delete(ctx context.Context, id string) error {
 		}
 		return nil
 	})
+}
+
+func (r *repositoryImpl) ListAll(ctx context.Context) ([]*Tenant, error) {
+	var recs []tenantRecord
+	err := r.db.SelectContext(ctx, &recs,
+		`SELECT id, name, slug, tier, status, branding, settings, created_at, updated_at 
+         FROM tenants WHERE id != 'default' ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
+	}
+	var result []*Tenant
+	for _, rec := range recs {
+		r := rec
+		result = append(result, r.toDomain())
+	}
+	return result, nil
 }
 
 func (rec *tenantRecord) toDomain() *Tenant {

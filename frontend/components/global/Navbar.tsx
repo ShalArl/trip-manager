@@ -140,14 +140,28 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            {(isAdmin || isOwner || isPlatformAdmin) && tenantId !== "default" && (
-                                <button
-                                    onClick={() => router.push("/tenant")}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                                >
-                                    <Building2 className="h-4 w-4" />
-                                    <span className="hidden sm:block">Reisebüro</span>
-                                </button>
+                            {displayUser && (
+                                <>
+                                    {isPlatformAdmin ? (
+                                        <button
+                                            onClick={() => router.push("/platform")}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                        >
+                                            <Building2 className="h-4 w-4"/>
+                                            <span className="hidden sm:block">Platform</span>
+                                        </button>
+                                    ) : (isAdmin || isOwner) ? (
+                                        <button
+                                            onClick={() => router.push(tenantId !== "default" ? "/tenant" : "/business")}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                        >
+                                            <Building2 className="h-4 w-4"/>
+                                            <span className="hidden sm:block">
+                                                {tenantId !== "default" ? "Reisebüro" : "Reisebüro erstellen"}
+                                            </span>
+                                        </button>
+                                    ) : null}
+                                </>
                             )}
                         </>
                     ) : (
