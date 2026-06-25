@@ -4,19 +4,16 @@ import ProfileSettings from "@/components/settings/ProfileSettings";
 import PasswordSettings from "@/components/settings/PasswordSettings";
 import {useState} from "react";
 import {useUserContext} from "@/lib/context/UserContext";
-import {Building2, Lock, User} from "lucide-react";
+import {Lock, User} from "lucide-react";
 import {useRouter} from "next/navigation";
 import {LoadingSpinner} from "@/components/global/LoadingSpinner";
 import {useTenantContext} from "@/lib/context/TenantContext";
-import TenantSettings from "@/components/settings/TenantSettings";
 
 
 export default function SettingsPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("profile");
     const {user, isLoading} = useUserContext();
-    // In SettingsPage:
-    const {isAdmin, isOwner} = useTenantContext();
 
     if (isLoading) {
         return <LoadingSpinner/>;
@@ -69,19 +66,6 @@ export default function SettingsPage() {
                                     <Lock className="h-5 w-5"/>
                                     <span>Passwort</span>
                                 </button>
-                                {isAdmin && (
-                                    <button
-                                        onClick={() => setActiveTab("tenant")}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition-all duration-200 ${
-                                            activeTab === "tenant"
-                                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-900 dark:text-blue-100"
-                                                : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                                        }`}
-                                    >
-                                        <Building2 className="h-5 w-5"/>
-                                        <span>Reisebüro</span>
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -90,7 +74,6 @@ export default function SettingsPage() {
                     <div className="md:col-span-3">
                         {activeTab === "profile" && <ProfileSettings user={user}/>}
                         {activeTab === "password" && <PasswordSettings/>}
-                        {activeTab === "tenant" && isAdmin && <TenantSettings/>}
                     </div>
                 </div>
             </div>

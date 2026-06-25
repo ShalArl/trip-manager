@@ -23,7 +23,7 @@ type Props = {
 export default function Navbar({user: initialUser, onLogout}: Props) {
     const router = useRouter();
     const {user} = useUserContext();
-    const {tenantId, tenantName, branding, role, isAdmin} = useTenantContext();
+    const {tenantId, tenantName, branding, role, isAdmin, isOwner, isPlatformAdmin} = useTenantContext();
 
     const displayUser = user || initialUser;
 
@@ -121,14 +121,6 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                             {displayUser.email}
                                         </p>
-                                        {tenantId !== "default" && tenantName && (
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <Building2 className="h-3 w-3 text-sky-500"/>
-                                                <span className="text-xs text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] font-medium">
-                                                    {tenantName}
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
                                     <DropdownMenuSeparator/>
                                     <DropdownMenuItem
@@ -148,6 +140,15 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {(isAdmin || isOwner || isPlatformAdmin) && tenantId !== "default" && (
+                                <button
+                                    onClick={() => router.push("/tenant")}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                    <Building2 className="h-4 w-4" />
+                                    <span className="hidden sm:block">Reisebüro</span>
+                                </button>
+                            )}
                         </>
                     ) : (
                         <button
