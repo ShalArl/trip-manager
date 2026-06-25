@@ -90,6 +90,19 @@ spec:
         - name: {{ .Values.routes.feed.service }}
           port: {{ .Values.routes.feed.port }}
     - matches:
+        - path:
+            type: PathPrefix
+            value: /api/newsletter/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.routes.newsletter.service }}
+          port: {{ .Values.routes.newsletter.port }}
+    - matches:
           - path:
               type: PathPrefix
               value: /api/tenants/
