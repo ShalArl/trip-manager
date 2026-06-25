@@ -114,6 +114,8 @@ type Repository interface {
 	GetByFirebaseUID(ctx context.Context, uid string) (*User, error)
 	Create(ctx context.Context, user *User) (*User, error)
 	Update(ctx context.Context, user *User) (*User, error)
+	ListByTenant(ctx context.Context) ([]*User, error)
+	RemoveFromTenant(ctx context.Context, userID string) error
 }
 
 type repositoryImpl struct {
@@ -223,4 +225,32 @@ func (r *repositoryImpl) Update(ctx context.Context, user *User) (*User, error) 
 		return nil
 	})
 	return result, err
+}
+
+func (r *repositoryImpl) ListByTenant(ctx context.Context) ([]*User, error) {
+	var result []*User
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var recs []userRecord
+		query := `SELECT id, email, name, bio, avatar_key, firebase_uid, tenant_id, role, created_at, updated_at
+                  FROM users ORDER BY created_at ASC`
+		if err := tx.SelectContext(ctx, &recs, query); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		for _, rec := range recs {
+			r := rec
+			result = append(result, r.toUser())
+		}
+		return nil
+	})
+	return result, err
+}
+
+func (r *repositoryImpl) RemoveFromTenant(ctx context.Context, userID string) error {
+	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx,
+			`UPDATE users SET tenant_id = 'default', role = 'tenant_member' WHERE id = $1`,
+			userID,
+		)
+		return err
+	})
 }

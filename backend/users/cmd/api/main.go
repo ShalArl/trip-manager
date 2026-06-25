@@ -76,6 +76,7 @@ func main() {
 	// Wire up
 	repo := repository.NewRepository(db)
 	tenantRepo := tenant.NewRepository(db)
+	invRepo := tenant.NewInvitationRepository(db)
 
 	svc := service.NewService(repo, fbClient)
 
@@ -100,6 +101,7 @@ func main() {
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
 	mux.HandleFunc("GET /{id}", handler.GetByIDHandler(svc))
+	// TENANTS
 	mux.HandleFunc("POST /tenants/register", requireAuth(tenant.RegisterHandler(tenantRepo, svc)))
 	mux.HandleFunc("GET /tenants/me", requireAuth(tenant.GetTenantHandler(tenantRepo)))
 	mux.HandleFunc("GET /tenants/by-slug/{slug}", tenant.GetTenantBySlugHandler(tenantRepo))
@@ -109,6 +111,12 @@ func main() {
 	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, prometheusURL)))
 	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
+	mux.HandleFunc("GET /tenants/me/members", requireAuth(tenant.ListMembersHandler(repo)))
+	mux.HandleFunc("DELETE /tenants/me/members/{userId}", requireAuth(tenant.RemoveMemberHandler(repo)))
+	mux.HandleFunc("GET /tenants/me/invitations", requireAuth(tenant.ListInvitationsHandler(invRepo)))
+	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl)))
+	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
+	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
 
 	// Server
 	server := &http.Server{

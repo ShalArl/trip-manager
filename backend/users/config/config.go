@@ -14,6 +14,7 @@ type Config struct {
 	FirebaseAuthEmulatorHost string   `envconfig:"FIREBASE_AUTH_EMULATOR_HOST" default:""`
 	PrometheusURL            string   `envconfig:"PROMETHEUS_URL" default:""`
 	OTELCollectorEndpoint    string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
+	BaseUrl                  string   `envconfig:"BASE_URL" default:""`
 }
 
 func Load() (*Config, error) {
