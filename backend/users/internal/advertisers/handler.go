@@ -22,7 +22,7 @@ func respondError(w http.ResponseWriter, status int, msg string) {
 func CreateHandler(repo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		role := authclient.GetUserRole(r)
-		if role != "platform_admin" {
+		if role != "platform_admin" && role != "tenant_owner" && role != "tenant_admin" {
 			respondError(w, http.StatusForbidden, "permission denied")
 			return
 		}
