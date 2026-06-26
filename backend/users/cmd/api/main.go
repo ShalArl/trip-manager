@@ -124,6 +124,8 @@ func main() {
 	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl)))
 	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
 	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
+	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
+	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, svc)))
 	// ADVERTISER
 	advRepo := advertiser.NewRepository(db)
 	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))

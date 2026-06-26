@@ -308,6 +308,25 @@ func DeleteTenantHandler(repo Repository, userSvc service.Service) http.HandlerF
 	}
 }
 
+func ListAllTenantsHandler(repo Repository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		role := authclient.GetUserRole(r)
+		if role != "platform_admin" {
+			respondError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+		tenants, err := repo.ListAll(r.Context())
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if tenants == nil {
+			tenants = []*Tenant{}
+		}
+		respondJSON(w, http.StatusOK, tenants)
+	}
+}
+
 // Settings related
 
 type SettingsRequest struct {
