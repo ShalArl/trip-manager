@@ -61,10 +61,22 @@ func main() {
 	}(db)
 
 	// Migrations
-	if err := database.RunMigrations(db); err != nil {
-		log.Fatalf("failed to run migrations: %v", err)
+	migrationDB, err := sqlx.Connect("postgres", cfg.MigrationDBURL)
+	if err != nil {
+		log.Fatalf("failed to connect to migration db: %v", err)
 	}
+	if err := database.RunMigrations(migrationDB, map[string]string{
+		"APP_DB_PASSWORD": cfg.AppDBPassword,
+	}); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+	migrationDB.Close()
 
+	// Normaler Betrieb mit App-User
+	db, err = sqlx.Connect("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
+	}
 	// Auth client
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 

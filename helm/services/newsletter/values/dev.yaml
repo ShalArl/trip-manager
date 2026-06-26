@@ -25,8 +25,12 @@ env:
     value: "debug"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
-  - name: NEWSLETTER_DB_URL
+  - name: MIGRATION_URL
     value: "postgres://newsletter:newsletter@newsletter-postgres.trip-manager-dev.svc.cluster.local:5432/newsletter?sslmode=disable"
+  - name: DATABASE_URL
+    value: "postgres://newsletter_app:newsletter@newsletter-postgres.trip-manager-dev.svc.cluster.local:5432/newsletter?sslmode=disable"
+  - name: APP_DB_PASSWORD
+    value: "newsletter"
   - name: USERS_DB_URL
     value: "postgres://users:users@users-postgres.trip-manager-dev.svc.cluster.local:5432/users?sslmode=disable"
   - name: NEO4J_URI

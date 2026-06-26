@@ -7,6 +7,7 @@ import (
 	"log"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -14,7 +15,7 @@ import (
 //go:embed migrations/*.sql
 var embeddedMigrations embed.FS
 
-func RunMigrations(db *sqlx.DB) error {
+func RunMigrations(db *sqlx.DB, vars map[string]string) error {
 	subFS, err := fs.Sub(embeddedMigrations, "migrations")
 	if err != nil {
 		return fmt.Errorf("failed to access migrations: %w", err)
@@ -39,7 +40,14 @@ func RunMigrations(db *sqlx.DB) error {
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", name, err)
 		}
-		if _, err := db.Exec(string(sql)); err != nil {
+
+		// Variablen ersetzen
+		content := string(sql)
+		for k, v := range vars {
+			content = strings.ReplaceAll(content, "{{"+k+"}}", v)
+		}
+
+		if _, err := db.Exec(content); err != nil {
 			return fmt.Errorf("failed to execute %s: %w", name, err)
 		}
 		log.Printf("✓ %s completed", name)

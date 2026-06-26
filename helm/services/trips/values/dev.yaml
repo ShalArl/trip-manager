@@ -21,8 +21,12 @@ env:
     value: "debug"
   - name: AUTH_SERVICE_URL
     value: "http://auth.trip-manager-dev.svc.cluster.local:8082"
-  - name: DATABASE_URL
+  - name: MIGRATION_URL
     value: "postgres://trips:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+  - name: DATABASE_URL
+    value: "postgres://trips_app:trips@trips-postgres.trip-manager-dev.svc.cluster.local:5432/trips?sslmode=disable"
+  - name: APP_DB_PASSWORD
+    value: "trips"
   - name: USERS_SERVICE_URL
     value: "http://users.trip-manager-dev.svc.cluster.local:8083"
   - name: GCP_PROJECT_ID

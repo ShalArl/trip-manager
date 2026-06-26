@@ -28,11 +28,13 @@ import (
 type config struct {
 	// API & Gemeinsame Configs
 	Port                  string   `envconfig:"PORT" default:"8008"`
-	NewsletterDBURL       string   `envconfig:"NEWSLETTER_DB_URL"`
 	AuthServiceURL        string   `envconfig:"AUTH_SERVICE_URL"`
 	LogLevel              string   `envconfig:"LOG_LEVEL"`
 	CORSAllowedOrigins    []string `envconfig:"CORS_ALLOWED_ORIGINS"`
 	OTELCollectorEndpoint string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
+	DatabaseURL           string   `envconfig:"DATABASE_URL"`
+	MigrationDBURL        string   `envconfig:"MIGRATION_DB_URL"`
+	AppDBPassword         string   `envconfig:"APP_DB_PASSWORD"`
 
 	// Worker Configs (aus dem Worker-Service integriert)
 	UsersDBURL           string `envconfig:"USERS_DB_URL"`
@@ -71,16 +73,21 @@ func main() {
 
 	// 2. Datenbanken initialisieren
 	// Haupt-Newsletter-DB (Wird von API und Worker genutzt!)
-	newsletterDB, err := sqlx.Connect("postgres", cfg.NewsletterDBURL)
+	migrationDB, err := sqlx.Connect("postgres", cfg.MigrationDBURL)
 	if err != nil {
-		log.Fatalf("newsletter: failed to connect to newsletter-db: %v", err)
+		log.Fatalf("failed to connect to migration db: %v", err)
+	}
+	if err := migrate(migrationDB, cfg.AppDBPassword); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+	migrationDB.Close()
+
+	// Normaler Betrieb mit App-User
+	newsletterDB, err := sqlx.Connect("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
 	}
 	defer newsletterDB.Close()
-
-	// In-App Migration ausführen
-	if err := migrate(newsletterDB); err != nil {
-		log.Fatalf("newsletter: migration failed: %v", err)
-	}
 
 	// Users-DB (wird nur vom Worker-Teil benötigt)
 	usersDB, err := sqlx.Connect("postgres", cfg.UsersDBURL)
@@ -215,7 +222,7 @@ func main() {
 	log.Println("newsletter: stopped")
 }
 
-func migrate(db *sqlx.DB) error {
+func migrate(db *sqlx.DB, appDBPassword string) error {
 	_, err := db.Exec(`
         CREATE TABLE IF NOT EXISTS newsletters (
             firebase_uid TEXT         NOT NULL,
@@ -244,7 +251,24 @@ func migrate(db *sqlx.DB) error {
             PRIMARY KEY (advertiser_id, tenant_id)
         );
         CREATE INDEX IF NOT EXISTS idx_advertiser_insights_advertiser ON advertiser_insights(advertiser_id);
-    `)
+
+        ALTER TABLE newsletters FORCE ROW LEVEL SECURITY;
+        ALTER TABLE advertiser_insights FORCE ROW LEVEL SECURITY;
+
+        DO $inner$ BEGIN
+            IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'newsletter_app') THEN
+                EXECUTE format('CREATE USER newsletter_app WITH PASSWORD %%L', '%s');
+            END IF;
+        END $inner$;
+        GRANT CONNECT ON DATABASE newsletter TO newsletter_app;
+        GRANT USAGE ON SCHEMA public TO newsletter_app;
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO newsletter_app;
+        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO newsletter_app;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public 
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO newsletter_app;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public 
+            GRANT USAGE, SELECT ON SEQUENCES TO newsletter_app;
+    `, appDBPassword)
 	return err
 }
 

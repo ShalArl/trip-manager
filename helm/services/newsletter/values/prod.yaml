@@ -22,8 +22,12 @@ hpa:
 externalSecrets:
   enabled: true
   secrets:
-    - secretKey: NEWSLETTER_DB_URL
+    - secretKey: MIGRATION_DB_URL
+      remoteKey: newsletter-migration-url
+    - secretKey: DATABASE_URL
       remoteKey: newsletter-database-url
+    - secretKey: APP_DB_PASSWORD
+      remoteKey: newsletter-app-database-password
     - secretKey: USERS_DB_URL
       remoteKey: users-database-url
     - secretKey: NEO4J_URI
@@ -48,6 +52,7 @@ env:
     value: "https://neatnode.xyz,https://www.neatnode.xyz"
   - name: OTEL_COLLECTOR_ENDPOINT
     value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
+
 
 serviceAccount:
   gcpServiceAccount: "newsletter-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"
