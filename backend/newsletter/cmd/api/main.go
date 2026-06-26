@@ -13,6 +13,7 @@ import (
 	"tenantdb"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/newsletter/database"
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/db"
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/newsletter"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
@@ -77,7 +78,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to migration db: %v", err)
 	}
-	if err := migrate(migrationDB, cfg.AppDBPassword); err != nil {
+	if err := database.RunMigrations(migrationDB, map[string]string{
+		"APP_DB_PASSWORD": cfg.AppDBPassword,
+	}); err != nil {
 		log.Fatalf("migration failed: %v", err)
 	}
 	migrationDB.Close()
@@ -87,7 +90,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
-	defer newsletterDB.Close()
 
 	// Users-DB (wird nur vom Worker-Teil benötigt)
 	usersDB, err := sqlx.Connect("postgres", cfg.UsersDBURL)
@@ -220,56 +222,6 @@ func main() {
 		log.Fatalf("newsletter: server error: %v", err)
 	}
 	log.Println("newsletter: stopped")
-}
-
-func migrate(db *sqlx.DB, appDBPassword string) error {
-	_, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS newsletters (
-            firebase_uid TEXT         NOT NULL,
-            tenant_id    VARCHAR(255) NOT NULL DEFAULT 'default',
-            content      JSONB        NOT NULL,
-            generated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (firebase_uid, tenant_id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_newsletters_tenant_id ON newsletters(tenant_id);
-        ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
-        DO $$ BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_policies 
-                WHERE tablename = 'newsletters' AND policyname = 'tenant_isolation_newsletters'
-            ) THEN
-                CREATE POLICY tenant_isolation_newsletters ON newsletters
-                    USING (tenant_id = current_setting('app.tenant_id', true));
-            END IF;
-        END $$;
-
-        CREATE TABLE IF NOT EXISTS advertiser_insights (
-            advertiser_id VARCHAR(255) NOT NULL,
-            tenant_id     VARCHAR(255) NOT NULL,
-            content       JSONB        NOT NULL,
-            generated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (advertiser_id, tenant_id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_advertiser_insights_advertiser ON advertiser_insights(advertiser_id);
-
-        ALTER TABLE newsletters FORCE ROW LEVEL SECURITY;
-        ALTER TABLE advertiser_insights FORCE ROW LEVEL SECURITY;
-
-        DO $inner$ BEGIN
-            IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'newsletter_app') THEN
-                EXECUTE format('CREATE USER newsletter_app WITH PASSWORD %%L', '%s');
-            END IF;
-        END $inner$;
-        GRANT CONNECT ON DATABASE newsletter TO newsletter_app;
-        GRANT USAGE ON SCHEMA public TO newsletter_app;
-        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO newsletter_app;
-        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO newsletter_app;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA public 
-            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO newsletter_app;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA public 
-            GRANT USAGE, SELECT ON SEQUENCES TO newsletter_app;
-    `, appDBPassword)
-	return err
 }
 
 func runGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverWithContext) {
