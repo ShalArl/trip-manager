@@ -72,7 +72,7 @@ resource "google_project_iam_member" "external_secrets_secretmanager" {
 
 resource "google_service_account_iam_member" "workload_identity" {
   for_each = toset([
-    "auth", "social", "users", "trips", "newsletter", "otel-collector"
+    "auth", "social", "users", "trips", "newsletter", "otel-collector", "feed"
   ])
   member             = "serviceAccount:${var.project_id}.svc.id.goog[trip-manager-prod/${each.value}]"
   role               = "roles/iam.workloadIdentityUser"

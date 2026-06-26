@@ -36,7 +36,7 @@ env:
 externalSecrets:
   enabled: true
   secrets:
-    - secretKey: MIGRATION_URL
+    - secretKey: MIGRATION_DB_URL
       remoteKey: users-migration-url
     - secretKey: DATABASE_URL
       remoteKey: users-database-url
