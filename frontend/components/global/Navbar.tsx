@@ -8,7 +8,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {Building2, LogOut, Mail, Settings, TrendingUp} from "lucide-react";
+import {Building2, LogOut, Mail, Megaphone, Settings, TrendingUp} from "lucide-react";
 import {useRouter} from "next/navigation";
 import {useUserContext} from "@/lib/context/UserContext";
 import {UserAvatar} from "@/components/global/UserAvatar";
@@ -42,7 +42,7 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                 <div className="flex items-center gap-6">
                     <div
                         className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => router.push("/")}
+                        onClick={() => router.push(displayUser ? "/trips" : "/")}
                     >
                         {branding?.logoUrl ? (
                             <Image
@@ -162,6 +162,15 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                                         </button>
                                     ) : null}
                                 </>
+                            )}
+                            {displayUser && role === "advertiser" && (
+                                <button
+                                    onClick={() => router.push("/advertiser")}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                    <Megaphone className="h-4 w-4" />
+                                    <span className="hidden sm:block">Insights</span>
+                                </button>
                             )}
                         </>
                     ) : (

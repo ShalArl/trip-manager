@@ -93,6 +93,12 @@ func main() {
 
 	svc := service.NewService(repo, fbClient)
 
+	provisioner := tenant.NewGitHubProvisioner(
+		cfg.GitHubToken,
+		cfg.GitHubRepo,
+		cfg.GitHubBranch,
+	)
+
 	// Middleware
 	requireAuth := authclient.RequireAuth(authClient)
 
@@ -126,7 +132,7 @@ func main() {
 	mux.HandleFunc("GET /tenants/by-slug/{slug}", tenant.GetTenantBySlugHandler(tenantRepo))
 	mux.HandleFunc("GET /tenants/me/branding", requireAuth(tenant.GetBrandingHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/branding", requireAuth(tenant.UpdateBrandingHandler(tenantRepo)))
-	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo, provisioner)))
 	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, metricsClient)))
 	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))

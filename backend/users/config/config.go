@@ -18,6 +18,9 @@ type Config struct {
 	DatabaseURL              string   `envconfig:"DATABASE_URL"`
 	MigrationDBURL           string   `envconfig:"MIGRATION_DB_URL"`
 	AppDBPassword            string   `envconfig:"APP_DB_PASSWORD"`
+	GitHubToken              string   `envconfig:"GITHUB_TOKEN" default:""`
+	GitHubRepo               string   `envconfig:"GITHUB_REPO" default:""`
+	GitHubBranch             string   `envconfig:"GITHUB_BRANCH" default:""`
 }
 
 func Load() (*Config, error) {

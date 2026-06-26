@@ -32,6 +32,12 @@ env:
     value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
   - name: GCP_PROJECT_ID
     value: "project-32c60644-299b-4b05-8cf"
+  - name: GITHUB_TOKEN
+    value: ""
+  - name: GITHUB_REPO
+    value: "ShalArl/trip-manager"
+  - name: GITHUB_BRANCH
+    value: "gitops-prod"
 
 externalSecrets:
   enabled: true
