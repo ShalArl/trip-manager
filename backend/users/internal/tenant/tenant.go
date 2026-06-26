@@ -21,15 +21,15 @@ var (
 )
 
 type Tenant struct {
-	ID        string
-	Name      string
-	Slug      string
-	Tier      string
-	Status    string
-	Branding  map[string]interface{}
-	Settings  map[string]interface{}
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Slug      string                 `json:"slug"`
+	Tier      string                 `json:"tier"`
+	Status    string                 `json:"status"`
+	Branding  map[string]interface{} `json:"branding"`
+	Settings  map[string]interface{} `json:"settings"`
+	CreatedAt time.Time              `json:"createdAt"`
+	UpdatedAt time.Time              `json:"updatedAt"`
 }
 
 type tenantRecord struct {
