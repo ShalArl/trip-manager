@@ -42,6 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_location_images_location_id ON location_images (l
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_images ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE locations FORCE ROW LEVEL SECURITY;
+ALTER TABLE location_images FORCE ROW LEVEL SECURITY;
+
 DO $$ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_policies

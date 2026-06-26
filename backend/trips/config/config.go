@@ -6,7 +6,6 @@ import (
 
 type Config struct {
 	Port                  string   `envconfig:"PORT" default:"8002"`
-	DatabaseURL           string   `envconfig:"DATABASE_URL"`
 	AuthServiceURL        string   `envconfig:"AUTH_SERVICE_URL"`
 	UsersServiceURL       string   `envconfig:"USERS_SERVICE_URL"`
 	GCPProjectID          string   `envconfig:"GCP_PROJECT_ID"`
@@ -16,6 +15,9 @@ type Config struct {
 	OTELCollectorEndpoint string   `envconfig:"OTEL_COLLECTOR_ENDPOINT" default:""`
 	S3Endpoint            string   `envconfig:"S3_ENDPOINT"`
 	S3Bucket              string   `envconfig:"S3_BUCKET"`
+	DatabaseURL           string   `envconfig:"DATABASE_URL"`
+	MigrationDBURL        string   `envconfig:"MIGRATION_DB_URL"`
+	AppDBPassword         string   `envconfig:"APP_DB_PASSWORD"`
 }
 
 func Load() (*Config, error) {

@@ -3,6 +3,7 @@ package tenantdb
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,6 +25,7 @@ func GetTenantID(ctx context.Context) string {
 
 func WithTenant(ctx context.Context, db *sqlx.DB, fn func(*sqlx.Tx) error) error {
 	tenantID := GetTenantID(ctx)
+	log.Printf("[tenantdb] WithTenant: setting tenant_id=%s", tenantID) // ← temporär
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)

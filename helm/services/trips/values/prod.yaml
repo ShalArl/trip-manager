@@ -22,8 +22,12 @@ hpa:
 externalSecrets:
   enabled: true
   secrets:
+    - secretKey: MIGRATION_URL
+      remoteKey: trips-migration-url
     - secretKey: DATABASE_URL
       remoteKey: trips-database-url
+    - secretKey: APP_DB_PASSWORD
+      remoteKey: trips-app-database-password
 
 envFrom:
   - secretRef:
