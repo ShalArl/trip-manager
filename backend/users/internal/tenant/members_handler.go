@@ -18,7 +18,16 @@ type MemberResponse struct {
 
 func ListMembersHandler(repo repository.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		role := authclient.GetUserRole(r)
 		tenantID := authclient.GetTenantID(r)
+
+		// Platform-Admin kann tenantId als Query-Parameter übergeben
+		if role == "platform_admin" {
+			if qTenantID := r.URL.Query().Get("tenantId"); qTenantID != "" {
+				tenantID = qTenantID
+			}
+		}
+
 		if tenantID == "default" {
 			respondError(w, http.StatusNotFound, "no tenant found")
 			return
