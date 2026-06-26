@@ -1,6 +1,7 @@
 package tenant
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -227,7 +228,7 @@ type UpgradeTierRequest struct {
 	Tier string `json:"tier"`
 }
 
-func UpgradeTierHandler(repo Repository) http.HandlerFunc {
+func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		if tenantID == "" || tenantID == "default" {
@@ -247,8 +248,8 @@ func UpgradeTierHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
-		if req.Tier != "standard" && req.Tier != "enterprise" {
-			respondError(w, http.StatusBadRequest, "tier must be standard or enterprise")
+		if req.Tier != "free" && req.Tier != "standard" && req.Tier != "enterprise" {
+			respondError(w, http.StatusBadRequest, "tier must be free, standard or enterprise")
 			return
 		}
 
@@ -259,11 +260,38 @@ func UpgradeTierHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
+		previousTier := tenant.Tier
 		tenant.Tier = req.Tier
 		updated, err := repo.Update(ctx, tenant)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		// Enterprise Provisioning / Deprovisioning
+		if provisioner != nil {
+			if req.Tier == "enterprise" && previousTier != "enterprise" {
+				dbPassword := generateDBPassword()
+				go func() {
+					if err := provisioner.ProvisionEnterpriseTenant(
+						context.Background(),
+						tenant.Slug,
+						tenant.ID,
+						dbPassword,
+					); err != nil {
+						log.Printf("enterprise provisioning failed for %s: %v", tenant.Slug, err)
+					}
+				}()
+			} else if req.Tier != "enterprise" && previousTier == "enterprise" {
+				go func() {
+					if err := provisioner.DeprovisionEnterpriseTenant(
+						context.Background(),
+						tenant.Slug,
+					); err != nil {
+						log.Printf("enterprise deprovisioning failed for %s: %v", tenant.Slug, err)
+					}
+				}()
+			}
 		}
 
 		respondJSON(w, http.StatusOK, RegisterResponse{

@@ -6,7 +6,7 @@ import {X} from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-async function getAuthHeaders(): Promise<HeadersInit> {
+async function getAuthHeaders(): Promise<Record<string, string>> {
     const {firebaseAuth} = await import("@/lib/api/firebase");
     const user = firebaseAuth.currentUser;
     if (!user) return {"Content-Type": "application/json"};
@@ -144,15 +144,23 @@ export default function TenantSettings() {
 
             {tenant ? (
                 <div className="space-y-4">
+                    {/* Name */}
                     <div className="flex justify-between py-3 border-b border-zinc-100 dark:border-zinc-800">
                         <span className="text-sm text-zinc-500">Name</span>
                         <span className="text-sm font-medium text-zinc-900 dark:text-white">{tenant.name}</span>
                     </div>
 
+                    {/* Plan */}
                     <div className="flex justify-between items-center py-3 border-b border-zinc-100 dark:border-zinc-800">
                         <span className="text-sm text-zinc-500">Plan</span>
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium capitalize text-[var(--brand-primary)]">{tenant.tier}</span>
+                            <span className={`text-sm font-medium capitalize ${
+                                tenant.tier === "enterprise" ? "text-purple-600" :
+                                    tenant.tier === "standard" ? "text-[var(--brand-primary)]" : "text-zinc-500"
+                            }`}>
+                                {tenant.tier}
+                                {tenant.tier === "enterprise" && " 🏆"}
+                            </span>
                             {isOwner && tenant.tier === "free" && (
                                 <button
                                     onClick={() => setShowUpgradeModal(true)}
@@ -161,39 +169,60 @@ export default function TenantSettings() {
                                     Upgrade
                                 </button>
                             )}
-                            {isOwner && tenant.tier !== "free" && (
+                            {isOwner && tenant.tier === "standard" && (
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setShowUpgradeModal(true)}
+                                        className="text-xs px-2 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                                    >
+                                        → Enterprise
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpgrade("free")}
+                                        disabled={upgrading}
+                                        className="text-xs px-2 py-1 border border-zinc-300 dark:border-zinc-600 text-zinc-500 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50"
+                                    >
+                                        {upgrading ? "..." : "↓ Free"}
+                                    </button>
+                                </div>
+                            )}
+                            {isOwner && tenant.tier === "enterprise" && (
                                 <button
-                                    onClick={() => handleUpgrade("free")}
+                                    onClick={() => handleUpgrade("standard")}
                                     disabled={upgrading}
                                     className="text-xs px-2 py-1 border border-zinc-300 dark:border-zinc-600 text-zinc-500 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50"
                                 >
-                                    {upgrading ? "..." : "Downgrade auf Free"}
+                                    {upgrading ? "..." : "↓ Standard"}
                                 </button>
                             )}
                         </div>
                     </div>
 
+                    {/* Enterprise Info */}
+                    {tenant.tier === "enterprise" && (
+                        <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-lg p-4">
+                            <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                                🏆 Enterprise Plan aktiv
+                            </p>
+                            <p className="text-xs text-purple-600 dark:text-purple-400">
+                                Deine Daten laufen in einer vollständig isolierten Umgebung mit dedizierter Datenbank.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Rolle */}
                     <div className="flex justify-between py-3 border-b border-zinc-100 dark:border-zinc-800">
                         <span className="text-sm text-zinc-500">Deine Rolle</span>
                         <span className="text-sm font-medium text-zinc-900 dark:text-white">{role}</span>
                     </div>
+
+                    {/* Tenant ID */}
                     <div className="flex justify-between py-3 border-b border-zinc-100 dark:border-zinc-800">
                         <span className="text-sm text-zinc-500">Mandant-ID</span>
                         <span className="text-xs font-mono text-zinc-500">{tenantId}</span>
                     </div>
 
-                    {/* Mitarbeiter */}
-                    {isOwner && (
-                        <div className="pt-4">
-                            <p className="text-sm text-zinc-500 mb-3">Mitarbeiter einladen (coming soon)</p>
-                            <button disabled
-                                    className="px-4 py-2 text-sm bg-sky-100 text-[var(--brand-primary)] rounded-lg opacity-50 cursor-not-allowed">
-                                Einladung senden
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Settings – nur Standard+, nur Owner/Platform-Admin */}
+                    {/* Settings */}
                     {isOwner && tenant.tier !== "free" && (
                         <form onSubmit={handleSaveSettings}
                               className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
@@ -202,32 +231,41 @@ export default function TenantSettings() {
                                 <label className="block text-xs text-zinc-500 mb-1">
                                     Maximale gleichzeitig aktive Reisen pro Mitarbeiter
                                 </label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={settings.maxActiveTrips}
-                                    onChange={(e) =>
-                                        setSettings({maxActiveTrips: Math.max(0, parseInt(e.target.value, 10) || 0)})
-                                    }
-                                    className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
-                                />
-                                <p className="text-xs text-zinc-400 mt-1">
-                                    0 bedeutet unbegrenzt.
-                                </p>
+                                {tenant.tier === "enterprise" ? (
+                                    <div className="px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-500">
+                                        Unbegrenzt (Enterprise)
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={settings.maxActiveTrips}
+                                            onChange={(e) =>
+                                                setSettings({maxActiveTrips: Math.max(0, parseInt(e.target.value, 10) || 0)})
+                                            }
+                                            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
+                                        />
+                                        <p className="text-xs text-zinc-400 mt-1">0 bedeutet unbegrenzt.</p>
+                                    </>
+                                )}
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={savingSettings}
-                                    className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-dark)] disabled:opacity-50"
-                                >
-                                    {savingSettings ? "Speichern..." : "Speichern"}
-                                </button>
-                                {settingsMsg && <span className="text-sm text-green-600">{settingsMsg}</span>}
-                            </div>
+                            {tenant.tier !== "enterprise" && (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={savingSettings}
+                                        className="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-dark)] disabled:opacity-50"
+                                    >
+                                        {savingSettings ? "Speichern..." : "Speichern"}
+                                    </button>
+                                    {settingsMsg && <span className="text-sm text-green-600">{settingsMsg}</span>}
+                                </div>
+                            )}
                         </form>
                     )}
 
+                    {/* Löschen */}
                     {isOwner && (
                         <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                             {!showDeleteConfirm ? (
@@ -262,7 +300,7 @@ export default function TenantSettings() {
                         </div>
                     )}
 
-                    {/* Branding – nur Standard+ */}
+                    {/* Branding */}
                     {(isOwner || isAdmin) && tenant.tier !== "free" && (
                         <form onSubmit={handleSaveBranding}
                               className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
@@ -320,12 +358,7 @@ export default function TenantSettings() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setBranding({
-                                            logoUrl: "",
-                                            primaryColor: "#0284c7",
-                                            companyName: "",
-                                            customDomain: ""
-                                        });
+                                        setBranding({logoUrl: "", primaryColor: "#0284c7", companyName: "", customDomain: ""});
                                         setBrandingMsg("Zurückgesetzt – bitte speichern um zu bestätigen");
                                     }}
                                     className="px-4 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -337,44 +370,42 @@ export default function TenantSettings() {
                         </form>
                     )}
 
+                    {/* Nutzung */}
                     {(isOwner || isAdmin) && tenant.tier !== "free" && usage && (
                         <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
                             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Nutzung & Kosten</h3>
-
                             <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 space-y-3">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-500">API Calls gesamt</span>
                                     <span className="font-medium text-zinc-900 dark:text-white">
-                                        {usage.apiCalls.toLocaleString("de-DE")}
+                                        {(usage.apiCalls ?? 0).toLocaleString("de-DE")}
                                     </span>
                                 </div>
-
                                 {usage.breakdown?.map((b) => (
                                     <div key={b.service} className="flex justify-between text-xs">
                                         <span className="text-zinc-400">{b.service}</span>
-                                        <span className="text-zinc-500">{b.calls.toLocaleString("de-DE")} calls</span>
+                                        <span className="text-zinc-500">{(b.calls ?? 0).toLocaleString("de-DE")} calls</span>
                                     </div>
                                 ))}
                             </div>
-
                             <div className="bg-sky-50 dark:bg-sky-950 rounded-lg p-4 space-y-2">
                                 <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Aktuelle Abrechnung</h4>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-500">Basispreis</span>
                                     <span className="text-zinc-900 dark:text-white">
-                                        {usage.pricing.basePrice.toFixed(2)} {usage.pricing.currency}
+                                        {(usage.pricing?.basePrice ?? 0).toFixed(2)} {usage.pricing?.currency}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-500">API Calls (über 10.000)</span>
                                     <span className="text-zinc-900 dark:text-white">
-                                        {usage.pricing.apiCallCost.toFixed(2)} {usage.pricing.currency}
+                                        {(usage.pricing?.apiCallCost ?? 0).toFixed(2)} {usage.pricing?.currency}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm font-semibold border-t border-sky-100 dark:border-sky-900 pt-2 mt-2">
                                     <span className="text-zinc-900 dark:text-white">Gesamt</span>
                                     <span className="text-sky-600">
-                                        {usage.pricing.totalCost.toFixed(2)} {usage.pricing.currency}
+                                        {(usage.pricing?.totalCost ?? 0).toFixed(2)} {usage.pricing?.currency}
                                     </span>
                                 </div>
                             </div>
@@ -396,11 +427,11 @@ export default function TenantSettings() {
                             </button>
                         </div>
                         <p className="text-sm text-zinc-500 mb-6">
-                            Wähle einen Plan. Das Upgrade wird in einer echten Umgebung über ein Zahlungssystem
-                            abgewickelt.
+                            Wähle einen Plan. Das Upgrade wird in einer echten Umgebung über ein Zahlungssystem abgewickelt.
                         </p>
                         <div className="space-y-3">
-                            <div className="border-2 border-[var(--brand-primary)] rounded-lg p-4">
+                            {/* Standard */}
+                            <div className={`border-2 rounded-lg p-4 ${tenant?.tier === "standard" ? "border-zinc-200 opacity-50" : "border-[var(--brand-primary)]"}`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="font-semibold text-zinc-900 dark:text-white">Standard</span>
                                     <span className="text-[var(--brand-primary)] font-medium">€29 / Monat</span>
@@ -413,10 +444,37 @@ export default function TenantSettings() {
                                 </ul>
                                 <button
                                     onClick={() => handleUpgrade("standard")}
-                                    disabled={upgrading}
+                                    disabled={upgrading || tenant?.tier === "standard"}
                                     className="w-full py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-dark)] disabled:opacity-50"
                                 >
-                                    {upgrading ? "Wird verarbeitet..." : "Auf Standard upgraden (Demo)"}
+                                    {tenant?.tier === "standard" ? "Aktueller Plan" : upgrading ? "..." : "Auf Standard upgraden (Demo)"}
+                                </button>
+                            </div>
+
+                            {/* Enterprise */}
+                            <div className={`border-2 rounded-lg p-4 relative ${tenant?.tier === "enterprise" ? "border-zinc-200 opacity-50" : "border-purple-500"}`}>
+                                <div className="absolute -top-3 left-4">
+                                    <span className="bg-purple-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                                        Premium
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="font-semibold text-zinc-900 dark:text-white">Enterprise</span>
+                                    <span className="text-purple-600 font-medium">€99 / Monat</span>
+                                </div>
+                                <ul className="text-xs text-zinc-500 space-y-1 mb-3">
+                                    <li>✓ Alles aus Standard</li>
+                                    <li>✓ Dedizierte Datenbank</li>
+                                    <li>✓ Vollständige Datenisolierung</li>
+                                    <li>✓ SLA 99.9% Uptime</li>
+                                    <li>✓ Dedicated Support</li>
+                                </ul>
+                                <button
+                                    onClick={() => handleUpgrade("enterprise")}
+                                    disabled={upgrading || tenant?.tier === "enterprise"}
+                                    className="w-full py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                                >
+                                    {tenant?.tier === "enterprise" ? "Aktueller Plan" : upgrading ? "..." : "Auf Enterprise upgraden (Demo)"}
                                 </button>
                             </div>
                         </div>

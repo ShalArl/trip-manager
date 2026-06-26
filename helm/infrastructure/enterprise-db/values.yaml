@@ -1,0 +1,24 @@
+tenantSlug: ""
+tenantId: ""
+
+image:
+  repository: postgres
+  tag: "16-alpine"
+
+postgres:
+  db: trips
+  user: trips_enterprise
+  password: ""
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: "standard-rwo"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
