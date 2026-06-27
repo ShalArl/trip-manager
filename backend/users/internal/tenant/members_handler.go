@@ -1,10 +1,12 @@
 package tenant
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 )
@@ -51,7 +53,7 @@ func ListMembersHandler(repo repository.Repository) http.HandlerFunc {
 	}
 }
 
-func RemoveMemberHandler(repo repository.Repository) http.HandlerFunc {
+func RemoveMemberHandler(repo repository.Repository, firebaseAuth *firebaseclient.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		role := authclient.GetUserRole(r)
@@ -65,10 +67,27 @@ func RemoveMemberHandler(repo repository.Repository) http.HandlerFunc {
 		}
 		userID := r.PathValue("userId")
 		ctx := tenantdb.WithTenantID(r.Context(), tenantID)
+
+		// User vor dem Entfernen laden um FirebaseUID zu haben
+		user, err := repo.GetByID(ctx, userID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "user not found")
+			return
+		}
+
 		if err := repo.RemoveFromTenant(ctx, userID); err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// Firebase Claims zurücksetzen
+		if firebaseAuth != nil {
+			go firebaseAuth.SetCustomClaims(context.Background(), user.FirebaseUID, map[string]interface{}{
+				"tenant_id": "default",
+				"role":      "tenant_member",
+			})
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

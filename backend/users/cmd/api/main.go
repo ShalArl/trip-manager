@@ -144,7 +144,7 @@ func main() {
 	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
 	mux.HandleFunc("GET /tenants/me/members", requireAuth(tenant.ListMembersHandler(repo)))
-	mux.HandleFunc("DELETE /tenants/me/members/{userId}", requireAuth(tenant.RemoveMemberHandler(repo)))
+	mux.HandleFunc("DELETE /tenants/me/members/{userId}", requireAuth(tenant.RemoveMemberHandler(repo, fbClient)))
 	mux.HandleFunc("GET /tenants/me/invitations", requireAuth(tenant.ListInvitationsHandler(invRepo)))
 	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl, emailSvc, tenantRepo)))
 	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))

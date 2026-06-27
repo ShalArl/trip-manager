@@ -22,6 +22,12 @@ func AcceptInvitationHandler(invRepo InvitationRepository, userRepo repository.R
 			return
 		}
 
+		userEmail, _ := authclient.GetUserEmail(r)
+		if inv.Email != "" && userEmail != inv.Email {
+			respondError(w, http.StatusForbidden, "this invitation was sent to a different email address")
+			return
+		}
+
 		firebaseUID, ok := authclient.GetUserID(r)
 		if !ok {
 			respondError(w, http.StatusUnauthorized, "unauthorized")
