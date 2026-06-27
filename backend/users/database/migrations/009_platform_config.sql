@@ -13,9 +13,17 @@ ON CONFLICT (key) DO NOTHING;
 
 ALTER TABLE platform_config ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY platform_config_read ON platform_config
-    USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'platform_config' AND policyname = 'platform_config_read') THEN
+        CREATE POLICY platform_config_read ON platform_config
+            USING (true);
+    END IF;
+END $$;
 
-CREATE POLICY platform_config_write ON platform_config
-    FOR ALL
-    WITH CHECK (current_setting('app.tenant_id', true) IN ('default', ''));
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'platform_config' AND policyname = 'platform_config_write') THEN
+        CREATE POLICY platform_config_write ON platform_config
+            FOR ALL
+            WITH CHECK (current_setting('app.tenant_id', true) IN ('default', ''));
+    END IF;
+END $$;
