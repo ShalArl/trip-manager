@@ -200,3 +200,9 @@ resource "google_project_iam_member" "users_monitoring" {
   role    = "roles/monitoring.viewer"
   member  = "serviceAccount:${google_service_account.services["users"].email}"
 }
+
+resource "google_project_iam_member" "users_secret_admin" {
+  project = var.project_id
+  role    = "roles/secretmanager.admin"
+  member  = "serviceAccount:${google_service_account.services["users"].email}"
+}

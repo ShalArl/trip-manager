@@ -51,9 +51,15 @@ func (c *GCMMetricsClient) QueryAPICallsByService(ctx context.Context, tenantID 
 			return nil, fmt.Errorf("failed to query metrics: %w", err)
 		}
 		svc := ts.Metric.Labels["service"]
+
+		var lastValue int64
 		for _, point := range ts.Points {
-			services[svc] += point.Value.GetInt64Value()
+			v := point.Value.GetInt64Value()
+			if v > lastValue {
+				lastValue = v
+			}
 		}
+		services[svc] += lastValue
 	}
 	return services, nil
 }
