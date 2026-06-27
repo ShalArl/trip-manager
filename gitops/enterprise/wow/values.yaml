@@ -1,0 +1,10 @@
+tenantSlug: wow
+tenantId: t-9c4c223a
+postgres:
+  db: trips
+  user: trips_enterprise
+  password: ent-1782596093118984530
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: standard-rwo
