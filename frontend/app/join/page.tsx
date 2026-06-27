@@ -48,6 +48,12 @@ function JoinContent() {
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    if (data.email && user.email !== data.email) {
+                        setErrorMsg(`Diese Einladung ist für ${data.email} – bitte melde dich mit dieser Email an.`);
+                        setStatus("error");
+                        return;
+                    }
+                    
                     setTenantName(data.tenantId);
                     setStatus("success");
                     // Token refreshen damit neue Claims im JWT landen
