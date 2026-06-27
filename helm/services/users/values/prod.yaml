@@ -38,6 +38,8 @@ env:
     value: "ShalArl/trip-manager"
   - name: GITHUB_BRANCH
     value: "gitops-prod"
+  - name: BASE_URL
+    value: "https://www.neatnode.xyz"
 
 externalSecrets:
   enabled: true
