@@ -98,6 +98,7 @@ func main() {
 		cfg.GitHubToken,
 		cfg.GitHubRepo,
 		cfg.GitHubBranch,
+		cfg.GCPProjectID,
 	)
 
 	// Middleware
