@@ -64,3 +64,17 @@ DO $$ BEGIN
             USING (current_setting('app.tenant_id', true) IN ('default', ''));
     END IF;
 END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'tenant_create') THEN
+        CREATE POLICY tenant_create ON tenants FOR INSERT WITH CHECK (true);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'tenant_isolation_tenants') THEN
+        CREATE POLICY tenant_isolation_tenants ON tenants
+            USING (id = current_setting('app.tenant_id', true))
+            WITH CHECK (id = current_setting('app.tenant_id', true));
+    END IF;
+END $$;

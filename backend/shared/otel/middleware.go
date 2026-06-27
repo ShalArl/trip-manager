@@ -25,9 +25,12 @@ func MetricsMiddleware(metrics *ServiceMetrics, authClient *authclient.Client) f
 					}
 				}
 			}
+
 			next.ServeHTTP(w, r)
-			log.Printf("[MetricsMiddleware] tenant_id=%s path=%s", tenantID, r.URL.Path)
-			if metrics != nil {
+
+			// Nur echte Tenant-Requests zählen – kein default, kein unauthenticated
+			if metrics != nil && tenantID != "default" && authHeader != "" {
+				log.Printf("[MetricsMiddleware] tenant_id=%s path=%s", tenantID, r.URL.Path)
 				metrics.RecordAPICall(r.Context(), tenantID, r.URL.Path, r.Method)
 			}
 		})

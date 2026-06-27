@@ -28,3 +28,7 @@ func (c *PrometheusMetricsClient) QueryAPICallsByService(ctx context.Context, te
 	}
 	return services, nil
 }
+
+func (c *PrometheusMetricsClient) QueryAPICallsTimeSeries(ctx context.Context, tenantID string, days int) ([]DailyAPICall, error) {
+	return nil, fmt.Errorf("not implemented")
+}

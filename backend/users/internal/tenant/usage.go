@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/users/internal/platform"
 )
 
 type UsageResponse struct {
@@ -33,7 +34,7 @@ type PricingInfo struct {
 	Currency    string  `json:"currency"`
 }
 
-func GetUsageHandler(repo Repository, metricsClient MetricsClient) http.HandlerFunc {
+func GetUsageHandler(repo Repository, metricsClient MetricsClient, platformRepo platform.Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		if tenantID == "" || tenantID == "default" {
@@ -61,7 +62,18 @@ func GetUsageHandler(repo Repository, metricsClient MetricsClient) http.HandlerF
 			return
 		}
 
-		pricing := calculatePricing(tenant.Tier, totalCalls)
+		// Platform Config laden
+		platformCfg, err := platformRepo.GetConfig(r.Context())
+		if err != nil {
+			// Fallback auf defaults
+			platformCfg = &platform.PlatformConfig{
+				Free:       platform.PricingConfig{BasePrice: 0, FreeAPICalls: 0, PricePerCall: 0},
+				Standard:   platform.PricingConfig{BasePrice: 29, FreeAPICalls: 10000, PricePerCall: 0.001},
+				Enterprise: platform.PricingConfig{BasePrice: 99, FreeAPICalls: 100000, PricePerCall: 0.0005},
+			}
+		}
+
+		pricing := calculatePricing(tenant.Tier, totalCalls, *platformCfg)
 		respondJSON(w, http.StatusOK, UsageResponse{
 			TenantID:  tenantID,
 			Period:    time.Now().Format("2006-01"),
@@ -69,6 +81,34 @@ func GetUsageHandler(repo Repository, metricsClient MetricsClient) http.HandlerF
 			Breakdown: breakdown,
 			Pricing:   pricing,
 		})
+	}
+}
+
+func GetUsageTimeSeriesHandler(metricsClient MetricsClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tenantID := authclient.GetTenantID(r)
+		role := authclient.GetUserRole(r)
+
+		// Platform-Admin kann tenantId als Query-Parameter übergeben
+		if role == "platform_admin" {
+			if qTenantID := r.URL.Query().Get("tenantId"); qTenantID != "" {
+				tenantID = qTenantID
+			}
+		}
+
+		if tenantID == "" || tenantID == "default" {
+			respondError(w, http.StatusNotFound, "no tenant found")
+			return
+		}
+
+		days := 30
+		data, err := metricsClient.QueryAPICallsTimeSeries(r.Context(), tenantID, days)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to query time series: %v", err))
+			return
+		}
+
+		respondJSON(w, http.StatusOK, data)
 	}
 }
 
@@ -116,23 +156,28 @@ func queryPrometheus(baseURL, query string) ([]prometheusResult, error) {
 	return out, nil
 }
 
-func calculatePricing(tier string, apiCalls int64) PricingInfo {
-	const (
-		basePrice      = 9.0
-		freeCallsLimit = 10000
-		pricePerCall   = 0.001
-	)
+// usage.go - calculatePricing anpassen
+func calculatePricing(tier string, apiCalls int64, cfg platform.PlatformConfig) PricingInfo {
+	var pricingTier platform.PricingConfig
+	switch tier {
+	case "standard":
+		pricingTier = cfg.Standard
+	case "enterprise":
+		pricingTier = cfg.Enterprise
+	default:
+		pricingTier = cfg.Free
+	}
 
 	var apiCallCost float64
-	if apiCalls > freeCallsLimit {
-		apiCallCost = float64(apiCalls-freeCallsLimit) * pricePerCall
+	if apiCalls > pricingTier.FreeAPICalls {
+		apiCallCost = float64(apiCalls-pricingTier.FreeAPICalls) * pricingTier.PricePerCall
 	}
 
 	return PricingInfo{
 		Tier:        tier,
-		BasePrice:   basePrice,
+		BasePrice:   pricingTier.BasePrice,
 		APICallCost: apiCallCost,
-		TotalCost:   basePrice + apiCallCost,
+		TotalCost:   pricingTier.BasePrice + apiCallCost,
 		Currency:    "EUR",
 	}
 }

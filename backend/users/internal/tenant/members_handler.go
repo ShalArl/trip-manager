@@ -78,7 +78,7 @@ type CreateInvitationRequest struct {
 	Role  string `json:"role"`
 }
 
-func CreateInvitationHandler(invRepo InvitationRepository, baseURL string) http.HandlerFunc {
+func CreateInvitationHandler(invRepo InvitationRepository, baseURL string, emailSvc *EmailService, tenantRepo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		role := authclient.GetUserRole(r)
@@ -112,11 +112,21 @@ func CreateInvitationHandler(invRepo InvitationRepository, baseURL string) http.
 			return
 		}
 
+		inviteLink := baseURL + "/join?token=" + inv.Token
+
+		// Email senden
+		if emailSvc != nil {
+			tenant, err := tenantRepo.GetByID(ctx, tenantID)
+			if err == nil {
+				go emailSvc.SendInvitation(req.Email, tenant.Name, inviteLink, req.Role)
+			}
+		}
+
 		respondJSON(w, http.StatusCreated, map[string]interface{}{
 			"id":         inv.ID,
 			"email":      inv.Email,
 			"role":       inv.Role,
-			"inviteLink": baseURL + "/join?token=" + inv.Token,
+			"inviteLink": inviteLink,
 			"expiresAt":  inv.ExpiresAt,
 		})
 	}

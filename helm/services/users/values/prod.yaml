@@ -48,6 +48,8 @@ externalSecrets:
       remoteKey: users-database-url
     - secretKey: APP_DB_PASSWORD
       remoteKey: users-app-database-password
+    - secretKey: RESEND_API_KEY
+      remoteKey: resend-api-key
 
 envFrom:
   - secretRef:
