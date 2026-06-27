@@ -23,7 +23,7 @@ spec:
         app.kubernetes.io/name: users
         app.kubernetes.io/instance: users
       annotations:
-        checksum/config: a1ae4a1c19e06dfd43ad2e9ed5ae88317eee93cd65d6108896a95184107c5518
+        checksum/config: 0908bf31eef43b5519cda1f0a20cfcb6e61e266946dda21b6ab847984ed0b3c3
     spec:
       securityContext:
         runAsNonRoot: true
@@ -57,6 +57,8 @@ spec:
               value: ShalArl/trip-manager
             - name: GITHUB_BRANCH
               value: gitops-prod
+            - name: BASE_URL
+              value: https://www.neatnode.xyz
           envFrom: 
             - secretRef:
                 name: users-secrets
