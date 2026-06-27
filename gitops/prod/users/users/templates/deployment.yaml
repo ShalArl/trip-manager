@@ -23,7 +23,7 @@ spec:
         app.kubernetes.io/name: users
         app.kubernetes.io/instance: users
       annotations:
-        checksum/config: 0908bf31eef43b5519cda1f0a20cfcb6e61e266946dda21b6ab847984ed0b3c3
+        checksum/config: c569e9737a0ac56353bc4f2e8a9201ffee0f59725d433d5698523cc2358e2c0e
     spec:
       securityContext:
         runAsNonRoot: true
@@ -51,8 +51,6 @@ spec:
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
             - name: GCP_PROJECT_ID
               value: project-32c60644-299b-4b05-8cf
-            - name: GITHUB_TOKEN
-              value: ""
             - name: GITHUB_REPO
               value: ShalArl/trip-manager
             - name: GITHUB_BRANCH
