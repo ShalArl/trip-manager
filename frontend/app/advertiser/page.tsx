@@ -47,8 +47,39 @@ export default function AdvertiserDashboard() {
     const router = useRouter();
     const { user, isLoading } = useUserContext();
     const [insights, setInsights] = useState<TenantInsights[]>([]);
-    const [advertiser, setAdvertiser] = useState<{ name: string; tenants: string[] } | null>(null);
+    const [advertiser, setAdvertiser] = useState<{ id: string; name: string; tenants: string[] } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [contactModal, setContactModal] = useState<{ tenantId: string; tenantName: string } | null>(null);
+    const [contactMessage, setContactMessage] = useState("");
+    const [sending, setSending] = useState(false);
+    const [sentSuccess, setSentSuccess] = useState(false);
+
+    const handleContact = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!contactModal || !advertiser) return;
+        setSending(true);
+        try {
+            const headers = await getAuthHeaders();
+            const res = await fetch(
+                `${API_URL}/api/users/advertisers/${advertiser.id}/contact/${contactModal.tenantId}`,
+                {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ message: contactMessage }),
+                }
+            );
+            if (res.ok) {
+                setSentSuccess(true);
+                setTimeout(() => {
+                    setContactModal(null);
+                    setSentSuccess(false);
+                    setContactMessage("");
+                }, 2000);
+            }
+        } finally {
+            setSending(false);
+        }
+    };
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -59,7 +90,6 @@ export default function AdvertiserDashboard() {
     useEffect(() => {
         if (!user) return;
         getAuthHeaders().then(async (headers) => {
-            // Advertiser-Profil laden
             const adv = await getAdvertiserMe();
             if (!adv) {
                 router.push("/");
@@ -67,7 +97,6 @@ export default function AdvertiserDashboard() {
             }
             setAdvertiser(adv);
 
-            // Insights laden
             const res = await fetch(`${API_URL}/api/newsletter/insights`, { headers });
             if (res.ok) {
                 const data = await res.json();
@@ -109,9 +138,18 @@ export default function AdvertiserDashboard() {
                             <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
                                 Reisebüro: <span className="font-mono text-sm text-zinc-500">{insight.tenantId}</span>
                             </h2>
-                            <span className="text-xs text-zinc-400">
-                                Generiert: {new Date(insight.generatedAt).toLocaleDateString("de-DE")}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-zinc-400">
+                                    Generiert: {new Date(insight.generatedAt).toLocaleDateString("de-DE")}
+                                </span>
+                                <button
+                                    onClick={() => setContactModal({ tenantId: insight.tenantId, tenantName: insight.tenantId })}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                    <Megaphone className="h-3.5 w-3.5" />
+                                    Kontakt aufnehmen
+                                </button>
+                            </div>
                         </div>
 
                         {/* Engagement Stats */}
@@ -156,9 +194,7 @@ export default function AdvertiserDashboard() {
                             </div>
                             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                 {(insight.topDestinations ?? []).length === 0 ? (
-                                    <p className="px-6 py-6 text-sm text-zinc-500 text-center">
-                                        Noch keine Daten
-                                    </p>
+                                    <p className="px-6 py-6 text-sm text-zinc-500 text-center">Noch keine Daten</p>
                                 ) : insight.topDestinations.map((dest, j) => (
                                     <div key={j} className="flex items-center justify-between px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -168,18 +204,12 @@ export default function AdvertiserDashboard() {
                                                     : '🌍'}
                                             </span>
                                             <div>
-                                                <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                    {dest.country}
-                                                </p>
-                                                <p className="text-xs text-zinc-500">
-                                                    Ø {dest.avgLikes.toFixed(1)} Likes/Trip
-                                                </p>
+                                                <p className="text-sm font-medium text-zinc-900 dark:text-white">{dest.country}</p>
+                                                <p className="text-xs text-zinc-500">Ø {dest.avgLikes.toFixed(1)} Likes/Trip</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-bold text-zinc-900 dark:text-white">
-                                                {dest.tripCount}
-                                            </p>
+                                            <p className="text-sm font-bold text-zinc-900 dark:text-white">{dest.tripCount}</p>
                                             <p className="text-xs text-zinc-500">Trips</p>
                                         </div>
                                     </div>
@@ -204,6 +234,52 @@ export default function AdvertiserDashboard() {
                     </div>
                 ))}
             </div>
+
+            {/* Kontakt Modal */}
+            {contactModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-md shadow-xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Kontakt aufnehmen</h3>
+                            <button onClick={() => setContactModal(null)} className="text-zinc-400 hover:text-zinc-600">✕</button>
+                        </div>
+                        {sentSuccess ? (
+                            <div className="text-center py-6">
+                                <p className="text-green-600 font-medium">✓ Nachricht wurde gesendet!</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleContact} className="space-y-4">
+                                <p className="text-sm text-zinc-500">
+                                    Sende eine Kontaktanfrage an den Inhaber von <strong>{contactModal.tenantName}</strong>.
+                                </p>
+                                <textarea
+                                    value={contactMessage}
+                                    onChange={(e) => setContactMessage(e.target.value)}
+                                    placeholder="Deine Nachricht (optional)..."
+                                    rows={4}
+                                    className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] resize-none"
+                                />
+                                <div className="flex gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={sending}
+                                        className="flex-1 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-primary-dark)] disabled:opacity-50"
+                                    >
+                                        {sending ? "Wird gesendet..." : "Kontaktanfrage senden"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setContactModal(null)}
+                                        className="px-4 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                                    >
+                                        Abbrechen
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
