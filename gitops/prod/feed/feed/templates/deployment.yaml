@@ -22,7 +22,7 @@ spec:
         app.kubernetes.io/name: feed
         app.kubernetes.io/instance: feed
       annotations:
-        checksum/config: 0e6504628a81c4a2673d129d4a52ebdb51ff278fcd7ee56065d8c09da7cb140b
+        checksum/config: 2f43b9493feaba54dd8cf619bd907d0f4aecc4bd15f6ad6c838460d4176a8dec
     spec:
       securityContext:
         runAsNonRoot: true
@@ -41,7 +41,7 @@ spec:
             - name: AUTH_CLIENT_CONNECTION_STRING
               value: http://auth.trip-manager-prod.svc.cluster.local:8082
             - name: CORS_ALLOWED_ORIGINS
-              value: https://www.trip-manager.com,https://app.trip-manager.com
+              value: https://neatnode.xyz,https://www.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-prod.svc.cluster.local:4317
             - name: GCP_PROJECT_ID
