@@ -18,6 +18,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
 	advertiser "github.com/ShalArl/trip-manager/backend/users/internal/advertisers"
+	"github.com/ShalArl/trip-manager/backend/users/internal/platform"
 	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
@@ -114,6 +115,8 @@ func main() {
 		}
 	})
 
+	emailSvc := tenant.NewEmailService(cfg.ResendApiKey)
+
 	var metricsClient tenant.MetricsClient
 	if cfg.GCPProjectID != "" {
 		metricsClient = tenant.NewGCMMetricsClient(cfg.GCPProjectID)
@@ -121,6 +124,10 @@ func main() {
 		metricsClient = tenant.NewPrometheusMetricsClient(cfg.PrometheusURL)
 	}
 
+	// PLATFORM
+	platformRepo := platform.NewRepository(db)
+	mux.HandleFunc("GET /platform/config", requireAuth(platform.GetConfigHandler(platformRepo)))
+	mux.HandleFunc("PUT /platform/config", requireAuth(platform.UpdateConfigHandler(platformRepo)))
 	// USER
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
@@ -133,17 +140,18 @@ func main() {
 	mux.HandleFunc("GET /tenants/me/branding", requireAuth(tenant.GetBrandingHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/branding", requireAuth(tenant.UpdateBrandingHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo, provisioner)))
-	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, metricsClient)))
+	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, metricsClient, platformRepo)))
 	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
 	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
 	mux.HandleFunc("GET /tenants/me/members", requireAuth(tenant.ListMembersHandler(repo)))
 	mux.HandleFunc("DELETE /tenants/me/members/{userId}", requireAuth(tenant.RemoveMemberHandler(repo)))
 	mux.HandleFunc("GET /tenants/me/invitations", requireAuth(tenant.ListInvitationsHandler(invRepo)))
-	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl)))
+	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl, emailSvc, tenantRepo)))
 	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
 	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
 	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
 	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, svc)))
+	mux.HandleFunc("GET /tenants/me/usage/timeseries", requireAuth(tenant.GetUsageTimeSeriesHandler(metricsClient)))
 	// ADVERTISER
 	advRepo := advertiser.NewRepository(db)
 	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))

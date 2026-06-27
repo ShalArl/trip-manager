@@ -8,6 +8,7 @@ import (
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	monitoringpb "cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"google.golang.org/api/iterator"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -55,4 +56,62 @@ func (c *GCMMetricsClient) QueryAPICallsByService(ctx context.Context, tenantID 
 		}
 	}
 	return services, nil
+}
+
+type DailyAPICall struct {
+	Date  string `json:"date"`
+	Calls int64  `json:"calls"`
+}
+
+func (c *GCMMetricsClient) QueryAPICallsTimeSeries(ctx context.Context, tenantID string, days int) ([]DailyAPICall, error) {
+	client, err := monitoring.NewMetricClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create monitoring client: %w", err)
+	}
+	defer client.Close()
+
+	now := time.Now()
+	start := now.AddDate(0, 0, -days)
+
+	req := &monitoringpb.ListTimeSeriesRequest{
+		Name:   fmt.Sprintf("projects/%s", c.ProjectID),
+		Filter: fmt.Sprintf(`metric.type="custom.googleapis.com/trip_manager/api_calls_total" AND metric.labels.tenant_id="%s"`, tenantID),
+		Interval: &monitoringpb.TimeInterval{
+			StartTime: timestamppb.New(start),
+			EndTime:   timestamppb.New(now),
+		},
+		Aggregation: &monitoringpb.Aggregation{
+			AlignmentPeriod:    &durationpb.Duration{Seconds: 86400}, // 1 Tag
+			PerSeriesAligner:   monitoringpb.Aggregation_ALIGN_DELTA,
+			CrossSeriesReducer: monitoringpb.Aggregation_REDUCE_SUM,
+		},
+		View: monitoringpb.ListTimeSeriesRequest_FULL,
+	}
+
+	dailyMap := map[string]int64{}
+	it := client.ListTimeSeries(ctx, req)
+	for {
+		ts, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to query time series: %w", err)
+		}
+		for _, point := range ts.Points {
+			date := point.Interval.StartTime.AsTime().Format("2006-01-02")
+			dailyMap[date] += point.Value.GetInt64Value()
+		}
+	}
+
+	// Lücken mit 0 füllen
+	var result []DailyAPICall
+	for i := days; i >= 0; i-- {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+		result = append(result, DailyAPICall{
+			Date:  date,
+			Calls: dailyMap[date],
+		})
+	}
+	return result, nil
 }

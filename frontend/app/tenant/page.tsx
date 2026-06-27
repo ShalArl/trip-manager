@@ -7,6 +7,8 @@ import { useTenantContext } from "@/lib/context/TenantContext";
 import { LoadingSpinner } from "@/components/global/LoadingSpinner";
 import { Building2, Users, Mail, Palette, BarChart3 } from "lucide-react";
 import TenantSettings from "@/components/settings/TenantSettings";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -33,6 +35,15 @@ export default function TenantDashboardPage() {
     const [inviting, setInviting] = useState(false);
     const [inviteLink, setInviteLink] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [usage, setUsage] = useState<{
+        apiCalls: number;
+        breakdown: { service: string; calls: number }[];
+        pricing: { basePrice: number; apiCallCost: number; totalCost: number; currency: string };
+    } | null>(null);
+    const [timeSeries, setTimeSeries] = useState<{ date: string; calls: number }[]>([]);
+
+
+
 
     useEffect(() => {
         if (!isLoading && (!user || (!isAdmin && !isOwner))) {
@@ -50,6 +61,14 @@ export default function TenantDashboardPage() {
             fetch(`${API_URL}/api/tenants/me/invitations`, { headers })
                 .then((r) => r.json())
                 .then(setInvitations)
+                .catch(() => {});
+            fetch(`${API_URL}/api/tenants/me/usage`, { headers })
+                .then((r) => r.ok ? r.json() : null)
+                .then(setUsage)
+                .catch(() => {});
+            fetch(`${API_URL}/api/tenants/me/usage/timeseries`, { headers })
+                .then((r) => r.ok ? r.json() : [])
+                .then(setTimeSeries)
                 .catch(() => {});
         });
     }, [tenantId]);
@@ -302,8 +321,58 @@ export default function TenantDashboardPage() {
 
                         {/* Nutzung */}
                         {activeTab === "usage" && (
-                            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-                                <p className="text-sm text-zinc-500">Nutzungsdaten werden im Branding & Einstellungen Tab angezeigt.</p>
+                            <div className="space-y-6">
+                                {/* Chart */}
+                                <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
+                                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">
+                                        API Calls – letzte 30 Tage
+                                    </h3>
+                                    {timeSeries.length === 0 ? (
+                                        <p className="text-sm text-zinc-500 text-center py-8">Keine Daten verfügbar</p>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={timeSeries}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    tick={{ fontSize: 11, fill: "#71717a" }}
+                                                    tickFormatter={(v) => new Date(v).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+                                                />
+                                                <YAxis tick={{ fontSize: 11, fill: "#71717a" }} />
+                                                <Tooltip
+                                                    formatter={(value) => [Number(value).toLocaleString("de-DE"), "API Calls"]}
+                                                    labelFormatter={(label) => new Date(label).toLocaleDateString("de-DE")}
+                                                />
+                                                <Bar dataKey="calls" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+
+                                {/* Usage Summary */}
+                                {usage && (
+                                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-3">
+                                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Aktueller Monat</h3>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-zinc-500">API Calls gesamt</span>
+                                            <span className="font-medium">{(usage.apiCalls ?? 0).toLocaleString("de-DE")}</span>
+                                        </div>
+                                        {usage.breakdown?.map((b) => (
+                                            <div key={b.service} className="flex justify-between text-xs">
+                                                <span className="text-zinc-400">{b.service}</span>
+                                                <span className="text-zinc-500">{(b.calls ?? 0).toLocaleString("de-DE")} calls</span>
+                                            </div>
+                                        ))}
+                                        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                            <div className="flex justify-between text-sm font-semibold">
+                                                <span>Geschätzte Kosten</span>
+                                                <span className="text-[var(--brand-primary)]">
+                                                    {(usage.pricing?.totalCost ?? 0).toFixed(2)} {usage.pricing?.currency}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

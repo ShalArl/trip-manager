@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
     ...(process.env.NODE_ENV === 'production' && {
         outputFileTracingRoot: path.join(__dirname, "../"),
     }),
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: '**',
+            },
+        ],
+    },
 };
 
 export default nextConfig;
