@@ -36,6 +36,8 @@ externalSecrets:
       remoteKey: neo4j-username
     - secretKey: NEO4J_PASSWORD
       remoteKey: neo4j-password
+    - secretKey: RESEND_API_KEY
+      remoteKey: resend-api-key
 
 envFrom:
   - secretRef:

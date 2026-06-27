@@ -51,6 +51,7 @@ type Repository interface {
 	Update(ctx context.Context, t *Tenant) (*Tenant, error)
 	Delete(ctx context.Context, id string) error
 	ListAll(ctx context.Context) ([]*Tenant, error)
+	GetOwnerEmail(ctx context.Context, tenantID string) (string, error)
 }
 
 type repositoryImpl struct {
@@ -192,6 +193,21 @@ func (r *repositoryImpl) ListAll(ctx context.Context) ([]*Tenant, error) {
 		result = append(result, r.toDomain())
 	}
 	return result, nil
+}
+
+func (r *repositoryImpl) GetOwnerEmail(ctx context.Context, tenantID string) (string, error) {
+	var email string
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		return tx.QueryRowContext(ctx, `
+            SELECT email FROM users 
+            WHERE tenant_id = $1 AND role = 'tenant_owner'
+            LIMIT 1
+        `, tenantID).Scan(&email)
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to get owner email: %w", err)
+	}
+	return email, nil
 }
 
 func (rec *tenantRecord) toDomain() *Tenant {

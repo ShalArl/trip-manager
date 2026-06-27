@@ -8,6 +8,7 @@ require (
 	github.com/ShalArl/trip-manager/backend/shared/firebaseclient v0.0.0
 	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0
 	github.com/ShalArl/trip-manager/backend/shared/tenantdb v0.0.0
+	github.com/ShalArl/trip-manager/backend/shared/email v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -23,6 +24,7 @@ replace (
 	github.com/ShalArl/trip-manager/backend/shared/firebaseclient => ../shared/firebaseclient
 	github.com/ShalArl/trip-manager/backend/shared/middleware => ../shared/middleware
 	github.com/ShalArl/trip-manager/backend/shared/tenantdb => ../shared/tenantdb
+	github.com/ShalArl/trip-manager/backend/shared/email => ../shared/email
 )
 
 require (
