@@ -74,3 +74,39 @@ resource "google_certificate_manager_certificate_map_entry" "api" {
   hostname     = "api.${var.domain}"
 }
 
+# Resend related
+resource "google_dns_record_set" "resend_dkim" {
+  name         = "resend._domainkey.neatnode.xyz."
+  type         = "TXT"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = ["\"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCdhAAXtqNesK3awbDhBarUs3xTzVOP9iP2fjv+KsfMV/E8Jkz+YIDo6+xXVEJg+rMeU4ERNj29GyH9cQ0HzkuLQ3mc8NbIaNDo02FjWZI2n1LGsVLkhmOmwgqJCzVY/kBkmlfi1K2yFstT+29BPaCB07LhWqz3m7bmL7rKWUBWiQIDAQAB\""]
+}
+
+resource "google_dns_record_set" "resend_mx" {
+  name         = "send.neatnode.xyz."
+  type         = "MX"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = ["10 feedback-smtp.eu-west-1.amazonses.com."]
+}
+
+resource "google_dns_record_set" "resend_spf" {
+  name         = "send.neatnode.xyz."
+  type         = "TXT"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = ["\"v=spf1 include:amazonses.com ~all\""]
+}
+
+resource "google_dns_record_set" "resend_dmarc" {
+  name         = "_dmarc.neatnode.xyz."
+  type         = "TXT"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = ["\"v=DMARC1; p=none;\""]
+}
