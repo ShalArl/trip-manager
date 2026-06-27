@@ -5,6 +5,7 @@ go 1.25.8
 require (
 	github.com/ShalArl/trip-manager/backend/shared/authclient v0.0.0
 	github.com/ShalArl/trip-manager/backend/shared/middleware v0.0.0-20260602001039-6c776cc628c5
+	github.com/ShalArl/trip-manager/backend/shared/email v0.0.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.9
@@ -19,6 +20,7 @@ require (
 )
 
 replace (
+    github.com/ShalArl/trip-manager/backend/shared/email => ../shared/email
 	github.com/ShalArl/trip-manager/backend/shared/authclient => ../shared/authclient
 	github.com/ShalArl/trip-manager/backend/shared/tenantdb => ../shared/tenantdb
 )

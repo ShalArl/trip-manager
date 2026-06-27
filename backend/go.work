@@ -3,6 +3,7 @@ go 1.25.8
 use (
 	./auth
 	./shared/authclient
+	./shared/email
 	./shared/middleware
 	./shared/userclient
 	./shared/tenantdb

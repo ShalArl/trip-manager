@@ -11,6 +11,8 @@ COPY travel-info/go.mod travel-info/go.mod
 COPY travel-info/go.sum travel-info/go.sum
 COPY shared/authclient/go.mod shared/authclient/go.mod
 COPY shared/authclient/go.sum shared/authclient/go.sum
+COPY shared/email/go.mod shared/email/go.mod
+COPY shared/email/go.sum shared/email/go.sum
 COPY shared/middleware/go.mod shared/middleware/go.mod
 COPY shared/middleware/go.sum shared/middleware/go.sum
 COPY shared/userclient/go.mod shared/userclient/go.mod

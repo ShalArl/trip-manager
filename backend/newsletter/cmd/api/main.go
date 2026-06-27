@@ -17,6 +17,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/db"
 	"github.com/ShalArl/trip-manager/backend/newsletter/internal/newsletter"
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/email"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 
 	"github.com/jmoiron/sqlx"
@@ -44,6 +45,7 @@ type config struct {
 	Neo4jPassword        string `envconfig:"NEO4J_PASSWORD"`
 	CronSchedule         string `envconfig:"CRON_SCHEDULE" default:"0 0 * * *"`          // Standard: Täglich um Mitternacht
 	InsightsCronSchedule string `envconfig:"INSIGHTS_CRON_SCHEDULE" default:"0 0 * * *"` // siehe oben
+	ResendApiKey         string `envconfig:"RESEND_API_KEY" default:""`
 }
 
 func load() (*config, error) {
@@ -84,6 +86,10 @@ func main() {
 		log.Fatalf("migration failed: %v", err)
 	}
 	migrationDB.Close()
+
+	// 3. Einbindung Email Service
+
+	emailSvc := email.NewService(cfg.ResendApiKey)
 
 	// Normaler Betrieb mit App-User
 	newsletterDB, err := sqlx.Connect("postgres", cfg.DatabaseURL)
@@ -130,11 +136,11 @@ func main() {
 		log.Printf("newsletter-worker: cron scheduler started with schedule '%s'", cfg.CronSchedule)
 	}
 
-	go runInsightsGeneration(usersDB, newsletterDB, neo4jDriver) // Initial
+	go runInsightsGeneration(usersDB, newsletterDB, neo4jDriver, emailSvc) // Initial
 
 	_, err = c.AddFunc(cfg.InsightsCronSchedule, func() {
 		log.Println("insights: cron triggered...")
-		runInsightsGeneration(usersDB, newsletterDB, neo4jDriver)
+		runInsightsGeneration(usersDB, newsletterDB, neo4jDriver, emailSvc)
 	})
 
 	// ==========================================
@@ -270,7 +276,7 @@ func runGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverW
 	log.Println("newsletter-worker: generation complete")
 }
 
-func runInsightsGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverWithContext) {
+func runInsightsGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j.DriverWithContext, emailSvc *email.Service) {
 	ctx := context.Background()
 
 	// Alle Advertiser + ihre Tenants holen
@@ -311,5 +317,64 @@ func runInsightsGeneration(usersDB *sqlx.DB, newsletterDB *sqlx.DB, driver neo4j
 			continue
 		}
 	}
+	if emailSvc != nil {
+		sendInsightEmails(ctx, usersDB, newsletterDB, emailSvc)
+	}
 	log.Println("insights: generation complete")
+}
+
+func sendInsightEmails(ctx context.Context, usersDB *sqlx.DB, newsletterDB *sqlx.DB, emailSvc *email.Service) {
+	var advertisers []struct {
+		ID    string `db:"id"`
+		Email string `db:"email"`
+		Name  string `db:"name"`
+	}
+	if err := usersDB.SelectContext(ctx, &advertisers, `SELECT id, email, name FROM advertisers`); err != nil {
+		log.Printf("insights email: failed to fetch advertisers: %v", err)
+		return
+	}
+
+	for _, adv := range advertisers {
+		var insights []struct {
+			TenantID string          `db:"tenant_id"`
+			Content  json.RawMessage `db:"content"`
+		}
+		if err := newsletterDB.SelectContext(ctx, &insights,
+			`SELECT tenant_id, content FROM advertiser_insights WHERE advertiser_id = $1`, adv.ID); err != nil {
+			continue
+		}
+
+		var summaries []email.InsightSummary
+		for _, ins := range insights {
+			var data struct {
+				TopDestinations []struct {
+					Country string `json:"country"`
+				} `json:"topDestinations"`
+				Engagement struct {
+					TotalLikes int64 `json:"totalLikes"`
+				} `json:"engagement"`
+				SeasonalPattern struct {
+					PeakMonth string `json:"peakMonth"`
+				} `json:"seasonalPattern"`
+			}
+			if err := json.Unmarshal(ins.Content, &data); err != nil {
+				continue
+			}
+			topDest := ""
+			if len(data.TopDestinations) > 0 {
+				topDest = data.TopDestinations[0].Country
+			}
+			summaries = append(summaries, email.InsightSummary{
+				TenantID:       ins.TenantID,
+				TenantName:     ins.TenantID,
+				TopDestination: topDest,
+				TotalLikes:     data.Engagement.TotalLikes,
+				PeakMonth:      data.SeasonalPattern.PeakMonth,
+			})
+		}
+
+		if len(summaries) > 0 {
+			go emailSvc.SendInsightsReport(adv.Email, adv.Name, summaries)
+		}
+	}
 }

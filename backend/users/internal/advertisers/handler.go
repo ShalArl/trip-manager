@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"tenantdb"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 )
 
 func respondJSON(w http.ResponseWriter, status int, data any) {
@@ -163,5 +165,50 @@ func GetByIDHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 		respondJSON(w, http.StatusOK, adv)
+	}
+}
+
+func ContactTenantHandler(repo Repository, tenantRepo tenant.Repository, emailSvc *tenant.EmailService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		firebaseUID, ok := authclient.GetUserID(r)
+		if !ok {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		advertiserID := r.PathValue("id")
+		tenantID := r.PathValue("tenantId")
+
+		var req struct {
+			Message string `json:"message"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+
+		adv, err := repo.GetByID(r.Context(), advertiserID)
+		if err != nil || adv.FirebaseUID != firebaseUID {
+			respondError(w, http.StatusForbidden, "permission denied")
+			return
+		}
+
+		// Tenant-Owner Email holen
+		ctx := tenantdb.WithTenantID(r.Context(), tenantID)
+		tenantObj, err := tenantRepo.GetByID(ctx, tenantID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "tenant not found")
+			return
+		}
+
+		// Tenant-Owner aus users holen
+		ownerEmail, err := tenantRepo.GetOwnerEmail(ctx, tenantID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to get tenant owner")
+			return
+		}
+
+		if emailSvc != nil {
+			go emailSvc.SendContactRequest(ownerEmail, adv.Name, adv.Email, tenantObj.Name, req.Message)
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{"status": "sent"})
 	}
 }
