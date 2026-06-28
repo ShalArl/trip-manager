@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: feed
     app.kubernetes.io/instance: feed
-    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/version: "sha-c980e101819f8fa9eaabc7d147ad24ca2e116e69"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -29,7 +29,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: feed
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/feed:dev"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/feed:sha-c980e101819f8fa9eaabc7d147ad24ca2e116e69"
           imagePullPolicy: Always
           ports:
             - containerPort: 8089
