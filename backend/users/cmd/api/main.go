@@ -7,26 +7,46 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	sharedotel "otel"
 	"syscall"
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/shared/middleware"
 	"github.com/ShalArl/trip-manager/backend/users/config"
 	"github.com/ShalArl/trip-manager/backend/users/database"
 	"github.com/ShalArl/trip-manager/backend/users/handler"
+	advertiser "github.com/ShalArl/trip-manager/backend/users/internal/advertisers"
+	"github.com/ShalArl/trip-manager/backend/users/internal/platform"
+	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
 	ctx := context.Background()
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	corsConfig := middleware.DefaultCORSConfig()
-	corsConfig.AllowedOrigins = []string{
-		"https://neatnode.xyz",
-		"https://www.neatnode.xyz",
+	allowedOrigins := cfg.CORSAllowedOrigins
+	if len(allowedOrigins) == 0 {
+		log.Fatalf("No allowed origin configured")
+	}
+	corsConfig.AllowedOrigins = allowedOrigins
+
+	otelProvider, err := sharedotel.New(ctx, "users", cfg.OTELCollectorEndpoint)
+	if err != nil {
+		log.Printf("warn: failed to initialize otel: %v", err)
+	}
+	var metrics *sharedotel.ServiceMetrics
+	if otelProvider != nil {
+		defer otelProvider.Shutdown(ctx)
+		metrics, _ = sharedotel.NewServiceMetrics(otelProvider.Meter, "users")
 	}
 
 	// DB
@@ -34,19 +54,52 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database connection: %v", err)
+		}
+	}(db)
 
 	// Migrations
-	if err := database.RunMigrations(db); err != nil {
-		log.Fatalf("failed to run migrations: %v", err)
+	migrationDB, err := sqlx.Connect("postgres", cfg.MigrationDBURL)
+	if err != nil {
+		log.Fatalf("failed to connect to migration db: %v", err)
 	}
+	if err := database.RunMigrations(migrationDB, map[string]string{
+		"APP_DB_PASSWORD": cfg.AppDBPassword,
+	}); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+	migrationDB.Close()
 
+	// Normaler Betrieb mit App-User
+	db, err = sqlx.Connect("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
+	}
 	// Auth client
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 
+	// Firebase client
+	fbClient, err := firebaseclient.New(ctx, cfg.FirebaseProjectID)
+	if err != nil {
+		log.Fatalf("failed to init firebase client: %v", err)
+	}
+
 	// Wire up
 	repo := repository.NewRepository(db)
-	svc := service.NewService(repo)
+	tenantRepo := tenant.NewRepository(db)
+	invRepo := tenant.NewInvitationRepository(db)
+
+	svc := service.NewService(repo, fbClient)
+
+	provisioner := tenant.NewGitHubProvisioner(
+		cfg.GitHubToken,
+		cfg.GitHubRepo,
+		cfg.GitHubBranch,
+		cfg.GCPProjectID,
+	)
 
 	// Middleware
 	requireAuth := authclient.RequireAuth(authClient)
@@ -56,17 +109,64 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, err := w.Write([]byte(`{"status":"ok"}`))
+		if err != nil {
+			log.Printf("failed to write health response: %v", err)
+			return
+		}
 	})
+
+	emailSvc := tenant.NewEmailService(cfg.ResendApiKey)
+
+	var metricsClient tenant.MetricsClient
+	if cfg.GCPProjectID != "" {
+		metricsClient = tenant.NewGCMMetricsClient(cfg.GCPProjectID)
+	} else {
+		metricsClient = tenant.NewPrometheusMetricsClient(cfg.PrometheusURL)
+	}
+
+	// PLATFORM
+	platformRepo := platform.NewRepository(db)
+	mux.HandleFunc("GET /platform/config", requireAuth(platform.GetConfigHandler(platformRepo)))
+	mux.HandleFunc("PUT /platform/config", requireAuth(platform.UpdateConfigHandler(platformRepo)))
+	// USER
 	mux.HandleFunc("POST /provision", requireAuth(handler.ProvisionHandler(svc)))
 	mux.HandleFunc("GET /me", requireAuth(handler.GetMeHandler(svc)))
 	mux.HandleFunc("PUT /me", requireAuth(handler.UpdateMeHandler(svc)))
 	mux.HandleFunc("GET /{id}", handler.GetByIDHandler(svc))
+	// TENANTS
+	mux.HandleFunc("POST /tenants/register", requireAuth(tenant.RegisterHandler(tenantRepo, svc)))
+	mux.HandleFunc("GET /tenants/me", requireAuth(tenant.GetTenantHandler(tenantRepo)))
+	mux.HandleFunc("GET /tenants/by-slug/{slug}", tenant.GetTenantBySlugHandler(tenantRepo))
+	mux.HandleFunc("GET /tenants/me/branding", requireAuth(tenant.GetBrandingHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/branding", requireAuth(tenant.UpdateBrandingHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/tier", requireAuth(tenant.UpgradeTierHandler(tenantRepo, provisioner)))
+	mux.HandleFunc("GET /tenants/me/usage", requireAuth(tenant.GetUsageHandler(tenantRepo, metricsClient, platformRepo)))
+	mux.HandleFunc("GET /tenants/me/settings", requireAuth(tenant.GetSettingsHandler(tenantRepo)))
+	mux.HandleFunc("PUT /tenants/me/settings", requireAuth(tenant.UpdateSettingsHandler(tenantRepo)))
+	mux.HandleFunc("GET /tenants/me/members", requireAuth(tenant.ListMembersHandler(repo)))
+	mux.HandleFunc("DELETE /tenants/me/members/{userId}", requireAuth(tenant.RemoveMemberHandler(repo, fbClient)))
+	mux.HandleFunc("GET /tenants/me/invitations", requireAuth(tenant.ListInvitationsHandler(invRepo)))
+	mux.HandleFunc("POST /tenants/me/invitations", requireAuth(tenant.CreateInvitationHandler(invRepo, cfg.BaseUrl, emailSvc, tenantRepo)))
+	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
+	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
+	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
+	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, svc)))
+	mux.HandleFunc("GET /tenants/me/usage/timeseries", requireAuth(tenant.GetUsageTimeSeriesHandler(metricsClient)))
+	// ADVERTISER
+	advRepo := advertiser.NewRepository(db)
+	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers", requireAuth(advertiser.CreateHandler(advRepo, fbClient)))
+	mux.HandleFunc("GET /advertisers/me", requireAuth(advertiser.GetMeHandler(advRepo)))
+	mux.HandleFunc("GET /advertisers/{id}", requireAuth(advertiser.GetByIDHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers/{id}/contact/{tenantId}", requireAuth(advertiser.ContactTenantHandler(advRepo, tenantRepo, emailSvc)))
+	mux.HandleFunc("POST /advertisers/{id}/tenants", requireAuth(advertiser.AssignTenantHandler(advRepo)))
+	mux.HandleFunc("DELETE /advertisers/{id}/tenants/{tenantId}", requireAuth(advertiser.RemoveTenantHandler(advRepo)))
 
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(mux),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
 	}
 
 	// Graceful shutdown

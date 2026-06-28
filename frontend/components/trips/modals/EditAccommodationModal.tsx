@@ -71,7 +71,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         />
                     </div>
 
@@ -91,7 +91,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                             type="text"
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         />
                     </div>
 
@@ -103,7 +103,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                                 type="datetime-local"
                                 value={checkIn}
                                 onChange={(e) => setCheckIn(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                             />
                         </div>
                         <div>
@@ -112,7 +112,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                                 type="datetime-local"
                                 value={checkOut}
                                 onChange={(e) => setCheckOut(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                             />
                         </div>
                     </div>
@@ -126,7 +126,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                             step="0.01"
                             value={pricePerNight}
                             onChange={(e) => setPricePerNight(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                         />
                     </div>
 
@@ -137,7 +137,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={3}
-                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                            className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] resize-none"
                         />
                     </div>
 
@@ -162,7 +162,7 @@ export default function EditAccommodationModal({ isOpen, accommodation, onCloseA
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-2 text-white bg-sky-600 hover:bg-sky-700 rounded-lg font-medium transition-colors"
+                            className="flex-1 px-4 py-2 text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg font-medium transition-colors"
                         >
                             Speichern
                         </button>

@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "./auth";
 import { components } from "@/generated/types";
+import {asyncWrapProviders} from "async_hooks";
 
 type TripLikeResponse = components["schemas"]["TripLikeResponse"];
 type TripCommentResponse = components["schemas"]["TripCommentResponse"];
@@ -46,6 +47,7 @@ export async function unlikeTrip(tripId: string): Promise<void> {
 export async function getTripComments(tripId: string): Promise<TripCommentListResponse> {
     const response = await fetch(`${API_URL}/api/social/${tripId}/comments`, {
         method: "GET",
+        headers: await getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error(`Fehler beim Laden der Kommentare: ${response.status}`);

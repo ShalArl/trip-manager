@@ -11,6 +11,8 @@ export interface CreateUserRequest {
     email: string;
     password: string;
     name: string;
+    tenantName?: string;
+    tier?: string;
 }
 
 export interface LoginRequest {

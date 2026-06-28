@@ -1,0 +1,8 @@
+image:
+  repository: gcr.io/google.com/cloudsdktool/google-cloud-cli
+  tag: emulators
+
+projectId: "trip-manager-local"
+
+service:
+  port: 8085

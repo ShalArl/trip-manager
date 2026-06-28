@@ -3,12 +3,8 @@ image:
   tag: ""
   pullPolicy: Always
 
-storage: 8Gi
-
-
 service:
   port: 8089
-  healthPath: /health
 
 replicaCount: 1
 
@@ -34,5 +30,7 @@ resources:
 env:
   - name: PORT
     value: "8089"
-  - name: AUTH_CLIENT_CONNECTION_STRING
-    value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
+
+externalSecrets:
+  enabled: false
+  secrets: []

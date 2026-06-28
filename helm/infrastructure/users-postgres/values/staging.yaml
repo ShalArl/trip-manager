@@ -1,0 +1,14 @@
+image:
+  repository: postgres
+  tag: "16-alpine"
+replicaCount: 1
+postgres:
+  db: $(echo $svc | sed 's/-postgres//')
+  user: $(echo $svc | sed 's/-postgres//')
+  password: placeholder
+service:
+  port: 5432
+persistence:
+  enabled: false
+externalSecrets:
+  enabled: true

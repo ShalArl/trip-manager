@@ -3,7 +3,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import { UserResponse, UpdateUserRequest } from "@/types/user";
 import { updateMe } from "@/lib/api/auth";
-import {getDownloadUrl, uploadAvatar} from "@/lib/api/uploads";
+import {getDownloadUrl, invalidateDownloadUrl, uploadAvatar} from "@/lib/api/uploads";
 import { useUserContext } from "@/lib/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
             if (avatarFile) {
                 console.log("[ProfileSettings] Starting presigned avatar upload...");
                 avatarKey = await uploadAvatar(avatarFile);
+                invalidateDownloadUrl(avatarKey);
                 console.log("[ProfileSettings] Avatar uploaded, key:", avatarKey);
                 setAvatarFile(null);
             }

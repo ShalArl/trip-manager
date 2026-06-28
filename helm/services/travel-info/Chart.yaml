@@ -1,0 +1,8 @@
+apiVersion: v2
+name: travel-info
+version: 0.1.0
+description: Travel Info service for warnings + weather
+dependencies:
+  - name: common
+    version: "1.0.0"
+    repository: "file://../../charts/common"

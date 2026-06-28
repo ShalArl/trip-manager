@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: trip-manager-enterprise
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/ShalArl/trip-manager.git
+        revision: gitops-prod
+        directories:
+          - path: gitops/enterprise/*
+  template:
+    metadata:
+      name: 'enterprise-{{path.basename}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/ShalArl/trip-manager.git
+        targetRevision: gitops-prod
+        path: '{{path}}'
+        directory:
+          recurse: true
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'trip-manager-{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

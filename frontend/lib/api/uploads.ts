@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
  * The storage backend (GCS in prod, MinIO locally) is opaque to the client.
  */
 export async function getPresignedUrl(req: PresignedURLRequest): Promise<PresignedURLResponse> {
-    const response = await fetch(`${API_URL}/api/presign/uploads/presigned`, {
+    const response = await fetch(`${API_URL}/api/social/uploads/presigned`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify(req),
@@ -65,18 +65,36 @@ export async function uploadAvatar(file: File): Promise<string> {
 /**
  * Get a presigned URL for downloading/viewing a file.
  */
+// frontend/lib/api/uploads.ts
+
+const downloadUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 export async function getDownloadUrl(key: string): Promise<string> {
-    const response = await fetch(`${API_URL}/api/presign/uploads/download-url`, {
+    const cached = downloadUrlCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.url;
+    }
+
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/social/uploads/download-url`, {
         method: "POST",
-        headers: await getAuthHeaders(),
+        headers,
         body: JSON.stringify({ key }),
     });
-
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Failed to get download URL: ${response.status}`);
     }
-
     const data = await response.json();
+
+    downloadUrlCache.set(key, {
+        url: data.url,
+        expiresAt: Date.now() + 50 * 60 * 1000,
+    });
+
     return data.url;
+}
+
+export function invalidateDownloadUrl(key: string): void {
+    downloadUrlCache.delete(key);
 }

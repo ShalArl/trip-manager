@@ -43,7 +43,7 @@ func (r *repository) GetStoredNewsletter(ctx context.Context, firebaseUID string
 	var generatedAt time.Time
 
 	err := r.db.QueryRowContext(ctx,
-		`SELECT content, generated_at FROM newsletters WHERE firebase_uid = $1`,
+		`SELECT content, generated_at FROM newsletters WHERE firebase_uid = $1 AND tenant_id = current_setting('app.tenant_id', true)`,
 		firebaseUID,
 	).Scan(&content, &generatedAt)
 

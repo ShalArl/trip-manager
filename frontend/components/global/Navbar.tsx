@@ -8,19 +8,22 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {LogOut, Settings, TrendingUp, Mail} from "lucide-react";
+import {Building2, LogOut, Mail, Megaphone, Settings, TrendingUp} from "lucide-react";
 import {useRouter} from "next/navigation";
 import {useUserContext} from "@/lib/context/UserContext";
 import {UserAvatar} from "@/components/global/UserAvatar";
+import {useTenantContext} from "@/lib/context/TenantContext";
+import Image from "next/image";
 
 type Props = {
     user?: User | null;
     onLogout?: () => void;
 };
 
-export default function Navbar({ user: initialUser, onLogout }: Props) {
+export default function Navbar({user: initialUser, onLogout}: Props) {
     const router = useRouter();
-    const { user } = useUserContext();
+    const {user} = useUserContext();
+    const {tenantId, tenantName, branding, role, isAdmin, isOwner, isPlatformAdmin, isAdvertiser} = useTenantContext();
 
     const displayUser = user || initialUser;
 
@@ -31,6 +34,7 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
         }
     }, [user, displayUser]);
 
+
     return (
         <nav className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black sticky top-0 z-50">
             <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
@@ -38,30 +42,50 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                 <div className="flex items-center gap-6">
                     <div
                         className="flex items-center gap-2 cursor-pointer"
-                        onClick={() => router.push("/")}
+                        onClick={() => router.push(displayUser ? "/trips" : "/")}
                     >
-                        <span className="text-xl">🌍</span>
-                        <span className="text-lg font-bold tracking-tight">Trip Manager</span>
+                        {branding?.logoUrl ? (
+                            <Image
+                                src={branding.logoUrl}
+                                alt={branding.companyName || tenantName}
+                                className="h-8 object-contain max-w-32"
+                            />
+                        ) : (
+                            <>
+                                <span className="text-xl">🌍</span>
+                                <div className="flex flex-col items-start leading-tight">
+                                    <span className="text-lg font-bold tracking-tight">
+                                        {branding?.companyName || "Trip Manager"}
+                                    </span>
+                                    {tenantId !== "default" && tenantName && !branding?.companyName && (
+                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-normal mt-0.5">
+                                            by {tenantName}
+                                        </span>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
+
                     <button
                         onClick={() => router.push("/search")}
-                        className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                        className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-primary-light)] transition-colors"
                     >
                         Reisen entdecken
                     </button>
                     <button
                         onClick={() => router.push("/feed")}
-                        className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                        className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-primary-light)] transition-colors"
                     >
-                        <TrendingUp className="h-4 w-4" />
+                        <TrendingUp className="h-4 w-4"/>
                         Feed
                     </button>
                     {displayUser && (
                         <button
                             onClick={() => router.push("/newsletter")}
-                            className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                            className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-primary-light)] transition-colors"
                         >
-                            <Mail className="h-4 w-4" />
+                            <Mail className="h-4 w-4"/>
                             Newsletter
                         </button>
                     )}
@@ -82,8 +106,9 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                                     <div className="relative cursor-pointer">
                                         <UserAvatar name={displayUser.name}
                                                     className={"bg-blue-500 text-white"}
-                                                    avatarKey={displayUser.avatarUrl} />
-                                        <Badge className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                                                    avatarKey={displayUser.avatarUrl}/>
+                                        <Badge
+                                            className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                                             ✓
                                         </Badge>
                                     </div>
@@ -97,29 +122,61 @@ export default function Navbar({ user: initialUser, onLogout }: Props) {
                                             {displayUser.email}
                                         </p>
                                     </div>
-                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSeparator/>
                                     <DropdownMenuItem
                                         onClick={() => router.push("/settings")}
                                         className="cursor-pointer"
                                     >
-                                        <Settings className="mr-2 h-4 w-4" />
+                                        <Settings className="mr-2 h-4 w-4"/>
                                         <span>Profileinstellungen</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSeparator/>
                                     <DropdownMenuItem
                                         onClick={onLogout}
                                         className="cursor-pointer text-red-600"
                                     >
-                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <LogOut className="mr-2 h-4 w-4"/>
                                         <span>Abmelden</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {displayUser && (
+                                <>
+                                    {isPlatformAdmin ? (
+                                        <button
+                                            onClick={() => router.push("/platform")}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                        >
+                                            <Building2 className="h-4 w-4"/>
+                                            <span className="hidden sm:block">Platform</span>
+                                        </button>
+                                    ) : (isAdmin || isOwner) ? (
+                                        <button
+                                            onClick={() => router.push(tenantId !== "default" ? "/tenant" : "/business")}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                        >
+                                            <Building2 className="h-4 w-4"/>
+                                            <span className="hidden sm:block">
+                                                {tenantId !== "default" ? "Reisebüro" : "Reisebüro erstellen"}
+                                            </span>
+                                        </button>
+                                    ) : null}
+                                </>
+                            )}
+                            {displayUser && role === "advertiser" && (
+                                <button
+                                    onClick={() => router.push("/advertiser")}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                    <Megaphone className="h-4 w-4" />
+                                    <span className="hidden sm:block">Insights</span>
+                                </button>
+                            )}
                         </>
                     ) : (
                         <button
                             onClick={() => router.push("/auth")}
-                            className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                            className="px-4 py-2 text-sm font-medium bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg transition-colors"
                         >
                             Anmelden
                         </button>

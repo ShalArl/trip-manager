@@ -1,20 +1,22 @@
 "use client";
-
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUserContext } from "@/lib/context/UserContext";
 import { register, login } from "@/lib/api/auth";
 import AuthPage from "@/components/auth/AuthPage";
 import type { CreateUserRequest, LoginRequest } from "@/types/user";
 
-export default function AuthRoute() {
+function AuthContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get("redirect") || "/";
     const { updateUser } = useUserContext();
 
     const handleRegister = async (createUserRequest: CreateUserRequest) => {
         try {
             const user = await register(createUserRequest);
             updateUser(user);
-            router.push("/");
+            router.push(redirect);
         } catch (error) {
             console.error("Registration failed:", error);
             throw error;
@@ -25,7 +27,7 @@ export default function AuthRoute() {
         try {
             const user = await login(loginRequest);
             updateUser(user);
-            router.push("/");
+            router.push(redirect);
         } catch (error) {
             console.error("Login failed:", error);
             throw error;
@@ -37,5 +39,13 @@ export default function AuthRoute() {
             onLoginAction={handleLogin}
             onRegisterAction={handleRegister}
         />
+    );
+}
+
+export default function AuthRoute() {
+    return (
+        <Suspense>
+            <AuthContent />
+        </Suspense>
     );
 }

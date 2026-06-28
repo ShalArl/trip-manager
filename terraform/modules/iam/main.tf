@@ -12,11 +12,8 @@ terraform {
 }
 locals {
   services = [
-    "auth", "social", "presigner",
-    "users", "trips", "external-secrets",
-    "frontend", "locations", "travel-warning",
-    "feed", "weather-info", "feed-generator",
-    "newsletter", "newsletter-worker"
+    "auth", "social", "users", "trips", "external-secrets", "frontend", "travel-info",
+    "feed", "newsletter", "otel-collector"
   ]
 }
 
@@ -29,12 +26,6 @@ resource "google_service_account" "services" {
 }
 
 # Firestore + Firebase Related Roles
-resource "google_project_iam_member" "social_firestore" {
-  member  = "serviceAccount:${google_service_account.services["social"].email}"
-  project = var.project_id
-  role    = "roles/datastore.user"
-}
-
 resource "google_project_iam_member" "auth_firebase" {
   member  = "serviceAccount:${google_service_account.services["auth"].email}"
   project = var.project_id
@@ -42,26 +33,32 @@ resource "google_project_iam_member" "auth_firebase" {
 }
 
 # GCS Related Roles
-resource "google_project_iam_member" "presigner_storage" {
-  member  = "serviceAccount:${google_service_account.services["presigner"].email}"
+resource "google_project_iam_member" "social_firestore" {
+  member  = "serviceAccount:${google_service_account.services["social"].email}"
+  project = var.project_id
+  role    = "roles/datastore.user"
+}
+
+resource "google_project_iam_member" "social_storage" {
+  member  = "serviceAccount:${google_service_account.services["social"].email}"
   project = var.project_id
   role    = "roles/storage.objectAdmin"
 }
 
-resource "google_project_iam_member" "presigner_token_creator" {
-  member  = "serviceAccount:${google_service_account.services["presigner"].email}"
+resource "google_project_iam_member" "social_token_creator" {
+  member  = "serviceAccount:${google_service_account.services["social"].email}"
   project = var.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
 }
 
 resource "google_project_iam_member" "locations_storage" {
-  member  = "serviceAccount:${google_service_account.services["locations"].email}"
+  member  = "serviceAccount:${google_service_account.services["trips"].email}"
   project = var.project_id
   role    = "roles/storage.objectAdmin"
 }
 
 resource "google_project_iam_member" "locations_token_creator" {
-  member  = "serviceAccount:${google_service_account.services["locations"].email}"
+  member  = "serviceAccount:${google_service_account.services["trips"].email}"
   project = var.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
 }
@@ -75,7 +72,7 @@ resource "google_project_iam_member" "external_secrets_secretmanager" {
 
 resource "google_service_account_iam_member" "workload_identity" {
   for_each = toset([
-    "auth", "social", "presigner", "users", "trips", "newsletter-worker", "feed-generator"
+    "auth", "social", "users", "trips", "newsletter", "otel-collector", "feed"
   ])
   member             = "serviceAccount:${var.project_id}.svc.id.goog[trip-manager-prod/${each.value}]"
   role               = "roles/iam.workloadIdentityUser"
@@ -161,8 +158,6 @@ resource "google_project_iam_member" "ar_reader" {
 }
 
 
-# Pub Sub # TODO: CHECK WITH ARLIND
-
 resource "google_project_iam_member" "trips_pubsub" {
   project = var.project_id
   role    = "roles/pubsub.editor"
@@ -175,14 +170,39 @@ resource "google_project_iam_member" "newsletter_pubsub" {
   member  = "serviceAccount:${google_service_account.services["newsletter"].email}"
 }
 
-resource "google_project_iam_member" "newsletter_worker_pubsub" {
+
+resource "google_project_iam_member" "feed_pub_sub" {
   project = var.project_id
   role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${google_service_account.services["newsletter-worker"].email}"
+  member  = "serviceAccount:${google_service_account.services["feed"].email}"
 }
 
-resource "google_project_iam_member" "feed_worker_pub_sub" {
+resource "google_project_iam_member" "users_firebase" {
+  member  = "serviceAccount:${google_service_account.services["users"].email}"
   project = var.project_id
-  role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${google_service_account.services["feed-generator"].email}"
+  role    = "roles/firebase.sdkAdminServiceAgent"
+}
+
+resource "google_project_iam_member" "otel_monitoring" {
+  project = var.project_id
+  role    = "roles/monitoring.metricWriter"
+  member  = "serviceAccount:${google_service_account.services["otel-collector"].email}"
+}
+
+resource "google_project_iam_member" "otel_trace" {
+  project = var.project_id
+  role    = "roles/cloudtrace.agent"
+  member  = "serviceAccount:${google_service_account.services["otel-collector"].email}"
+}
+
+resource "google_project_iam_member" "users_monitoring" {
+  project = var.project_id
+  role    = "roles/monitoring.viewer"
+  member  = "serviceAccount:${google_service_account.services["users"].email}"
+}
+
+resource "google_project_iam_member" "users_secret_admin" {
+  project = var.project_id
+  role    = "roles/secretmanager.admin"
+  member  = "serviceAccount:${google_service_account.services["users"].email}"
 }

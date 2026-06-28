@@ -7,13 +7,14 @@ import { TripResponse } from "@/types/trip";
 import { LoadingSpinner } from "@/components/global/LoadingSpinner";
 import { useUserContext } from "@/lib/context/UserContext";
 
-
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { user, isLoading: userLoading } = useUserContext();
     const [trip, setTrip] = useState<TripResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (userLoading) return; // warten bis Firebase Auth-State geladen ist
+
         params.then(async ({ id }) => {
             try {
                 const data = await getTrip(id);
@@ -23,13 +24,13 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                 setError("Fehler beim Laden der Reise");
             }
         });
-    }, [params]);
+    }, [params, userLoading]);
 
     if (error) {
         return <div>{error}</div>;
     }
 
-    if (!trip) {
+    if (userLoading || !trip) {
         return <LoadingSpinner />;
     }
 

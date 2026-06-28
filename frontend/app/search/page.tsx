@@ -23,7 +23,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 25;
 
 export default function SearchPage() {
-    const {user, updateUser} = useUserContext();
+    const {user, isLoading: userLoading, updateUser} = useUserContext();
     const [query, setQuery] = useState("");
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [trips, setTrips] = useState<TripResponse[]>([]);
@@ -42,6 +42,8 @@ export default function SearchPage() {
     }, [query, pageSize]);
 
     useEffect(() => {
+        if (userLoading) return; // warten bis Firebase Auth-State geladen ist
+
         const fetchTrips = async () => {
             const trimmedQuery = query.trim();
             const offset = page * pageSize;
@@ -76,7 +78,7 @@ export default function SearchPage() {
 
         const debounce = setTimeout(fetchTrips, 300);
         return () => clearTimeout(debounce);
-    }, [query, page, pageSize]);
+    }, [query, page, pageSize, userLoading]);
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const currentPage = page + 1; // 1-indexed for display
@@ -208,13 +210,13 @@ export default function SearchPage() {
                                             {/* Date badge - visual anchor left */}
                                             <div
                                                 className="flex flex-col items-center justify-center flex-shrink-0 w-16 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/50">
-                                                <p className="text-[10px] uppercase tracking-wider text-sky-600 dark:text-sky-400 font-semibold">
+                                                <p className="text-[10px] uppercase tracking-wider text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] font-semibold">
                                                     {formatMonth(trip.startDate)}
                                                 </p>
                                                 <p className="text-xl font-bold text-sky-900 dark:text-sky-200 leading-none mt-0.5">
                                                     {formatDay(trip.startDate)}
                                                 </p>
-                                                <p className="text-[10px] text-sky-600/70 dark:text-sky-400/70 mt-0.5">
+                                                <p className="text-[10px] text-[var(--brand-primary)]/70 dark:text-[var(--brand-primary-light)]/70 mt-0.5">
                                                     {formatYear(trip.startDate)}
                                                 </p>
                                             </div>
@@ -222,7 +224,7 @@ export default function SearchPage() {
                                             {/* Main content */}
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-semibold text-base truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                                    <h3 className="font-semibold text-base truncate group-hover:text-[var(--brand-primary)] dark:group-hover:text-[var(--brand-primary-light)] transition-colors">
                                                         {trip.title}
                                                     </h3>
                                                     <span
@@ -246,7 +248,7 @@ export default function SearchPage() {
                                                                 .push(`/users/${trip.createdBy?.id || '#'}`)
                                                                 .finally();
                                                         }}
-                                                        className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors truncate"
+                                                        className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-primary-light)] transition-colors truncate"
                                                     >
                                                         {trip.createdBy?.name || 'Unbekannt'}
                                                     </button>

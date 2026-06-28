@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: {{ .Release.Namespace }}
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 10s
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 200
+
+    exporters:
+      {{- if eq .Values.environment "dev" }}
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: trip_manager
+      debug:
+        verbosity: detailed
+      {{- else }}
+      googlecloud:
+        project: {{ .Values.gcpProjectID }}
+        metric:
+          prefix: "custom.googleapis.com/trip_manager"
+      {{- end }}
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters:
+            {{- if eq .Values.environment "dev" }}
+            - prometheus
+            - debug
+            {{- else }}
+            - googlecloud
+            {{- end }}
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters:
+            {{- if eq .Values.environment "dev" }}
+            - debug
+            {{- else }}
+            - googlecloud
+            {{- end }}

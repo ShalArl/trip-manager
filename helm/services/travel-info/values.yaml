@@ -1,0 +1,49 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+
+service:
+  port: 8087
+
+replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPU: 70
+  targetMemory: 80
+
+env:
+  - name: PORT
+    value: "8087"
+  - name: LOG_LEVEL
+    value: "info"
+
+envFrom: []
+
+serviceAccount:
+  gcpServiceAccount: ""
+
+externalSecrets:
+  enabled: false
+  secrets: []
+
+# Konfiguration für den kombinierten Sync-CronJob
+cronjob:
+  schedule: "0 */3 * * *" # Alle 3 Stunden reicht dicke für Wetter & Warnungen
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

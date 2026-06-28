@@ -2,18 +2,17 @@ go 1.25.8
 
 use (
 	./auth
-	./locations
-	./presigner
 	./shared/authclient
+	./shared/email
 	./shared/middleware
 	./shared/userclient
+	./shared/tenantdb
+	./shared/firebaseclient
+	./shared/otel
 	./social
-	./travel-warning
+	./travel-info
 	./trips
 	./users
-	./weather-info
 	./feed
-	./feed-generator
 	./newsletter
-	./newsletter-worker
 )

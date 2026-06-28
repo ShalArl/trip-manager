@@ -42,6 +42,7 @@ type TripCreatedEvent struct {
 	UserName  string `json:"userName"`
 	Title     string `json:"title"`
 	CreatedAt string `json:"createdAt"`
+	TenantID  string `json:"tenantId"`
 }
 
 func (p *Producer) PublishTripCreated(ctx context.Context, e TripCreatedEvent) error {
@@ -55,7 +56,6 @@ func (p *Producer) PublishTripCreated(ctx context.Context, e TripCreatedEvent) e
 		Attributes: map[string]string{
 			AttrEventType: EventTypeTripCreated,
 		},
-		OrderingKey: e.TripID,
 	})
 
 	_, err = result.Get(ctx)

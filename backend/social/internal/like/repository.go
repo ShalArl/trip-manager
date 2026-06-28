@@ -17,15 +17,16 @@ const collEntityLikes = "entityLikes"
 
 type entityLikeDoc struct {
 	EntityID  string    `firestore:"entityId"`
+	TenantID  string    `firestore:"tenantId"`
 	UserID    string    `firestore:"userId"`
 	CreatedAt time.Time `firestore:"createdAt"`
 }
 
 type Repository interface {
-	LikeEntity(ctx context.Context, userID, entityId string) error
+	LikeEntity(ctx context.Context, userID, tenantID, entityId string) error
 	UnlikeEntity(ctx context.Context, userID, entityId string) error
 	HasLiked(ctx context.Context, userID, entityId string) (bool, error)
-	CountEntityLikes(ctx context.Context, entityId string) (int, error)
+	CountEntityLikes(ctx context.Context, tenantID, entityId string) (int, error)
 }
 
 type RepositoryImpl struct {
@@ -36,10 +37,11 @@ func NewLikeRepository(client *firestore.Client) Repository {
 	return &RepositoryImpl{client: client}
 }
 
-func (r *RepositoryImpl) LikeEntity(ctx context.Context, userID, entityID string) error {
+func (r *RepositoryImpl) LikeEntity(ctx context.Context, userID, tenantID, entityID string) error {
 	docID := userID + "_" + entityID
 	_, err := r.client.Collection(collEntityLikes).Doc(docID).Create(ctx, entityLikeDoc{
 		EntityID:  entityID,
+		TenantID:  tenantID,
 		UserID:    userID,
 		CreatedAt: time.Now(),
 	})
@@ -73,9 +75,10 @@ func (r *RepositoryImpl) HasLiked(ctx context.Context, userID, entityID string) 
 	return true, nil
 }
 
-func (r *RepositoryImpl) CountEntityLikes(ctx context.Context, entityID string) (int, error) {
+func (r *RepositoryImpl) CountEntityLikes(ctx context.Context, tenantID, entityID string) (int, error) {
 	iter := r.client.Collection(collEntityLikes).
 		Where("entityId", "==", entityID).
+		Where("tenantId", "==", tenantID).
 		Documents(ctx)
 	defer iter.Stop()
 

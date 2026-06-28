@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"tenantdb"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/users/repository"
 )
 
@@ -18,6 +20,8 @@ type User struct {
 	Bio         string
 	AvatarKey   string
 	FirebaseUID string
+	TenantID    string
+	Role        string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -26,6 +30,8 @@ type ProvisionInput struct {
 	FirebaseUID string
 	Email       string
 	Name        string
+	TenantID    string // optional, default "default"
+	Role        string // optional, default "tenant_member"
 }
 
 type UpdateInput struct {
@@ -42,17 +48,19 @@ type Service interface {
 	GetByID(ctx context.Context, id string) (*User, error)
 	GetByFirebaseUID(ctx context.Context, firebaseUID string) (*User, error)
 	Provision(ctx context.Context, input ProvisionInput) (*User, bool, error)
+	ProvisionWithTenant(ctx context.Context, input ProvisionInput) (*User, bool, error)
 	Update(ctx context.Context, input UpdateInput) (*User, error)
 }
 
 // ── Implementation ────────────────────────────────────────────────────────────
 
 type serviceImpl struct {
-	repo repository.Repository
+	repo         repository.Repository
+	firebaseAuth *firebaseclient.Client
 }
 
-func NewService(repo repository.Repository) Service {
-	return &serviceImpl{repo: repo}
+func NewService(repo repository.Repository, firebaseAuth *firebaseclient.Client) Service {
+	return &serviceImpl{repo: repo, firebaseAuth: firebaseAuth}
 }
 
 func (s *serviceImpl) GetByID(ctx context.Context, id string) (*User, error) {
@@ -72,24 +80,63 @@ func (s *serviceImpl) GetByFirebaseUID(ctx context.Context, firebaseUID string) 
 }
 
 func (s *serviceImpl) Provision(ctx context.Context, input ProvisionInput) (*User, bool, error) {
-	// Check if user already exists
-	existing, err := s.repo.GetByFirebaseUID(ctx, input.FirebaseUID)
+	tenantID := input.TenantID
+	if tenantID == "" {
+		tenantID = tenantdb.GetTenantID(ctx)
+	}
+	if tenantID == "" {
+		tenantID = "default"
+	}
+
+	// Lookup immer mit dem tatsächlichen tenant_id des Users versuchen
+	// dann fallback auf default falls nicht gefunden
+	lookupCtx := tenantdb.WithTenantID(ctx, tenantID)
+	existing, err := s.repo.GetByFirebaseUID(lookupCtx, input.FirebaseUID)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return nil, false, fmt.Errorf("checking existing user: %w", err)
 	}
+
+	// Falls nicht gefunden, mit default versuchen
+	if existing == nil {
+		lookupCtx = tenantdb.WithTenantID(ctx, "default")
+		existing, err = s.repo.GetByFirebaseUID(lookupCtx, input.FirebaseUID)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return nil, false, fmt.Errorf("checking existing user (default): %w", err)
+		}
+	}
+
 	if existing != nil {
 		return repoToService(existing), false, nil
 	}
 
-	// Create new user
+	// Neuer User
+	ctx = tenantdb.WithTenantID(ctx, tenantID)
+	role := input.Role
+	if role == "" {
+		role = "tenant_member"
+	}
+
 	created, err := s.repo.Create(ctx, &repository.User{
 		Email:       input.Email,
 		Name:        input.Name,
 		FirebaseUID: input.FirebaseUID,
+		TenantID:    tenantID,
+		Role:        role,
 	})
 	if err != nil {
 		return nil, false, err
 	}
+
+	if s.firebaseAuth != nil {
+		claims := map[string]interface{}{
+			"tenant_id": tenantID,
+			"role":      role,
+		}
+		if err := s.firebaseAuth.SetCustomClaims(ctx, input.FirebaseUID, claims); err != nil {
+			fmt.Printf("warn: failed to set firebase custom claims: %v\n", err)
+		}
+	}
+
 	return repoToService(created), true, nil
 }
 
@@ -120,6 +167,62 @@ func (s *serviceImpl) Update(ctx context.Context, input UpdateInput) (*User, err
 	return repoToService(updated), nil
 }
 
+func (s *serviceImpl) ProvisionWithTenant(ctx context.Context, input ProvisionInput) (*User, bool, error) {
+	// User mit default Context suchen
+	defaultCtx := tenantdb.WithTenantID(ctx, "default")
+	existing, err := s.repo.GetByFirebaseUID(defaultCtx, input.FirebaseUID)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, false, fmt.Errorf("checking existing user: %w", err)
+	}
+
+	if existing != nil {
+		// update Tenant & Role
+		existing.TenantID = input.TenantID
+		existing.Role = input.Role
+
+		// Update (default) Context
+		updated, err := s.repo.Update(defaultCtx, existing)
+		if err != nil {
+			return nil, false, fmt.Errorf("updating user tenant: %w", err)
+		}
+
+		// Firebase Claims
+		if s.firebaseAuth != nil {
+			claims := map[string]interface{}{
+				"tenant_id": input.TenantID,
+				"role":      input.Role,
+			}
+			if err := s.firebaseAuth.SetCustomClaims(ctx, input.FirebaseUID, claims); err != nil {
+				fmt.Printf("warn: failed to set firebase custom claims: %v\n", err)
+			}
+		}
+		return repoToService(updated), false, nil
+	}
+	// New User
+	created, err := s.repo.Create(ctx, &repository.User{
+		Email:       input.Email,
+		Name:        input.Name,
+		FirebaseUID: input.FirebaseUID,
+		TenantID:    input.TenantID,
+		Role:        input.Role,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if s.firebaseAuth != nil {
+		claims := map[string]interface{}{
+			"tenant_id": input.TenantID,
+			"role":      input.Role,
+		}
+		if err := s.firebaseAuth.SetCustomClaims(ctx, input.FirebaseUID, claims); err != nil {
+			fmt.Printf("warn: failed to set firebase custom claims: %v\n", err)
+		}
+	}
+
+	return repoToService(created), true, nil
+}
+
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
 func repoToService(u *repository.User) *User {
@@ -130,6 +233,8 @@ func repoToService(u *repository.User) *User {
 		Bio:         u.Bio,
 		AvatarKey:   u.AvatarKey,
 		FirebaseUID: u.FirebaseUID,
+		TenantID:    u.TenantID,
+		Role:        u.Role,
 		CreatedAt:   u.CreatedAt,
 		UpdatedAt:   u.UpdatedAt,
 	}

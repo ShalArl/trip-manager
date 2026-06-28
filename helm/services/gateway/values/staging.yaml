@@ -1,0 +1,6 @@
+ingress:
+  enabled: false
+  className: gke-l7-global-external-managed
+  host: staging.neatnode.xyz
+  apiHost: api.staging.neatnode.xyz
+  certMap: trip-manager-staging-cert-map

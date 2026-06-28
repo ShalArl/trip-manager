@@ -1,2 +1,0 @@
-ALTER TABLE locations
-ADD COLUMN IF NOT EXISTS country_code VARCHAR(10);

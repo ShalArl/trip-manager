@@ -1,3 +1,6 @@
+image:
+  pullPolicy: Always
+
 replicaCount: 1
 
 service:
@@ -23,12 +26,32 @@ env:
     value: "http://auth.trip-manager-prod.svc.cluster.local:8082"
   - name: STORAGE_BUCKET_URL
     value: "https://storage.googleapis.com/trip-manager-bucket"
+  - name: CORS_ALLOWED_ORIGINS
+    value: "https://neatnode.xyz,https://www.neatnode.xyz"
+  - name: OTEL_COLLECTOR_ENDPOINT
+    value: "otel-collector.trip-manager-prod.svc.cluster.local:4317"
+  - name: GCP_PROJECT_ID
+    value: "project-32c60644-299b-4b05-8cf"
+  - name: GITHUB_REPO
+    value: "ShalArl/trip-manager"
+  - name: GITHUB_BRANCH
+    value: "gitops-prod"
+  - name: BASE_URL
+    value: "https://www.neatnode.xyz"
 
 externalSecrets:
   enabled: true
   secrets:
+    - secretKey: MIGRATION_DB_URL
+      remoteKey: users-migration-url
     - secretKey: DATABASE_URL
       remoteKey: users-database-url
+    - secretKey: APP_DB_PASSWORD
+      remoteKey: users-app-database-password
+    - secretKey: RESEND_API_KEY
+      remoteKey: resend-api-key
+    - secretKey: GITHUB_TOKEN
+      remoteKey: github-token
 
 envFrom:
   - secretRef:

@@ -206,7 +206,7 @@ export default function LocationDetailModal({
                                             <button
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={isUploadingImage}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg transition-colors disabled:opacity-50"
                                             >
                                                 <ImagePlus className="w-3.5 h-3.5"/>
                                                 {isUploadingImage ? "Lädt hoch..." : "Bild hinzufügen"}
@@ -289,7 +289,7 @@ export default function LocationDetailModal({
                                     type="text"
                                     value={shortDescription}
                                     onChange={(e) => setShortDescription(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                    className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                                 />
                             </div>
 
@@ -301,7 +301,7 @@ export default function LocationDetailModal({
                                         type="date"
                                         value={dateFrom}
                                         onChange={(e) => setDateFrom(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                        className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                                     />
                                 </div>
                                 <div>
@@ -311,7 +311,7 @@ export default function LocationDetailModal({
                                         type="date"
                                         value={dateTo}
                                         onChange={(e) => setDateTo(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                        className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                                     />
                                 </div>
                             </div>
@@ -323,7 +323,7 @@ export default function LocationDetailModal({
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     rows={3}
-                                    className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                                    className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] resize-none"
                                 />
                             </div>
 

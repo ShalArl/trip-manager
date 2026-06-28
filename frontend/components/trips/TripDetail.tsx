@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Pencil, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
-import { updateTrip } from "@/lib/api/trips";
 import { likeTrip, unlikeTrip, getTripComments, createTripComment, deleteTripComment, getTripLikes } from "@/lib/api/social";
 import { createTransport, getTransports, updateTransport, deleteTransport } from "@/lib/api/transports";
 import { getLocations } from "@/lib/api/locations";
@@ -27,6 +26,8 @@ import EditAccommodationModal from "./modals/EditAccommodationModal";
 import { UserAvatar } from "@/components/global/UserAvatar";
 import WeatherWidget from "@/components/trips/components/WeatherWidget";
 import TravelWarningWidget from "@/components/trips/components/TravelWarningWidget";
+import { updateTrip, deleteTrip } from "@/lib/api/trips";
+import { useRouter } from "next/navigation";
 
 type TripResponse = components["schemas"]["TripResponse"];
 
@@ -38,11 +39,18 @@ type Props = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    planned:   { label: "Geplant",     className: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-400 border border-sky-200 dark:border-sky-800" },
+    planned:   { label: "Geplant",     className: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-[var(--brand-primary-light)] border border-sky-200 dark:border-sky-800" },
     ongoing:   { label: "Unterwegs",   className: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400 border border-green-200 dark:border-green-800" },
     completed: { label: "Abgeschlossen", className: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700" },
     cancelled: { label: "Abgesagt",    className: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400 border border-red-200 dark:border-red-800" },
 };
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: "planned", label: "Geplant" },
+    { value: "ongoing", label: "Unterwegs" },
+    { value: "completed", label: "Abgeschlossen" },
+    { value: "cancelled", label: "Abgesagt" },
+];
 
 const TRANSPORT_EMOJI: Record<string, string> = { flight: "✈️", train: "🚂", car: "🚗", bus: "🚌" };
 
@@ -60,7 +68,7 @@ function SectionHeader({ icon, title, count, onAdd, isEditable }: {
             {isEditable && onAdd && (
                 <button
                     onClick={onAdd}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg transition-colors"
                 >
                     <Plus className="w-3.5 h-3.5" /> Hinzufügen
                 </button>
@@ -106,6 +114,11 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
     const [newComment, setNewComment] = useState("");
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
+    const router = useRouter();
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     useEffect(() => { getLocations(trip.id).then(setLocations).catch(console.error); }, [trip.id]);
     useEffect(() => { getTransports(trip.id).then(setTransports).catch(console.error); }, [trip.id]);
     useEffect(() => { getAccommodations(trip.id).then(setAccommodations).catch(console.error); }, [trip.id]);
@@ -118,6 +131,31 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
             onTripUpdateAction(updated);
             setIsEditingTrip(false);
         } catch (error) { console.error("[TripDetail] updateTrip:", error); }
+    };
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (newStatus === currentTrip.status) return;
+        setIsUpdatingStatus(true);
+        try {
+            const updated = await updateTrip(trip.id, { status: newStatus as TripResponse["status"] });
+            setCurrentTrip(updated);
+            onTripUpdateAction(updated);
+        } catch (error) {
+            console.error("[TripDetail] updateStatus:", error);
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
+
+    const handleDeleteTrip = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteTrip(trip.id);
+            router.push("/");
+        } catch (error) {
+            console.error("[TripDetail] deleteTrip:", error);
+            setIsDeleting(false);
+        }
     };
 
     const handleAddActivity = (newActivity: any) => {
@@ -217,7 +255,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
         <div className="max-w-6xl mx-auto px-6 py-10">
             <Link
                 href="/"
-                className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors mb-8"
+                className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-[var(--brand-primary)] dark:hover:text-[var(--brand-primary-light)] transition-colors mb-8"
             >
                 ← Zurück
             </Link>
@@ -242,15 +280,38 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${statusCfg.className}`}>
-                                    {statusCfg.label}
-                                </span>
+                                {isEditable ? (
+                                    <select
+                                        value={currentTrip.status ?? "planned"}
+                                        onChange={(e) => handleStatusChange(e.target.value)}
+                                        disabled={isUpdatingStatus}
+                                        className={`text-xs font-medium px-2.5 py-1 rounded-md border cursor-pointer disabled:opacity-50 ${statusCfg.className}`}
+                                    >
+                                        {STATUS_OPTIONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${statusCfg.className}`}>
+            {statusCfg.label}
+        </span>
+                                )}
                                 {isEditable && (
                                     <button
                                         onClick={() => setIsEditingTrip(true)}
-                                        className="p-2 text-zinc-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                        className="p-2 text-zinc-400 hover:text-[var(--brand-primary)] hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
                                     >
                                         <Pencil className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {isEditable && (
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                 )}
                             </div>
@@ -269,7 +330,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                 disabled={!currentUser}
                                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors border disabled:opacity-40 disabled:cursor-not-allowed ${
                                     likeInfo.hasLiked
-                                        ? "bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800"
+                                        ? "bg-sky-50 dark:bg-sky-950/50 text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] border-sky-200 dark:border-sky-800"
                                         : "bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-sky-300"
                                 }`}
                             >
@@ -333,7 +394,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                         <button
                                             onClick={handleSubmitComment}
                                             disabled={!newComment.trim() || isSubmittingComment}
-                                            className="px-4 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-colors disabled:opacity-40"
+                                            className="px-4 py-2 text-sm font-medium bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-xl transition-colors disabled:opacity-40"
                                         >
                                             {isSubmittingComment ? "…" : "Senden"}
                                         </button>
@@ -459,7 +520,7 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                                 {isEditable && (
                                     <button
                                         onClick={() => setShowAddActivityModal(true)}
-                                        className="p-1.5 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
+                                        className="p-1.5 text-[var(--brand-primary)] dark:text-[var(--brand-primary-light)] hover:bg-sky-50 dark:hover:bg-sky-950/30 rounded-lg transition-colors"
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
@@ -534,6 +595,34 @@ export default function TripDetail({ trip, isEditable = false, onTripUpdateActio
                     onDeleteAction={handleDeleteAccommodation}
                 />
             )}
+
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-sm shadow-xl">
+                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">Reise löschen?</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                            Diese Aktion kann nicht rückgängig gemacht werden. Alle Orte, Transporte und Unterkünfte dieser Reise werden ebenfalls gelöscht.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleDeleteTrip}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {isDeleting ? "Wird gelöscht..." : "Ja, löschen"}
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                            >
+                                Abbrechen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

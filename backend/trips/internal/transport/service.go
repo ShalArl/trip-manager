@@ -40,11 +40,11 @@ func placeFromInput(p generated.PlaceInput) Place {
 // ── Validation ────────────────────────────────────────────────────────────────
 
 func validateCreate(req *generated.CreateTransportRequest) error {
-	if req.From.Name == "" || req.From.City == "" || req.From.Country == "" {
-		return fmt.Errorf("%w: from.name, from.city and from.country are required", ErrInvalidInput)
+	if req.From.Name == "" || req.From.Country == "" {
+		return fmt.Errorf("%w: from.name and from.country are required", ErrInvalidInput)
 	}
-	if req.To.Name == "" || req.To.City == "" || req.To.Country == "" {
-		return fmt.Errorf("%w: to.name, to.city and to.country are required", ErrInvalidInput)
+	if req.To.Name == "" || req.To.Country == "" {
+		return fmt.Errorf("%w: to.name and to.country are required", ErrInvalidInput)
 	}
 	return nil
 }

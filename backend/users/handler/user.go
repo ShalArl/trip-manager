@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
@@ -18,7 +19,11 @@ import (
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		log.Printf("Failed to encode JSON response %v", err)
+		return
+	}
 }
 
 func respondError(w http.ResponseWriter, status int, msg string) {
@@ -56,7 +61,10 @@ func ProvisionHandler(svc service.Service) http.HandlerFunc {
 			return
 		}
 
-		var req generated.ProvisionUserRequest
+		var req struct {
+			Name     *string `json:"name"`
+			TenantID string  `json:"tenantId"`
+		}
 		if r.ContentLength > 0 {
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				respondError(w, http.StatusBadRequest, "invalid request body")
@@ -70,10 +78,17 @@ func ProvisionHandler(svc service.Service) http.HandlerFunc {
 			name = *req.Name
 		}
 
+		// tenantId aus Body oder aus JWT Claims
+		tenantID := req.TenantID
+		if tenantID == "" {
+			tenantID = authclient.GetTenantID(r)
+		}
+
 		user, created, err := svc.Provision(r.Context(), service.ProvisionInput{
 			FirebaseUID: firebaseUID,
 			Email:       email,
 			Name:        name,
+			TenantID:    tenantID,
 		})
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())

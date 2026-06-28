@@ -6,6 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export async function getAccommodations(tripId: string): Promise<AccommodationResponse[]> {
     const response = await fetch(`${API_URL}/api/trips/${tripId}/accommodations`, {
         method: "GET",
+        headers: await getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error(`Fehler beim Laden der Unterkünfte: ${response.status}`);

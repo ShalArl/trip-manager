@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -57,6 +58,7 @@ type transportRecord struct {
 	ID              uuid.UUID  `db:"id"`
 	TripID          uuid.UUID  `db:"trip_id"`
 	UserID          uuid.UUID  `db:"user_id"`
+	TenantID        string     `db:"tenant_id"`
 	UserName        string     `db:"user_name"`
 	UserEmail       string     `db:"user_email"`
 	FromName        *string    `db:"from_name"`
@@ -139,14 +141,19 @@ func NewRepository(db *sqlx.DB) Repository {
 }
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Transport, error) {
-	var rec transportRecord
-	if err := r.db.GetContext(ctx, &rec, `SELECT * FROM transports WHERE id = $1`, id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Transport
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var rec transportRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM transports WHERE id = $1`, id); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return rec.toDomain(), nil
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, error) {
@@ -158,35 +165,44 @@ func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, 
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-
 	var notesPtr *string
 	if t.Notes != "" {
 		notesPtr = &t.Notes
 	}
+	tenantID := tenantdb.GetTenantID(ctx)
 
-	var id uuid.UUID
-	query := `
-		INSERT INTO transports (
-			trip_id, user_id, user_name, user_email,
-			from_name, from_city, from_country, from_country_code, from_lat, from_lng,
-			to_name, to_city, to_country, to_country_code, to_lat, to_lng,
-			departure_time, arrival_time, type, notes
-		) VALUES (
-			$1, $2, $3, $4,
-			$5, $6, $7, $8, $9,
-			$10, $11, $12, $13, $14,
-			$15, $16, $17, $18, $19, $20
-		) RETURNING id`
-	err = r.db.QueryRowContext(ctx, query,
-		tripID, userID, t.CreatedBy.Name, t.CreatedBy.Email,
-		t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
-		t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
-		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
-	).Scan(&id)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return r.GetByID(ctx, id.String())
+	var result *Transport
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var id uuid.UUID
+		query := `
+			INSERT INTO transports (
+				trip_id, user_id, user_name, user_email, tenant_id,
+				from_name, from_city, from_country, from_country_code, from_lat, from_lng,
+				to_name, to_city, to_country, to_country_code, to_lat, to_lng,
+				departure_time, arrival_time, type, notes
+			) VALUES (
+				$1, $2, $3, $4, $5,
+				$6, $7, $8, $9, $10, $11,
+				$12, $13, $14, $15, $16, $17,
+				$18, $19, $20, $21
+			) RETURNING id`
+		err := tx.QueryRowContext(ctx, query,
+			tripID, userID, t.CreatedBy.Name, t.CreatedBy.Email, tenantID,
+			t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
+			t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
+			t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
+		).Scan(&id)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		var rec transportRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM transports WHERE id = $1`, id); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, error) {
@@ -198,68 +214,87 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid user_id", ErrInvalidInput)
 	}
-
 	var notesPtr *string
 	if t.Notes != "" {
 		notesPtr = &t.Notes
 	}
 
-	query := `
-		UPDATE transports
-		SET from_name = $1, from_city = $2, from_country = $3, from_country_code = $4, from_lat = $5, from_lng = $6,
-		    to_name = $7, to_city = $8, to_country = $9, to_country_code = $10, to_lat = $11, to_lng = $12,
-		    departure_time = $13, arrival_time = $14, type = $15, notes = $16,
-		    updated_at = NOW()
-		WHERE id = $17 AND user_id = $18
-		RETURNING updated_at`
-	err = r.db.QueryRowContext(ctx, query,
-		t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
-		t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
-		t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
-		id, userID,
-	).Scan(&t.UpdatedAt)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+	var result *Transport
+	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		query := `
+			UPDATE transports
+			SET from_name = $1, from_city = $2, from_country = $3, from_country_code = $4,
+			    from_lat = $5, from_lng = $6,
+			    to_name = $7, to_city = $8, to_country = $9, to_country_code = $10,
+			    to_lat = $11, to_lng = $12,
+			    departure_time = $13, arrival_time = $14, type = $15, notes = $16,
+			    updated_at = NOW()
+			WHERE id = $17 AND user_id = $18
+			RETURNING updated_at`
+		err := tx.QueryRowContext(ctx, query,
+			t.From.Name, t.From.City, t.From.Country, t.From.CountryCode, t.From.Lat, t.From.Lng,
+			t.To.Name, t.To.City, t.To.Country, t.To.CountryCode, t.To.Lat, t.To.Lng,
+			t.DepartureTime, t.ArrivalTime, t.Type, notesPtr,
+			id, userID,
+		).Scan(&t.UpdatedAt)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("%w: %v", ErrInternal, err)
 		}
-		return nil, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	return r.GetByID(ctx, t.ID)
+		var rec transportRecord
+		if err := tx.GetContext(ctx, &rec, `SELECT * FROM transports WHERE id = $1`, id); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		result = rec.toDomain()
+		return nil
+	})
+	return result, err
 }
 
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Transport, int, error) {
-	var results []struct {
-		transportRecord
-		TotalCount int `db:"total_count"`
-	}
-	query := `
-		SELECT *, COUNT(*) OVER() as total_count
-		FROM transports
-		WHERE trip_id = $1
-		ORDER BY departure_time ASC NULLS LAST
-		LIMIT $2 OFFSET $3`
-	if err := r.db.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
-		return nil, 0, fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	if len(results) == 0 {
-		return []*Transport{}, 0, nil
-	}
-	transports := make([]*Transport, len(results))
-	for i, res := range results {
-		transports[i] = res.transportRecord.toDomain()
-	}
-	return transports, results[0].TotalCount, nil
+	var transports []*Transport
+	var total int
+	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		var results []struct {
+			transportRecord
+			TotalCount int `db:"total_count"`
+		}
+		query := `
+			SELECT *, COUNT(*) OVER() as total_count
+			FROM transports
+			WHERE trip_id = $1
+			ORDER BY departure_time ASC NULLS LAST
+			LIMIT $2 OFFSET $3`
+		if err := tx.SelectContext(ctx, &results, query, tripID, limit, offset); err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		if len(results) == 0 {
+			transports = []*Transport{}
+			return nil
+		}
+		total = results[0].TotalCount
+		transports = make([]*Transport, len(results))
+		for i, res := range results {
+			transports[i] = res.transportRecord.toDomain()
+		}
+		return nil
+	})
+	return transports, total, err
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
-	result, err := r.db.ExecContext(ctx,
-		`DELETE FROM transports WHERE id = $1 AND user_id = $2`, id, userID)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInternal, err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+		result, err := tx.ExecContext(ctx,
+			`DELETE FROM transports WHERE id = $1 AND user_id = $2`, id, userID)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInternal, err)
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }

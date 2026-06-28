@@ -12,6 +12,7 @@ type UserSummary struct {
 type Comment struct {
 	ID          string      `firestore:"id"`
 	EntityID    string      `firestore:"entityId"`
+	TenantID    string      `firestore:"tenantId"`
 	FirebaseUID string      `firestore:"firebaseUid"`
 	User        UserSummary `firestore:"user"`
 	Text        string      `firestore:"text"`
