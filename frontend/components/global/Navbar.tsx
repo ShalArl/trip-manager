@@ -23,7 +23,7 @@ type Props = {
 export default function Navbar({user: initialUser, onLogout}: Props) {
     const router = useRouter();
     const {user} = useUserContext();
-    const {tenantId, tenantName, branding, role, isAdmin, isOwner, isPlatformAdmin} = useTenantContext();
+    const {tenantId, tenantName, branding, role, isAdmin, isOwner, isPlatformAdmin, isAdvertiser} = useTenantContext();
 
     const displayUser = user || initialUser;
 

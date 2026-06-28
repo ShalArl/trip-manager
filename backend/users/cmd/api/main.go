@@ -156,9 +156,10 @@ func main() {
 	// ADVERTISER
 	advRepo := advertiser.NewRepository(db)
 	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))
-	mux.HandleFunc("POST /advertisers", requireAuth(advertiser.CreateHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers", requireAuth(advertiser.CreateHandler(advRepo, fbClient)))
 	mux.HandleFunc("GET /advertisers/me", requireAuth(advertiser.GetMeHandler(advRepo)))
 	mux.HandleFunc("GET /advertisers/{id}", requireAuth(advertiser.GetByIDHandler(advRepo)))
+	mux.HandleFunc("POST /advertisers/{id}/contact/{tenantId}", requireAuth(advertiser.ContactTenantHandler(advRepo, tenantRepo, emailSvc)))
 	mux.HandleFunc("POST /advertisers/{id}/tenants", requireAuth(advertiser.AssignTenantHandler(advRepo)))
 	mux.HandleFunc("DELETE /advertisers/{id}/tenants/{tenantId}", requireAuth(advertiser.RemoveTenantHandler(advRepo)))
 

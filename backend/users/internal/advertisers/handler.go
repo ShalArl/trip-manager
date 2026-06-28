@@ -1,12 +1,14 @@
 package advertiser
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"tenantdb"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
+	"github.com/ShalArl/trip-manager/backend/shared/firebaseclient"
 	"github.com/ShalArl/trip-manager/backend/users/internal/tenant"
 )
 
@@ -21,7 +23,7 @@ func respondError(w http.ResponseWriter, status int, msg string) {
 }
 
 // POST /advertisers – nur platform_admin
-func CreateHandler(repo Repository) http.HandlerFunc {
+func CreateHandler(repo Repository, firebaseAuth *firebaseclient.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		role := authclient.GetUserRole(r)
 		if role != "platform_admin" && role != "tenant_owner" && role != "tenant_admin" {
@@ -48,6 +50,15 @@ func CreateHandler(repo Repository) http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// Firebase Claims setzen falls FirebaseUID vorhanden
+		if firebaseAuth != nil && req.FirebaseUID != "" {
+			go firebaseAuth.SetCustomClaims(context.Background(), req.FirebaseUID, map[string]interface{}{
+				"role":          "advertiser",
+				"advertiser_id": adv.ID,
+			})
+		}
+
 		respondJSON(w, http.StatusCreated, adv)
 	}
 }
