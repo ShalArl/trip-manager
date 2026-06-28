@@ -18,6 +18,7 @@ type TenantContextType = {
     isAdmin: boolean;
     isOwner: boolean;
     isPlatformAdmin: boolean;
+    isAdvertiser: boolean;
     branding: Branding;
 };
 
@@ -28,6 +29,7 @@ const DEFAULT_CLAIMS: TenantContextType = {
     isAdmin: false,
     isOwner: false,
     isPlatformAdmin: false,
+    isAdvertiser: false,
     branding: null,
 };
 
@@ -82,6 +84,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             isAdmin: ["tenant_admin", "tenant_owner", "platform_admin"].includes(role),
             isOwner: ["tenant_owner", "platform_admin"].includes(role),
             isPlatformAdmin: role === "platform_admin",
+            isAdvertiser: role === "advertiser",
         });
     };
 
