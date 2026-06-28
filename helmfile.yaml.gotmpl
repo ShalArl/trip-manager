@@ -259,36 +259,6 @@ releases:
     needs:
       - trip-manager-{{ .Environment.Name }}/newsletter-postgres
 
-  - name: newsletter
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/newsletter
-    values:
-      - helm/services/newsletter/values.yaml
-      - helm/services/newsletter/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}newsletter"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      - trip-manager-{{ .Environment.Name }}/newsletter-postgres
-
-
-  - name: newsletter-worker
-    namespace: trip-manager-{{ .Environment.Name }}
-    chart: ./helm/services/newsletter-worker
-    values:
-      - helm/services/newsletter-worker/values.yaml
-      - helm/services/newsletter-worker/values/{{ .Environment.Name }}.yaml
-    set:
-      - name: image.repository
-        value: "{{ .Values.imageRegistry }}/{{ .Values.imagePrefix }}newsletter-worker"
-      - name: image.tag
-        value: "{{ .Values.imageTag }}"
-    needs:
-      - trip-manager-{{ .Environment.Name }}/newsletter-postgres
-      - trip-manager-{{ .Environment.Name }}/neo4j
-
   - name: frontend
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/frontend
