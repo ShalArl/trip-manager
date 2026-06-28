@@ -1,0 +1,50 @@
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+
+service:
+  port: 8087
+
+replicaCount: 1
+
+probes:
+  liveness: /health
+  readiness: /health
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPU: 70
+  targetMemory: 80
+
+env:
+  - name: PORT
+    value: "8071"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: RUN_MODE
+    value: "oneshot"
+
+envFrom: []
+
+serviceAccount:
+  gcpServiceAccount: ""
+
+externalSecrets:
+  enabled: false
+  secrets: []
+
+cronjob:
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

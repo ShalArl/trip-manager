@@ -1,0 +1,8 @@
+apiVersion: v2
+name: feed-generator
+version: 0.1.0
+description: Feed Generator Service
+dependencies:
+  - name: common
+    version: "1.0.0"
+    repository: "file://../../charts/common"

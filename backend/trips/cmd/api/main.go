@@ -97,6 +97,25 @@ func main() {
 		log.Println("warn: GCP_PROJECT_ID or PUBSUB_TOPIC_ID not set, trip.created events will not be published")
 	}
 
+	// PubSub Producer
+	var pubsubProducer *pubsub.Producer
+	if cfg.GCPProjectID != "" && cfg.PubSubTopicID != "" {
+		var err error
+		pubsubProducer, err = pubsub.NewProducer(cfg.GCPProjectID, cfg.PubSubTopicID)
+		if err != nil {
+			log.Fatalf("failed to initialize pubsub producer: %v", err)
+		}
+		defer func(pubsubProducer *pubsub.Producer) {
+			err := pubsubProducer.Close()
+			if err != nil {
+				log.Fatalf("failed to close pubsub producer: %v", err)
+			}
+		}(pubsubProducer)
+		log.Printf("Pub/Sub producer initialized for project %s on topic %s", cfg.GCPProjectID, cfg.PubSubTopicID)
+	} else {
+		log.Println("warn: GCP_PROJECT_ID or PUBSUB_TOPIC_ID not set, trip.created events will not be published")
+	}
+
 	// Clients
 	authClient := authclient.NewClient(cfg.AuthServiceURL)
 	usersClient := userclient.NewUsersClient(cfg.UsersServiceURL)
