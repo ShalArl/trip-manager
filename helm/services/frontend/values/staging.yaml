@@ -1,0 +1,15 @@
+image:
+  pullPolicy: Always
+replicaCount: 1
+hpa:
+  enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+env:
+  - name: NEXT_PUBLIC_API_URL
+    value: "https://api.staging.neatnode.xyz"

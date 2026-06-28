@@ -3,15 +3,15 @@ name: Deploy to GKE
 
 on:
   workflow_run:
-    workflows: ["Dynamic Microservice CI/CD"]
-    types: [completed]
-    branches: [main]
+    workflows: [ "Dynamic Microservice CI/CD" ]
+    types: [ completed ]
+    branches: [ main, dev ]
   workflow_dispatch:
     inputs:
       environment:
         description: 'Target environment'
         type: choice
-        options: [prod, dev]
+        options: [ prod, staging, dev ]
         default: prod
       image_tag:
         description: 'Image tag to deploy (leave empty for latest successful)'
@@ -33,20 +33,22 @@ jobs:
             ENV="${{ github.event.inputs.environment }}"
             TAG="${{ github.event.inputs.image_tag }}"
             SHA="${{ github.sha }}"
-            # Falls kein Tag angegeben, SHA des aktuellen Commits verwenden
             if [ -z "$TAG" ]; then
               TAG="sha-${SHA}"
             fi
           else
-            ENV="prod"
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            if [ "$BRANCH" = "main" ]; then
+              ENV="prod"
+            else
+              ENV="staging"
+            fi
             SHA="${{ github.event.workflow_run.head_sha }}"
             TAG="sha-${SHA}"
           fi
-
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "environment=$ENV" >> $GITHUB_OUTPUT
           echo "image_tag=$TAG" >> $GITHUB_OUTPUT
-
           echo "Deploying SHA: $SHA"
           echo "Environment: $ENV"
           echo "Image Tag: $TAG"

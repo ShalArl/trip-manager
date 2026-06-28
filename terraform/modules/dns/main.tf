@@ -110,3 +110,65 @@ resource "google_dns_record_set" "resend_dmarc" {
   project      = var.project_id
   rrdatas      = ["\"v=DMARC1; p=none;\""]
 }
+
+# ── Staging ────────────────────────────────────────────────────────────────────
+
+resource "google_compute_global_address" "staging" {
+  name    = "trip-manager-staging-ip"
+  project = var.project_id
+}
+
+resource "google_dns_record_set" "staging" {
+  name         = "staging.${var.domain}."
+  type         = "A"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = [google_compute_global_address.staging.address]
+}
+
+resource "google_dns_record_set" "api_staging" {
+  name         = "api.staging.${var.domain}."
+  type         = "A"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = [google_compute_global_address.staging.address]
+}
+
+resource "google_certificate_manager_certificate" "staging" {
+  name    = "trip-manager-staging-cert"
+  project = var.project_id
+
+  managed {
+    domains = [
+      "staging.${var.domain}",
+      "api.staging.${var.domain}",
+    ]
+  }
+}
+
+resource "google_certificate_manager_certificate_map" "staging" {
+  name    = "trip-manager-staging-cert-map"
+  project = var.project_id
+}
+
+resource "google_certificate_manager_certificate_map_entry" "staging" {
+  name         = "trip-manager-staging-cert-map-entry"
+  project      = var.project_id
+  map          = google_certificate_manager_certificate_map.staging.name
+  certificates = [google_certificate_manager_certificate.staging.id]
+  hostname     = "staging.${var.domain}"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "api_staging" {
+  name         = "trip-manager-staging-cert-map-entry-api"
+  project      = var.project_id
+  map          = google_certificate_manager_certificate_map.staging.name
+  certificates = [google_certificate_manager_certificate.staging.id]
+  hostname     = "api.staging.${var.domain}"
+}
+
+output "staging_ip" {
+  value = google_compute_global_address.staging.address
+}

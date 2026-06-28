@@ -1,0 +1,4 @@
+environment: staging
+gcpProjectID: project-32c60644-299b-4b05-8cf
+serviceAccount:
+  gcpServiceAccount: "otel-collector-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com"

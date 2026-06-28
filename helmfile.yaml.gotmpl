@@ -3,6 +3,10 @@ environments:
     values:
       - environments/dev/values.yaml
     kubeContext: minikube
+  staging:
+    values:
+      - environments/staging/values.yaml
+    kubeContext: gke_project-32c60644-299b-4b05-8cf_europe-west1_trip-manager-prod
   prod:
     values:
       - environments/prod/values.yaml

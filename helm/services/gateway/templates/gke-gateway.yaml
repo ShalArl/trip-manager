@@ -5,7 +5,7 @@ metadata:
   name: trip-manager-gateway
   namespace: {{ .Release.Namespace }}
   annotations:
-    networking.gke.io/certmap: "trip-manager-cert-map"
+    networking.gke.io/certmap: "{{ .Values.ingress.certMap | default "trip-manager-cert-map" }}"
 spec:
   gatewayClassName: gke-l7-global-external-managed
   listeners:
