@@ -103,4 +103,3 @@ subjects:
   - name: external-secrets-cert-controller
     namespace: external-secrets
     kind: ServiceAccount
-

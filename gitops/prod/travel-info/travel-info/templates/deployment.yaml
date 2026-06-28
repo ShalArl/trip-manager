@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: travel-info
     app.kubernetes.io/instance: travel-info
-    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/version: "sha-7befcfa53aeb6d8c53151b1975df2d4dfdf98b21"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -30,7 +30,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: travel-info
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:dev"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:sha-7befcfa53aeb6d8c53151b1975df2d4dfdf98b21"
           imagePullPolicy: Always
           ports:
             - containerPort: 8087
@@ -60,10 +60,10 @@ spec:
                 name: travel-info-secrets
           resources: 
             limits:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 128Mi
           livenessProbe:
             httpGet:

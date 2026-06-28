@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: auth
     app.kubernetes.io/instance: auth
-    app.kubernetes.io/version: "dev"
+    app.kubernetes.io/version: "sha-7befcfa53aeb6d8c53151b1975df2d4dfdf98b21"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -29,7 +29,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: auth
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:dev"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:sha-7befcfa53aeb6d8c53151b1975df2d4dfdf98b21"
           imagePullPolicy: Always
           ports:
             - containerPort: 8082

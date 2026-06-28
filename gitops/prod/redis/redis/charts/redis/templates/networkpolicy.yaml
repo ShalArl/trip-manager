@@ -25,4 +25,3 @@ spec:
     # Allow inbound connections
     - ports:
         - port: 6379
-

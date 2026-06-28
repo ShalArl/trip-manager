@@ -24,4 +24,3 @@ spec:
   selector:
     app.kubernetes.io/name: external-secrets-webhook
     app.kubernetes.io/instance: external-secrets
-

@@ -74,4 +74,3 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
             successThreshold: 1
-

@@ -77,4 +77,3 @@ webhooks:
   sideEffects: None
   timeoutSeconds: 5
   failurePolicy: Fail
-

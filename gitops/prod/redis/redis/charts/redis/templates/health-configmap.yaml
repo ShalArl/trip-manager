@@ -107,4 +107,3 @@ data:
     "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
     "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
     exit $exit_status
-

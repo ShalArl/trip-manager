@@ -35,4 +35,3 @@ data:
     rename-command FLUSHALL ""
     # End of replica configuration
   users.acl: |-
-
