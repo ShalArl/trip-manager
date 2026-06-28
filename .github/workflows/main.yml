@@ -166,10 +166,11 @@ jobs:
 
   build-backend:
     needs: [ discover-services ]
-    if: needs.discover-services.outputs.backend-matrix != ''
+    if: needs.discover-services.outputs.backend-changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 3
+      fail-fast: false
       matrix: ${{ fromJson(needs.discover-services.outputs.backend-matrix) }}
     permissions:
       contents: read
