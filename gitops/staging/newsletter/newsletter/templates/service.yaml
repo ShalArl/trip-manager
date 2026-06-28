@@ -1,0 +1,47 @@
+---
+# Source: newsletter/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: newsletter
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: newsletter
+    app.kubernetes.io/instance: newsletter
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8070
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: newsletter
+    app.kubernetes.io/instance: newsletter
+---
+# Source: newsletter/templates/service.yaml
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: newsletter-hc-policy
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: newsletter
+    app.kubernetes.io/instance: newsletter
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8070
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: newsletter

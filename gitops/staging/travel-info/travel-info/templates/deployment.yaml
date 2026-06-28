@@ -1,0 +1,82 @@
+---
+# Source: travel-info/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travel-info
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: travel-info
+    app.kubernetes.io/instance: travel-info
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: travel-info
+      app.kubernetes.io/instance: travel-info
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: travel-info
+        app.kubernetes.io/instance: travel-info
+      annotations:
+        checksum/config: 81492b0aac338b9430477636527e6cffa642d7d1da031e4532854573484455f7
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: travel-info
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:sha-0343f559fc152d65502551770f96616188778685"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8087
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8087"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-prod.svc.cluster.local:8082
+            - name: TRAVEL_API_URL
+              value: https://www.auswaertiges-amt.de/opendata/travelwarning
+            - name: WEATHER_API_URL
+              value: https://api.open-meteo.com/v1/forecast
+            - name: FORECAST_DAYS
+              value: "3"
+            - name: CACHE_TTL_HOURS
+              value: "25"
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://staging.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-prod.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: travel-info-secrets
+          resources: 
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: travel-info

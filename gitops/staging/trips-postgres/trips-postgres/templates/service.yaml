@@ -1,0 +1,27 @@
+---
+# Source: trips-postgres/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: trips-postgres
+  namespace: trip-manager-staging
+spec:
+  selector:
+    app: trips-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Source: trips-postgres/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: trips-postgres-headless
+  namespace: trip-manager-staging
+spec:
+  clusterIP: None   # Headless
+  selector:
+    app: trips-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

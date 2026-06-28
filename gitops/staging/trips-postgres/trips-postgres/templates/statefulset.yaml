@@ -1,0 +1,36 @@
+---
+# Source: trips-postgres/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trips-postgres
+  namespace: trip-manager-staging
+spec:
+  serviceName: trips-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trips-postgres
+  template:
+    metadata:
+      labels:
+        app: trips-postgres
+    spec:
+      containers:
+        - name: trips-postgres
+          image: "postgres:16-alpine"
+          env:
+            - name: POSTGRES_DB
+              value: $(echo $svc | sed 's/-postgres//')
+            - name: POSTGRES_USER
+              value: $(echo $svc | sed 's/-postgres//')
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: trips-postgres-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+      volumes:
+        - name: data
+          emptyDir: { }

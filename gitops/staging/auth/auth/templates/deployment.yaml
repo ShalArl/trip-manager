@@ -1,0 +1,72 @@
+---
+# Source: auth/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: auth
+    app.kubernetes.io/instance: auth
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth
+      app.kubernetes.io/instance: auth
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: auth
+        app.kubernetes.io/instance: auth
+      annotations:
+        checksum/config: 06aee0c292bda9b428e1883cda33f324c6899cd221a1a275f07512a3b52a316e
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: auth
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:sha-0343f559fc152d65502551770f96616188778685"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8082"
+            - name: LOG_LEVEL
+              value: info
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://staging.neatnode.xyz,https://neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-staging.svc.cluster.local:4317
+          envFrom: 
+            - secretRef:
+                name: auth-secrets
+          resources: 
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: auth

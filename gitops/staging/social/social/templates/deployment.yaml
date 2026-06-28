@@ -1,0 +1,87 @@
+---
+# Source: social/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: social
+    app.kubernetes.io/instance: social
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: social
+      app.kubernetes.io/instance: social
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: social
+        app.kubernetes.io/instance: social
+      annotations:
+        checksum/config: ceda0ca5e9e98d7f722716c0b36e56c718a03d4afb3653be54fb42e91d7a3920
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: social
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/social:sha-0343f559fc152d65502551770f96616188778685"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8081"
+            - name: LOG_LEVEL
+              value: info
+            - name: FIRESTORE_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: AUTH_CLIENT_CONNECTION_STRING
+              value: http://auth.trip-manager-staging.svc.cluster.local:8082
+            - name: USERS_SERVICE_URL
+              value: http://users.trip-manager-staging.svc.cluster.local:8083
+            - name: GCP_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: PUBSUB_TOPIC_ID
+              value: trip-events
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://staging.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-staging.svc.cluster.local:4317
+            - name: STORAGE_PROVIDER
+              value: gcs
+            - name: STORAGE_BUCKET
+              value: trip-manager-bucket
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-staging.svc.cluster.local:8082
+            - name: GCS_SIGNER_SA
+              value: social-sa@project-32c60644-299b-4b05-8cf.iam.gserviceaccount.com
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: social

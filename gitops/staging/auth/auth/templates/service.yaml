@@ -1,0 +1,47 @@
+---
+# Source: auth/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: auth
+    app.kubernetes.io/instance: auth
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: auth
+    app.kubernetes.io/instance: auth
+---
+# Source: auth/templates/service.yaml
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: auth-hc-policy
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: auth
+    app.kubernetes.io/instance: auth
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8082
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: auth

@@ -1,0 +1,84 @@
+---
+# Source: users/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: users
+    app.kubernetes.io/instance: users
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: users
+      app.kubernetes.io/instance: users
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: users
+        app.kubernetes.io/instance: users
+      annotations:
+        checksum/config: 53ad401d85023c00e9c9624c82c8df0482ed4dbc18c804980f354fc85568b841
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: users
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:sha-0343f559fc152d65502551770f96616188778685"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8083"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-staging.svc.cluster.local:8082
+            - name: STORAGE_BUCKET_URL
+              value: https://storage.googleapis.com/trip-manager-bucket
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://staging.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-staging.svc.cluster.local:4317
+            - name: GCP_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: GITHUB_REPO
+              value: ShalArl/trip-manager
+            - name: GITHUB_BRANCH
+              value: gitops-staging
+            - name: BASE_URL
+              value: https://staging.neatnode.xyz
+          envFrom: 
+            - secretRef:
+                name: users-secrets
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: users

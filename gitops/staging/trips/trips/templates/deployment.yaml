@@ -1,0 +1,84 @@
+---
+# Source: trips/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trips
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: trips
+    app.kubernetes.io/instance: trips
+    app.kubernetes.io/version: "sha-0343f559fc152d65502551770f96616188778685"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: trips
+      app.kubernetes.io/instance: trips
+  template:
+    metadata:
+      labels: 
+        app.kubernetes.io/name: trips
+        app.kubernetes.io/instance: trips
+      annotations:
+        checksum/config: 50ae6fed9116fb203ecdfd94e0531bfef1a86a689a420a5f5616da4770ad2b12
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: trips
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/trips:sha-0343f559fc152d65502551770f96616188778685"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8084
+              name: http
+              protocol: TCP
+          env: 
+            - name: PORT
+              value: "8084"
+            - name: LOG_LEVEL
+              value: info
+            - name: AUTH_SERVICE_URL
+              value: http://auth.trip-manager-staging.svc.cluster.local:8082
+            - name: USERS_SERVICE_URL
+              value: http://users.trip-manager-staging.svc.cluster.local:8083
+            - name: GCP_PROJECT_ID
+              value: project-32c60644-299b-4b05-8cf
+            - name: PUBSUB_TOPIC_ID
+              value: trip-events
+            - name: CORS_ALLOWED_ORIGINS
+              value: https://staging.neatnode.xyz
+            - name: OTEL_COLLECTOR_ENDPOINT
+              value: otel-collector.trip-manager-staging.svc.cluster.local:4317
+            - name: S3_ENDPOINT
+              value: https://storage.googleapis.com
+            - name: S3_BUCKET
+              value: trip-manager-bucket
+          envFrom: 
+            - secretRef:
+                name: trips-secrets
+          resources: 
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+      serviceAccountName: trips

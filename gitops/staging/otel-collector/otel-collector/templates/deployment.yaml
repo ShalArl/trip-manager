@@ -1,0 +1,43 @@
+---
+# Source: otel-collector/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: trip-manager-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      serviceAccountName: otel-collector
+      containers:
+        - name: otel-collector
+          image: "otel/opentelemetry-collector-contrib:0.104.0"
+          args: ["--config=/conf/config.yaml"]
+          ports:
+            - containerPort: 4317
+              name: grpc
+            - containerPort: 4318
+              name: http
+            - containerPort: 8889
+              name: prometheus
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+          resources: 
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config

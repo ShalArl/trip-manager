@@ -1,0 +1,36 @@
+---
+# Source: users-postgres/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: users-postgres
+  namespace: trip-manager-staging
+spec:
+  serviceName: users-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: users-postgres
+  template:
+    metadata:
+      labels:
+        app: users-postgres
+    spec:
+      containers:
+        - name: users-postgres
+          image: "postgres:16-alpine"
+          env:
+            - name: POSTGRES_DB
+              value: $(echo $svc | sed 's/-postgres//')
+            - name: POSTGRES_USER
+              value: $(echo $svc | sed 's/-postgres//')
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: users-postgres-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+      volumes:
+        - name: data
+          emptyDir: {}
