@@ -17,6 +17,7 @@ spec:
       containers:
         - name: users-postgres
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
           env:
             - name: POSTGRES_DB
               value: {{ .Values.postgres.db }}
@@ -33,17 +34,22 @@ spec:
               {{- end }}
           ports:
             - containerPort: 5432
-          {{- if .Values.persistence.enabled }}
           volumeMounts:
+            - name: config
+              mountPath: /etc/postgresql
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /var/lib/postgresql/data
               subPath: postgres
-          {{- end }}
-      {{- if not .Values.persistence.enabled }}
+            {{- end }}
       volumes:
+        - name: config
+          configMap:
+            name: users-postgres-config
+        {{- if not .Values.persistence.enabled }}
         - name: data
           emptyDir: {}
-      {{- end }}
+        {{- end }}
   {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
