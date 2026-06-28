@@ -98,7 +98,7 @@ jobs:
             fi
           
             { [ "$service" = "shared" ] || [ "$service" = "nginx" ]; } && continue  # Skip shared & nginx
-  
+          
             path="backend/$service"
             if [ ! -f "$path/go.mod" ] || [ ! -f "$path/Dockerfile" ]; then
               echo "❌ ERROR: $service is missing go.mod or Dockerfile"
@@ -413,9 +413,14 @@ jobs:
         run: |
           rm -rf ../gitops-repo/gitops/$ENVIRONMENT
           mkdir -p ../gitops-repo/gitops/$ENVIRONMENT
-          helmfile -e $ENVIRONMENT \
-            --state-values-set imageTag=$IMAGE_TAG \
-            template --output-dir-template "../gitops-repo/gitops/$ENVIRONMENT/{{.Release.Name}}"
+          if [ "$ENVIRONMENT" = "staging" ]; then
+            helmfile -e $ENVIRONMENT \
+              template --output-dir-template "../gitops-repo/gitops/$ENVIRONMENT/{{.Release.Name}}"
+          else
+            helmfile -e $ENVIRONMENT \
+              --state-values-set imageTag=$IMAGE_TAG \
+              template --output-dir-template "../gitops-repo/gitops/$ENVIRONMENT/{{.Release.Name}}"
+          fi
 
       - name: Commit and push rendered manifests
         env:
