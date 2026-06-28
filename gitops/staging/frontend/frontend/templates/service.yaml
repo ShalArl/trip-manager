@@ -1,0 +1,23 @@
+---
+# Source: frontend/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: trip-manager-staging
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: frontend
+    app.kubernetes.io/version: "sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: trip-manager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: frontend

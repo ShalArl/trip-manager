@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: auth
     app.kubernetes.io/instance: auth
-    app.kubernetes.io/version: "sha-5e9e9f730d723d5d574d529b268bb19ae7e26518"
+    app.kubernetes.io/version: "sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -31,7 +31,7 @@ metadata:
   labels:
     app.kubernetes.io/name: auth
     app.kubernetes.io/instance: auth
-    app.kubernetes.io/version: "sha-5e9e9f730d723d5d574d529b268bb19ae7e26518"
+    app.kubernetes.io/version: "sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:

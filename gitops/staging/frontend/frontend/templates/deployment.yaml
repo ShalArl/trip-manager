@@ -1,13 +1,13 @@
 ---
-# Source: auth/templates/deployment.yaml
+# Source: frontend/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: auth
+  name: frontend
   namespace: trip-manager-staging
   labels:
-    app.kubernetes.io/name: auth
-    app.kubernetes.io/instance: auth
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: frontend
     app.kubernetes.io/version: "sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
@@ -15,39 +15,30 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: auth
-      app.kubernetes.io/instance: auth
+      app.kubernetes.io/name: frontend
+      app.kubernetes.io/instance: frontend
   template:
     metadata:
       labels: 
-        app.kubernetes.io/name: auth
-        app.kubernetes.io/instance: auth
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/instance: frontend
       annotations:
-        checksum/config: 06aee0c292bda9b428e1883cda33f324c6899cd221a1a275f07512a3b52a316e
+        checksum/config: 0ba3ed2d3e2fc708a64305057bbd8025b847c0558c2f2b4841facb25ca89b642
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
-        - name: auth
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
+        - name: frontend
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/frontend:sha-eb282c521d20b6252edd9ab705a74bf01548cb5d"
           imagePullPolicy: Always
           ports:
-            - containerPort: 8082
+            - containerPort: 3000
               name: http
               protocol: TCP
           env: 
-            - name: PORT
-              value: "8082"
-            - name: LOG_LEVEL
-              value: info
-            - name: CORS_ALLOWED_ORIGINS
-              value: https://staging.neatnode.xyz,https://neatnode.xyz
-            - name: OTEL_COLLECTOR_ENDPOINT
-              value: otel-collector.trip-manager-staging.svc.cluster.local:4317
-          envFrom: 
-            - secretRef:
-                name: auth-secrets
+            - name: NEXT_PUBLIC_API_URL
+              value: https://api.staging.neatnode.xyz
           resources: 
             limits:
               cpu: 500m
@@ -57,16 +48,16 @@ spec:
               memory: 128Mi
           livenessProbe:
             httpGet:
-              path: /health
+              path: /
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
-      serviceAccountName: auth
+      serviceAccountName: frontend
