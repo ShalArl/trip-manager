@@ -19,6 +19,7 @@ spec:
       containers:
         - name: trips-postgres
           image: "postgres:16-alpine"
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
           env:
             - name: POSTGRES_DB
               value: trips
@@ -31,6 +32,12 @@ spec:
                   key: POSTGRES_PASSWORD
           ports:
             - containerPort: 5432
+          volumeMounts:
+            - name: config
+              mountPath: /etc/postgresql
       volumes:
+        - name: config
+          configMap:
+            name: trips-postgres-config
         - name: data
-          emptyDir: { }
+          emptyDir: {}
