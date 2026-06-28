@@ -21,9 +21,9 @@ spec:
           image: "postgres:16-alpine"
           env:
             - name: POSTGRES_DB
-              value: $(echo $svc | sed 's/-postgres//')
+              value: trips
             - name: POSTGRES_USER
-              value: $(echo $svc | sed 's/-postgres//')
+              value: trips
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
