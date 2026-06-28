@@ -358,3 +358,78 @@ jobs:
           pattern: build-meta-*
           delete-merged: true
 
+  deploy:
+    needs: [ build-backend, build-frontend ]
+    if: always() && (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') && (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set environment and image tag
+        id: ctx
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            ENV="prod"
+          else
+            ENV="staging"
+          fi
+          SHA="${{ github.sha }}"
+          TAG="sha-${SHA}"
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Deploying SHA: $SHA to $ENV"
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ctx.outputs.sha }}
+          path: source
+
+      - name: Checkout gitops branch
+        uses: actions/checkout@v4
+        with:
+          ref: gitops-prod
+          path: gitops-repo
+
+      - name: Install Helmfile
+        run: |
+          HELMFILE_VERSION=$(curl -s https://api.github.com/repos/helmfile/helmfile/releases/latest | grep tag_name | cut -d'"' -f4)
+          HELMFILE_VERSION_CLEAN=${HELMFILE_VERSION#v}
+          curl -fsSL "https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION_CLEAN}_linux_amd64.tar.gz" \
+            | tar xz helmfile
+          sudo mv helmfile /usr/local/bin/
+          helmfile version
+
+      - name: Install Helm plugins
+        run: |
+          helm plugin install https://github.com/databus23/helm-diff || true
+
+      - name: Render manifests
+        env:
+          IMAGE_TAG: ${{ steps.ctx.outputs.image_tag }}
+          ENVIRONMENT: ${{ steps.ctx.outputs.environment }}
+        working-directory: source
+        run: |
+          rm -rf ../gitops-repo/gitops/$ENVIRONMENT
+          mkdir -p ../gitops-repo/gitops/$ENVIRONMENT
+          helmfile -e $ENVIRONMENT \
+            --state-values-set imageTag=$IMAGE_TAG \
+            template --output-dir-template "../gitops-repo/gitops/$ENVIRONMENT/{{.Release.Name}}"
+
+      - name: Commit and push rendered manifests
+        env:
+          ENVIRONMENT: ${{ steps.ctx.outputs.environment }}
+          IMAGE_TAG: ${{ steps.ctx.outputs.image_tag }}
+          SOURCE_SHA: ${{ steps.ctx.outputs.sha }}
+        working-directory: gitops-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/$ENVIRONMENT
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "deploy(${ENVIRONMENT}): ${IMAGE_TAG} (source ${SOURCE_SHA})"
+            git push origin gitops-prod
+          fi
