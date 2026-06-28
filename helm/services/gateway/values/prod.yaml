@@ -3,3 +3,4 @@ ingress:
   className: gke-l7-global-external-managed
   host: neatnode.xyz
   apiHost: api.neatnode.xyz
+  certMap: trip-manager-cert-map
