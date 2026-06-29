@@ -295,6 +295,20 @@ func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.Ha
 					}
 				}()
 			} else if req.Tier != "enterprise" && previousTier == "enterprise" {
+				defaultCtx := tenantdb.WithTenantID(r.Context(), "default")
+				if err := repo.DeleteEnterpriseDBURL(defaultCtx, tenant.ID); err != nil {
+					log.Printf("warn: failed to delete enterprise db url: %v", err)
+				}
+
+				go func() {
+					if err := provisioner.DeprovisionEnterpriseTenant(
+						context.Background(),
+						tenant.Slug,
+					); err != nil {
+						log.Printf("enterprise deprovisioning failed for %s: %v", tenant.Slug, err)
+					}
+				}()
+
 				go func() {
 					if err := provisioner.DeprovisionEnterpriseTenant(
 						context.Background(),

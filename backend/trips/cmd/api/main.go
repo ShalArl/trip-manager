@@ -126,9 +126,8 @@ func main() {
 		}
 	})
 
-	poolManager := dbpool.NewPoolManager(db, cfg.UsersServiceURL, cfg.InternalSecret)
-	handler := tenantDBMiddleware(poolManager)(mux)
-
+	poolManager := dbpool.NewPoolManager(db, cfg.UsersServiceURL, cfg.InternalSecret, cfg.AppDBPassword)
+	handler := tenantDBMiddleware(poolManager, authClient)(mux)
 	// Trips
 	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient, pubsubProducer)))
@@ -186,10 +185,18 @@ func main() {
 	log.Println("Server stopped")
 }
 
-func tenantDBMiddleware(poolManager *dbpool.PoolManager) func(http.Handler) http.Handler {
+func tenantDBMiddleware(poolManager *dbpool.PoolManager, authClient *authclient.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tenantID := authclient.GetTenantID(r)
+			tenantID := "default"
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				if result, err := authClient.ValidateBearerToken(r.Context(), authHeader); err == nil && result.Valid {
+					if tid, ok := result.Claims["tenant_id"].(string); ok && tid != "" {
+						tenantID = tid
+					}
+				}
+			}
 			db := poolManager.GetDB(r.Context(), tenantID)
 			ctx := dbpool.WithDB(r.Context(), db)
 			next.ServeHTTP(w, r.WithContext(ctx))
