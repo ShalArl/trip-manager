@@ -52,6 +52,8 @@ externalSecrets:
       remoteKey: resend-api-key
     - secretKey: GITHUB_TOKEN
       remoteKey: github-token
+    - secretKey: INTERNAL_SECRET
+      remoteKey: internal-secret
 
 envFrom:
   - secretRef:

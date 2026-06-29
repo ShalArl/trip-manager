@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
+	dbpool "github.com/ShalArl/trip-manager/backend/trips/internal/database"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -170,7 +171,7 @@ func (r *repositoryImpl) listImages(ctx context.Context, tx *sqlx.Tx, locationID
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Location, int, error) {
 	var locations []*Location
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []struct {
 			locationRecord
 			TotalCount int `db:"total_count"`
@@ -204,7 +205,7 @@ func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, o
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Location, error) {
 	var result *Location
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var rec locationRecord
 		if err := tx.GetContext(ctx, &rec, `SELECT * FROM locations WHERE id = $1`, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -234,7 +235,7 @@ func (r *repositoryImpl) Create(ctx context.Context, l *Location) (*Location, er
 	tenantID := tenantdb.GetTenantID(ctx)
 
 	var result *Location
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		rec := &locationRecord{
 			TripID:           tripID,
 			UserID:           userID,
@@ -284,7 +285,7 @@ func (r *repositoryImpl) Update(ctx context.Context, l *Location) (*Location, er
 		return nil, fmt.Errorf("%w: invalid id", ErrInvalidInput)
 	}
 	var result *Location
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var updatedAt time.Time
 		err := tx.QueryRowContext(ctx, `
 			UPDATE locations
@@ -316,7 +317,7 @@ func (r *repositoryImpl) Update(ctx context.Context, l *Location) (*Location, er
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id string) error {
-	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	return tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		result, err := tx.ExecContext(ctx, `DELETE FROM locations WHERE id = $1`, id)
 		if err != nil {
 			return fmt.Errorf("%w: %v", ErrInternal, err)
@@ -336,7 +337,7 @@ func (r *repositoryImpl) AddImage(ctx context.Context, img *LocationImage) (*Loc
 	}
 	tenantID := tenantdb.GetTenantID(ctx)
 	var result *LocationImage
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		rec := &locationImageRecord{
 			LocationID: locationID,
 			TenantID:   tenantID,
@@ -364,7 +365,7 @@ func (r *repositoryImpl) AddImage(ctx context.Context, img *LocationImage) (*Loc
 }
 
 func (r *repositoryImpl) DeleteImage(ctx context.Context, imageID string) error {
-	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	return tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		result, err := tx.ExecContext(ctx, `DELETE FROM location_images WHERE id = $1`, imageID)
 		if err != nil {
 			return fmt.Errorf("%w: %v", ErrInternal, err)
@@ -375,4 +376,8 @@ func (r *repositoryImpl) DeleteImage(ctx context.Context, imageID string) error 
 		}
 		return nil
 	})
+}
+
+func (r *repositoryImpl) getDB(ctx context.Context) *sqlx.DB {
+	return dbpool.GetDB(ctx, r.db)
 }

@@ -28,8 +28,17 @@ DO $$ BEGIN
 END $$;
 
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations') THEN
-        CREATE POLICY tenant_isolation_invitations ON tenant_invitations
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations_read') THEN
+        CREATE POLICY tenant_isolation_invitations_read ON tenant_invitations
+            FOR SELECT
+            USING (true);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations_write') THEN
+        CREATE POLICY tenant_isolation_invitations_write ON tenant_invitations
+            FOR ALL
             USING (tenant_id = current_setting('app.tenant_id', true))
             WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
     END IF;
@@ -78,3 +87,4 @@ DO $$ BEGIN
             WITH CHECK (id = current_setting('app.tenant_id', true));
     END IF;
 END $$;
+

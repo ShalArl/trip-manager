@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	sharedotel "otel"
 	"syscall"
+	"tenantdb"
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
@@ -142,6 +144,23 @@ func main() {
 	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
 	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, svc)))
 	mux.HandleFunc("GET /tenants/me/usage/timeseries", requireAuth(tenant.GetUsageTimeSeriesHandler(metricsClient)))
+
+	// internal endpoint only
+	mux.HandleFunc("GET /internal/tenants/{tenantId}/db-url", func(w http.ResponseWriter, r *http.Request) {
+		// Nur interne Aufrufe erlauben
+		if r.Header.Get("X-Internal-Secret") != cfg.InternalSecret {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		tenantID := r.PathValue("tenantId")
+		ctx := tenantdb.WithTenantID(r.Context(), "default")
+		dbURL, err := tenantRepo.GetEnterpriseDBURL(ctx, tenantID)
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"dbUrl": dbURL})
+	})
 	// ADVERTISER
 	advRepo := advertiser.NewRepository(db)
 	mux.HandleFunc("GET /advertisers", requireAuth(advertiser.ListHandler(advRepo)))

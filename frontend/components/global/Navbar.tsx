@@ -44,27 +44,30 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                         className="flex items-center gap-2 cursor-pointer"
                         onClick={() => router.push(displayUser ? "/trips" : "/")}
                     >
-                        {branding?.logoUrl ? (
-                            <Image
-                                src={branding.logoUrl}
-                                alt={branding.companyName || tenantName}
-                                className="h-8 object-contain max-w-32"
-                            />
-                        ) : (
-                            <>
-                                <span className="text-xl">🌍</span>
-                                <div className="flex flex-col items-start leading-tight">
-                                    <span className="text-lg font-bold tracking-tight">
-                                        {branding?.companyName || "Trip Manager"}
+                        <div
+                            className="flex items-center gap-2 cursor-pointer"
+                            onClick={() => router.push(displayUser ? "/trips" : "/")}
+                        >
+                            {branding?.logoUrl && (
+                                <Image
+                                    src={branding.logoUrl}
+                                    alt={branding.companyName || tenantName}
+                                    width={32}
+                                    height={32}
+                                    className="h-8 object-contain max-w-32"
+                                />
+                            )}
+                            <div className="flex flex-col items-start leading-tight">
+                                <span className="text-lg font-bold tracking-tight">
+                                    {branding?.companyName || "Trip Manager"}
+                                </span>
+                                {tenantId !== "default" && tenantName && !branding?.companyName && (
+                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-normal mt-0.5">
+                                        by {tenantName}
                                     </span>
-                                    {tenantId !== "default" && tenantName && !branding?.companyName && (
-                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-normal mt-0.5">
-                                            by {tenantName}
-                                        </span>
-                                    )}
-                                </div>
-                            </>
-                        )}
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <button
@@ -168,7 +171,7 @@ export default function Navbar({user: initialUser, onLogout}: Props) {
                                     onClick={() => router.push("/advertiser")}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                                 >
-                                    <Megaphone className="h-4 w-4" />
+                                    <Megaphone className="h-4 w-4"/>
                                     <span className="hidden sm:block">Insights</span>
                                 </button>
                             )}

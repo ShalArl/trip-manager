@@ -22,6 +22,7 @@ type Config struct {
 	GitHubRepo               string   `envconfig:"GITHUB_REPO" default:""`
 	GitHubBranch             string   `envconfig:"GITHUB_BRANCH" default:""`
 	ResendApiKey             string   `envconfig:"RESEND_API_KEY" default:""`
+	InternalSecret           string   `envconfig:"INTERNAL_SECRET" default:""`
 }
 
 func Load() (*Config, error) {

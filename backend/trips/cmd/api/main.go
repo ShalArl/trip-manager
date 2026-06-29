@@ -17,6 +17,7 @@ import (
 	"github.com/ShalArl/trip-manager/backend/trips/config"
 	"github.com/ShalArl/trip-manager/backend/trips/database"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/accommodation"
+	dbpool "github.com/ShalArl/trip-manager/backend/trips/internal/database"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/locations"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/transport"
 	"github.com/ShalArl/trip-manager/backend/trips/internal/trip"
@@ -125,6 +126,9 @@ func main() {
 		}
 	})
 
+	poolManager := dbpool.NewPoolManager(db, cfg.UsersServiceURL, cfg.InternalSecret)
+	handler := tenantDBMiddleware(poolManager)(mux)
+
 	// Trips
 	mux.HandleFunc("GET /", requireAuth(trip.ListTripsHandler(tripSvc, usersClient)))
 	mux.HandleFunc("POST /", requireAuth(trip.CreateTripHandler(tripSvc, usersClient, pubsubProducer)))
@@ -159,7 +163,7 @@ func main() {
 	// Server
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(mux)),
+		Handler: middleware.CORS(corsConfig)(sharedotel.MetricsMiddleware(metrics, authClient)(handler)),
 	}
 
 	// Graceful shutdown
@@ -180,4 +184,15 @@ func main() {
 		log.Fatalf("server failed: %v", err)
 	}
 	log.Println("Server stopped")
+}
+
+func tenantDBMiddleware(poolManager *dbpool.PoolManager) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tenantID := authclient.GetTenantID(r)
+			db := poolManager.GetDB(r.Context(), tenantID)
+			ctx := dbpool.WithDB(r.Context(), db)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

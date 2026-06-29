@@ -272,6 +272,17 @@ func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.Ha
 		if provisioner != nil {
 			if req.Tier == "enterprise" && previousTier != "enterprise" {
 				dbPassword := generateDBPassword()
+				dbURL := fmt.Sprintf(
+					"postgres://trips_enterprise:%s@trips-postgres-%s.trip-manager-%s.svc.cluster.local:5432/trips?sslmode=disable",
+					dbPassword, tenant.Slug, tenant.Slug,
+				)
+
+				// DB-URL in users-DB speichern
+				defaultCtx := tenantdb.WithTenantID(r.Context(), "default")
+				if err := repo.SaveEnterpriseDBURL(defaultCtx, tenant.ID, dbURL); err != nil {
+					log.Printf("warn: failed to save enterprise db url: %v", err)
+				}
+
 				go func() {
 					if err := provisioner.ProvisionEnterpriseTenant(
 						context.Background(),

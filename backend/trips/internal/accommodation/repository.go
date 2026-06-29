@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
+	dbpool "github.com/ShalArl/trip-manager/backend/trips/internal/database"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -133,7 +134,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Accommodation, error) {
 	var result *Accommodation
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var rec accommodationRecord
 		if err := tx.GetContext(ctx, &rec, `SELECT * FROM accommodations WHERE id = $1`, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -167,7 +168,7 @@ func (r *repositoryImpl) Create(ctx context.Context, a *Accommodation) (*Accommo
 	tenantID := tenantdb.GetTenantID(ctx)
 
 	var result *Accommodation
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var id uuid.UUID
 		query := `
 			INSERT INTO accommodations (
@@ -216,7 +217,7 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 	}
 
 	var result *Accommodation
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		query := `
 			UPDATE accommodations
 			SET location_name = $1, location_city = $2, location_country = $3,
@@ -249,7 +250,7 @@ func (r *repositoryImpl) Update(ctx context.Context, a *Accommodation) (*Accommo
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Accommodation, int, error) {
 	var accommodations []*Accommodation
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []struct {
 			accommodationRecord
 			TotalCount int `db:"total_count"`
@@ -278,7 +279,7 @@ func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, o
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
-	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	return tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		result, err := tx.ExecContext(ctx,
 			`DELETE FROM accommodations WHERE id = $1 AND user_id = $2`, id, userID)
 		if err != nil {
@@ -290,4 +291,8 @@ func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
 		}
 		return nil
 	})
+}
+
+func (r *repositoryImpl) getDB(ctx context.Context) *sqlx.DB {
+	return dbpool.GetDB(ctx, r.db)
 }
