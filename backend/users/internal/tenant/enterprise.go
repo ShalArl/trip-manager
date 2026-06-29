@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -271,7 +272,8 @@ func (g *GitHubProvisioner) createOrUpdateFile(ctx context.Context, path, conten
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
-		return fmt.Errorf("github API error: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("github API error: %d - %s", resp.StatusCode, string(body))
 	}
 	return nil
 }
