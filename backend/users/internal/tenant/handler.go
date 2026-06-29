@@ -229,6 +229,49 @@ type UpgradeTierRequest struct {
 	Tier string `json:"tier"`
 }
 
+func JoinTenantBySlugHandler(tenantRepo Repository, svc service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		firebaseUID, ok := authclient.GetUserID(r)
+		if !ok {
+			respondError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		var req struct {
+			Slug string `json:"slug"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		// Tenant per Slug holen
+		ctx := tenantdb.WithTenantID(r.Context(), "default")
+		tenant, err := tenantRepo.GetBySlug(ctx, req.Slug)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "tenant not found")
+			return
+		}
+
+		email, _ := authclient.GetUserEmail(r)
+		_, _, err = svc.ProvisionWithTenant(r.Context(), service.ProvisionInput{
+			FirebaseUID: firebaseUID,
+			Email:       email,
+			TenantID:    tenant.ID,
+			Role:        "tenant_member",
+		})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"tenantId": tenant.ID,
+			"name":     tenant.Name,
+		})
+	}
+}
+
 func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
