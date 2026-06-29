@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trips-postgres-test
+  namespace: trip-manager-test
+spec:
+  serviceName: trips-postgres-test
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trips-postgres
+      tenant: test
+  template:
+    metadata:
+      labels:
+        app: trips-postgres
+        tenant: test
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+          env:
+            - name: POSTGRES_DB
+              value: trips
+            - name: POSTGRES_USER
+              value: trips_enterprise
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: trips-postgres-test-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+            - name: config
+              mountPath: /etc/postgresql
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: trips-postgres-test-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 5Gi
