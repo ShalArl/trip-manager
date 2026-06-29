@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: frontend
     app.kubernetes.io/instance: frontend
-    app.kubernetes.io/version: "sha-b8dec51646cd3ca68f416639f31bf5df3509c252"
+    app.kubernetes.io/version: "sha-8af5008f1487946b9e0751c0ed11a1d7022c40fc"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
