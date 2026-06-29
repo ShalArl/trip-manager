@@ -35,7 +35,7 @@ env:
   - name: GITHUB_REPO
     value: "ShalArl/trip-manager"
   - name: GITHUB_BRANCH
-    value: "gitops-staging"
+    value: "gitops-prod" # branch benannt bevor staging dazu kam
   - name: BASE_URL
     value: "https://staging.neatnode.xyz"
 
