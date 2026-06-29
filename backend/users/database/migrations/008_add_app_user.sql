@@ -28,8 +28,24 @@ DO $$ BEGIN
 END $$;
 
 DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations') THEN
-        CREATE POLICY tenant_isolation_invitations ON tenant_invitations
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'users' AND policyname = 'platform_admin_users') THEN
+        CREATE POLICY platform_admin_users ON users
+            USING (current_setting('app.tenant_id', true) IN ('default', ''));
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations_read') THEN
+        CREATE POLICY tenant_isolation_invitations_read ON tenant_invitations
+            FOR SELECT
+            USING (true);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenant_invitations' AND policyname = 'tenant_isolation_invitations_write') THEN
+        CREATE POLICY tenant_isolation_invitations_write ON tenant_invitations
+            FOR ALL
             USING (tenant_id = current_setting('app.tenant_id', true))
             WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
     END IF;
@@ -57,24 +73,14 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- Gleiches für users (Platform Admin darf alle User sehen)
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'users' AND policyname = 'platform_admin_users') THEN
-        CREATE POLICY platform_admin_users ON users
-            USING (current_setting('app.tenant_id', true) IN ('default', ''));
-    END IF;
-END $$;
-
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'tenant_create') THEN
         CREATE POLICY tenant_create ON tenants FOR INSERT WITH CHECK (true);
     END IF;
 END $$;
 
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tenants' AND policyname = 'tenant_isolation_tenants') THEN
-        CREATE POLICY tenant_isolation_tenants ON tenants
-            USING (id = current_setting('app.tenant_id', true))
-            WITH CHECK (id = current_setting('app.tenant_id', true));
-    END IF;
-END $$;
+-- tenant_isolation_tenants immer neu erstellen um sicherzustellen dass WITH CHECK korrekt ist
+DROP POLICY IF EXISTS tenant_isolation_tenants ON tenants;
+CREATE POLICY tenant_isolation_tenants ON tenants
+    USING (id = current_setting('app.tenant_id', true))
+    WITH CHECK (id = current_setting('app.tenant_id', true));

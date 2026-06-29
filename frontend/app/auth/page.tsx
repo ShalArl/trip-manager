@@ -2,9 +2,10 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUserContext } from "@/lib/context/UserContext";
-import { register, login } from "@/lib/api/auth";
+import {register, login, getAuthHeaders} from "@/lib/api/auth";
 import AuthPage from "@/components/auth/AuthPage";
 import type { CreateUserRequest, LoginRequest } from "@/types/user";
+import {createAdvertiser} from "@/lib/api/advertiser";
 
 function AuthContent() {
     const router = useRouter();
@@ -12,11 +13,19 @@ function AuthContent() {
     const redirect = searchParams.get("redirect") || "/";
     const { updateUser } = useUserContext();
 
+    const type = searchParams.get("type");
+
     const handleRegister = async (createUserRequest: CreateUserRequest) => {
         try {
             const user = await register(createUserRequest);
             updateUser(user);
-            router.push(redirect);
+
+            if (type === "advertiser") {
+                await createAdvertiser({email: user.email, name: user.name})
+                router.push("/advertiser");
+            } else {
+                router.push(redirect);
+            }
         } catch (error) {
             console.error("Registration failed:", error);
             throw error;

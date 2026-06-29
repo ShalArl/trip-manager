@@ -18,6 +18,7 @@ type Config struct {
 	DatabaseURL           string   `envconfig:"DATABASE_URL"`
 	MigrationDBURL        string   `envconfig:"MIGRATION_DB_URL"`
 	AppDBPassword         string   `envconfig:"APP_DB_PASSWORD"`
+	InternalSecret        string   `envconfig:"INTERNAL_SECRET" default:""`
 }
 
 func Load() (*Config, error) {

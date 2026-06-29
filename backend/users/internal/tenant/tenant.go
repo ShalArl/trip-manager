@@ -52,6 +52,8 @@ type Repository interface {
 	Delete(ctx context.Context, id string) error
 	ListAll(ctx context.Context) ([]*Tenant, error)
 	GetOwnerEmail(ctx context.Context, tenantID string) (string, error)
+	SaveEnterpriseDBURL(ctx context.Context, tenantID, dbURL string) error
+	GetEnterpriseDBURL(ctx context.Context, tenantID string) (string, error)
 }
 
 type repositoryImpl struct {
@@ -208,6 +210,26 @@ func (r *repositoryImpl) GetOwnerEmail(ctx context.Context, tenantID string) (st
 		return "", fmt.Errorf("failed to get owner email: %w", err)
 	}
 	return email, nil
+}
+
+func (r *repositoryImpl) SaveEnterpriseDBURL(ctx context.Context, tenantID, dbURL string) error {
+	_, err := r.db.ExecContext(ctx, `
+        INSERT INTO enterprise_tenants (tenant_id, db_url)
+        VALUES ($1, $2)
+        ON CONFLICT (tenant_id) DO UPDATE SET db_url = EXCLUDED.db_url
+    `, tenantID, dbURL)
+	return err
+}
+
+func (r *repositoryImpl) GetEnterpriseDBURL(ctx context.Context, tenantID string) (string, error) {
+	var dbURL string
+	err := r.db.QueryRowContext(ctx, `
+        SELECT db_url FROM enterprise_tenants WHERE tenant_id = $1
+    `, tenantID).Scan(&dbURL)
+	if err != nil {
+		return "", err
+	}
+	return dbURL, nil
 }
 
 func (rec *tenantRecord) toDomain() *Tenant {

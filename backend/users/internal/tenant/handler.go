@@ -11,6 +11,7 @@ import (
 
 	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
+	"github.com/ShalArl/trip-manager/backend/users/repository"
 	"github.com/ShalArl/trip-manager/backend/users/service"
 	"github.com/google/uuid"
 )
@@ -272,6 +273,17 @@ func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.Ha
 		if provisioner != nil {
 			if req.Tier == "enterprise" && previousTier != "enterprise" {
 				dbPassword := generateDBPassword()
+				dbURL := fmt.Sprintf(
+					"postgres://trips_enterprise:%s@trips-postgres-%s.trip-manager-%s.svc.cluster.local:5432/trips?sslmode=disable",
+					dbPassword, tenant.Slug, tenant.Slug,
+				)
+
+				// DB-URL in users-DB speichern
+				defaultCtx := tenantdb.WithTenantID(r.Context(), "default")
+				if err := repo.SaveEnterpriseDBURL(defaultCtx, tenant.ID, dbURL); err != nil {
+					log.Printf("warn: failed to save enterprise db url: %v", err)
+				}
+
 				go func() {
 					if err := provisioner.ProvisionEnterpriseTenant(
 						context.Background(),
@@ -303,7 +315,7 @@ func UpgradeTierHandler(repo Repository, provisioner *GitHubProvisioner) http.Ha
 	}
 }
 
-func DeleteTenantHandler(repo Repository, userSvc service.Service) http.HandlerFunc {
+func DeleteTenantHandler(repo Repository, userRepo repository.Repository, userSvc service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := authclient.GetTenantID(r)
 		if tenantID == "" || tenantID == "default" {
@@ -320,12 +332,19 @@ func DeleteTenantHandler(repo Repository, userSvc service.Service) http.HandlerF
 		firebaseUID, _ := authclient.GetUserID(r)
 		ctx := tenantdb.WithTenantID(r.Context(), tenantID)
 
+		// Erst alle User auf default zurücksetzen
+		if err := userRepo.ResetTenantUsers(ctx, tenantID); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Dann Tenant löschen
 		if err := repo.Delete(ctx, tenantID); err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// User zurück auf default Tenant setzen
+		// Owner Firebase Claims zurücksetzen
 		_, _, _ = userSvc.ProvisionWithTenant(r.Context(), service.ProvisionInput{
 			FirebaseUID: firebaseUID,
 			TenantID:    "default",

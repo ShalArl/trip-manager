@@ -28,6 +28,8 @@ externalSecrets:
       remoteKey: trips-database-url
     - secretKey: APP_DB_PASSWORD
       remoteKey: trips-app-database-password
+    - secretKey: INTERNAL_SECRET
+      remoteKey: internal-secret
 
 envFrom:
   - secretRef:

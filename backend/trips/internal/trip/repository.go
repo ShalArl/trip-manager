@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
+	dbpool "github.com/ShalArl/trip-manager/backend/trips/internal/database"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -156,7 +157,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Trip, error) {
 	var result *Trip
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var rec tripRecord
 		if err := tx.GetContext(ctx, &rec, `SELECT * FROM trips WHERE id = $1`, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -177,7 +178,7 @@ func (r *repositoryImpl) Create(ctx context.Context, trip *Trip) (*Trip, error) 
 		return nil, fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
 	var result *Trip
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		query := `
 			INSERT INTO trips (user_id, user_name, user_email, user_avatar_key,
 			                   title, short_description, description,
@@ -208,7 +209,7 @@ func (r *repositoryImpl) Update(ctx context.Context, trip *Trip) (*Trip, error) 
 		return nil, fmt.Errorf("%w: %v", ErrInvalidInput, err)
 	}
 	var result *Trip
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		query := `
 			UPDATE trips
 			SET title = $1, short_description = $2, description = $3,
@@ -233,7 +234,7 @@ func (r *repositoryImpl) Update(ctx context.Context, trip *Trip) (*Trip, error) 
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
-	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	return tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		result, err := tx.ExecContext(ctx,
 			`DELETE FROM trips WHERE id = $1 AND user_id = $2`, id, userID)
 		if err != nil {
@@ -253,7 +254,7 @@ func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
 func (r *repositoryImpl) List(ctx context.Context, userID string, limit, offset int) ([]*Trip, int, error) {
 	var trips []*Trip
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []struct {
 			tripRecord
 			TotalCount int `db:"total_count"`
@@ -284,7 +285,7 @@ func (r *repositoryImpl) List(ctx context.Context, userID string, limit, offset 
 func (r *repositoryImpl) ListRecent(ctx context.Context, limit, offset int) ([]*Trip, int, error) {
 	var trips []*Trip
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []tripRecord
 		if err := tx.SelectContext(ctx, &results, `
 			SELECT * FROM trips
@@ -311,7 +312,7 @@ func (r *repositoryImpl) ListRecent(ctx context.Context, limit, offset int) ([]*
 func (r *repositoryImpl) Search(ctx context.Context, query string, limit, offset int) ([]*Trip, int, error) {
 	var trips []*Trip
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []struct {
 			tripRecord
 			TotalCount int `db:"total_count"`
@@ -341,7 +342,7 @@ func (r *repositoryImpl) Search(ctx context.Context, query string, limit, offset
 
 func (r *repositoryImpl) CountActiveByUser(ctx context.Context, userID string) (int, error) {
 	var count int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		return tx.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM trips WHERE user_id = $1 AND status IN ('planned', 'ongoing')`,
 			userID,
@@ -351,4 +352,8 @@ func (r *repositoryImpl) CountActiveByUser(ctx context.Context, userID string) (
 		return 0, fmt.Errorf("%w: %v", ErrInternal, err)
 	}
 	return count, nil
+}
+
+func (r *repositoryImpl) getDB(ctx context.Context) *sqlx.DB {
+	return dbpool.GetDB(ctx, r.db)
 }

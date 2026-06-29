@@ -18,7 +18,7 @@ export async function listAdvertisers(): Promise<Advertiser[]> {
     return res.json();
 }
 
-export async function createAdvertiser(data: { firebaseUid: string; email: string; name: string }): Promise<Advertiser> {
+export async function createAdvertiser(data: { email: string; name: string }): Promise<Advertiser> {
     const headers = await getAuthHeaders();
     const res = await fetch(`${API_URL}/api/users/advertisers`, {
         method: "POST",

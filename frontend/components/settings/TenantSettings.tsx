@@ -337,6 +337,7 @@ export default function TenantSettings() {
                                     className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                                 />
                             </div>
+                            {/* Keine Zeit mehr bro
                             <div>
                                 <label className="block text-xs text-zinc-500 mb-1">Custom Domain (coming soon)</label>
                                 <input
@@ -347,6 +348,7 @@ export default function TenantSettings() {
                                     className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 opacity-50 cursor-not-allowed"
                                 />
                             </div>
+                            */}
                             <div className="flex items-center gap-3">
                                 <button
                                     type="submit"

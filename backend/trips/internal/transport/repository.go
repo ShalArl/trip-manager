@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ShalArl/trip-manager/backend/shared/tenantdb"
+	dbpool "github.com/ShalArl/trip-manager/backend/trips/internal/database"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -142,7 +143,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 func (r *repositoryImpl) GetByID(ctx context.Context, id string) (*Transport, error) {
 	var result *Transport
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var rec transportRecord
 		if err := tx.GetContext(ctx, &rec, `SELECT * FROM transports WHERE id = $1`, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -172,7 +173,7 @@ func (r *repositoryImpl) Create(ctx context.Context, t *Transport) (*Transport, 
 	tenantID := tenantdb.GetTenantID(ctx)
 
 	var result *Transport
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var id uuid.UUID
 		query := `
 			INSERT INTO transports (
@@ -220,7 +221,7 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 	}
 
 	var result *Transport
-	err = tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err = tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		query := `
 			UPDATE transports
 			SET from_name = $1, from_city = $2, from_country = $3, from_country_code = $4,
@@ -256,7 +257,7 @@ func (r *repositoryImpl) Update(ctx context.Context, t *Transport) (*Transport, 
 func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, offset int) ([]*Transport, int, error) {
 	var transports []*Transport
 	var total int
-	err := tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	err := tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		var results []struct {
 			transportRecord
 			TotalCount int `db:"total_count"`
@@ -285,7 +286,7 @@ func (r *repositoryImpl) ListByTrip(ctx context.Context, tripID string, limit, o
 }
 
 func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
-	return tenantdb.WithTenant(ctx, r.db, func(tx *sqlx.Tx) error {
+	return tenantdb.WithTenant(ctx, r.getDB(ctx), func(tx *sqlx.Tx) error {
 		result, err := tx.ExecContext(ctx,
 			`DELETE FROM transports WHERE id = $1 AND user_id = $2`, id, userID)
 		if err != nil {
@@ -297,4 +298,8 @@ func (r *repositoryImpl) Delete(ctx context.Context, id, userID string) error {
 		}
 		return nil
 	})
+}
+
+func (r *repositoryImpl) getDB(ctx context.Context) *sqlx.DB {
+	return dbpool.GetDB(ctx, r.db)
 }
