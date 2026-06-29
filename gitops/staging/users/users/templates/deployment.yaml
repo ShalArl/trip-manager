@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: users
     app.kubernetes.io/instance: users
-    app.kubernetes.io/version: "sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+    app.kubernetes.io/version: "sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -23,14 +23,14 @@ spec:
         app.kubernetes.io/name: users
         app.kubernetes.io/instance: users
       annotations:
-        checksum/config: 53ad401d85023c00e9c9624c82c8df0482ed4dbc18c804980f354fc85568b841
+        checksum/config: 57a2c297f4d08ef9a7600685aa9aa09fda5c52adfa7b49b24a42ed457a9042e5
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: users
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
           imagePullPolicy: Always
           ports:
             - containerPort: 8083
@@ -46,7 +46,7 @@ spec:
             - name: STORAGE_BUCKET_URL
               value: https://storage.googleapis.com/trip-manager-bucket
             - name: CORS_ALLOWED_ORIGINS
-              value: https://staging.neatnode.xyz
+              value: https://staging.neatnode.xyz,https://www.staging.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-staging.svc.cluster.local:4317
             - name: GCP_PROJECT_ID

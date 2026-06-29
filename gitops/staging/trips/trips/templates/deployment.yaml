@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: trips
     app.kubernetes.io/instance: trips
-    app.kubernetes.io/version: "sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+    app.kubernetes.io/version: "sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -23,14 +23,14 @@ spec:
         app.kubernetes.io/name: trips
         app.kubernetes.io/instance: trips
       annotations:
-        checksum/config: 50ae6fed9116fb203ecdfd94e0531bfef1a86a689a420a5f5616da4770ad2b12
+        checksum/config: ebf7a2e85dd474c1afec42abe879f8b9be31e25ce8bed68704ed3f2d57540e5d
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: trips
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/trips:sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/trips:sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
           imagePullPolicy: Always
           ports:
             - containerPort: 8084
@@ -50,7 +50,7 @@ spec:
             - name: PUBSUB_TOPIC_ID
               value: trip-events
             - name: CORS_ALLOWED_ORIGINS
-              value: https://staging.neatnode.xyz
+              value: https://staging.neatnode.xyz,https://www.staging.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-staging.svc.cluster.local:4317
             - name: S3_ENDPOINT

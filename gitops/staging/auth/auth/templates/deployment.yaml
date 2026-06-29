@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: auth
     app.kubernetes.io/instance: auth
-    app.kubernetes.io/version: "sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+    app.kubernetes.io/version: "sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -23,14 +23,14 @@ spec:
         app.kubernetes.io/name: auth
         app.kubernetes.io/instance: auth
       annotations:
-        checksum/config: 06aee0c292bda9b428e1883cda33f324c6899cd221a1a275f07512a3b52a316e
+        checksum/config: f11ec93ce1e651f1f958af7e1cd88d1c11d23a47986e426e19ae8b0bdde02e94
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: auth
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/auth:sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
           imagePullPolicy: Always
           ports:
             - containerPort: 8082
@@ -42,7 +42,7 @@ spec:
             - name: LOG_LEVEL
               value: info
             - name: CORS_ALLOWED_ORIGINS
-              value: https://staging.neatnode.xyz,https://neatnode.xyz
+              value: https://staging.neatnode.xyz,https://www.staging.neatnode.xyz
             - name: OTEL_COLLECTOR_ENDPOINT
               value: otel-collector.trip-manager-staging.svc.cluster.local:4317
           envFrom: 

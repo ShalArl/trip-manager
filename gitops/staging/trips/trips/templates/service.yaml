@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: trips
     app.kubernetes.io/instance: trips
-    app.kubernetes.io/version: "sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+    app.kubernetes.io/version: "sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -31,7 +31,7 @@ metadata:
   labels:
     app.kubernetes.io/name: trips
     app.kubernetes.io/instance: trips
-    app.kubernetes.io/version: "sha-e77a14361d079e267e0c60f39463fdb007e05d73"
+    app.kubernetes.io/version: "sha-e9d0c3c78bac07aa10e3a84f125ee4c275969f5a"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
