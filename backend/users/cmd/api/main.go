@@ -142,7 +142,7 @@ func main() {
 	mux.HandleFunc("DELETE /tenants/me/invitations/{invitationId}", requireAuth(tenant.DeleteInvitationHandler(invRepo)))
 	mux.HandleFunc("POST /tenants/join", requireAuth(tenant.AcceptInvitationHandler(invRepo, repo, svc)))
 	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
-	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, svc)))
+	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, repo, svc)))
 	mux.HandleFunc("GET /tenants/me/usage/timeseries", requireAuth(tenant.GetUsageTimeSeriesHandler(metricsClient)))
 
 	// internal endpoint only
