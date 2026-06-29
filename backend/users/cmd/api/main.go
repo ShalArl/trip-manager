@@ -144,6 +144,7 @@ func main() {
 	mux.HandleFunc("GET /tenants/all", requireAuth(tenant.ListAllTenantsHandler(tenantRepo)))
 	mux.HandleFunc("DELETE /tenants/me", requireAuth(tenant.DeleteTenantHandler(tenantRepo, repo, svc)))
 	mux.HandleFunc("GET /tenants/me/usage/timeseries", requireAuth(tenant.GetUsageTimeSeriesHandler(metricsClient)))
+	mux.HandleFunc("POST /tenants/join-by-slug", requireAuth(tenant.JoinTenantBySlugHandler(tenantRepo, svc)))
 
 	// internal endpoint only
 	mux.HandleFunc("GET /internal/tenants/{tenantId}/db-url", func(w http.ResponseWriter, r *http.Request) {
