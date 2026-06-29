@@ -171,15 +171,6 @@ jobs:
             echo "url=${{ vars.NEXT_PUBLIC_API_STAGING_URL_GCP }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set API URL based on branch
-        id: api-url
-        run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "url=${{ vars.NEXT_PUBLIC_API_URL_GCP }}" >> $GITHUB_OUTPUT
-          else
-            echo "url=${{ vars.NEXT_PUBLIC_API_STAGING_URL_GCP }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
