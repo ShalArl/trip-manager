@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: social
     app.kubernetes.io/instance: social
-    app.kubernetes.io/version: "sha-d1a4242bf88912ba62a7b92c0278de27d4bc840e"
+    app.kubernetes.io/version: "sha-d09f356785e1526561029e8b60030ef68eea8b16"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -31,7 +31,7 @@ metadata:
   labels:
     app.kubernetes.io/name: social
     app.kubernetes.io/instance: social
-    app.kubernetes.io/version: "sha-d1a4242bf88912ba62a7b92c0278de27d4bc840e"
+    app.kubernetes.io/version: "sha-d09f356785e1526561029e8b60030ef68eea8b16"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
