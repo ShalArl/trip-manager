@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"tenantdb"
 	"time"
 
+	"github.com/ShalArl/trip-manager/backend/shared/authclient"
 	"github.com/ShalArl/trip-manager/backend/shared/userclient"
 	generated "github.com/ShalArl/trip-manager/backend/trips/generated"
 	"github.com/ShalArl/trip-manager/backend/trips/pubsub"
@@ -287,6 +287,8 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, produce
 		}
 
 		// PubSub Event – fire-and-forget, Fehler nur loggen
+		tenantID := authclient.GetTenantID(r)
+
 		if producer != nil {
 			if err := producer.PublishTripCreated(r.Context(), pubsub.TripCreatedEvent{
 				TripID:    trip.ID,
@@ -294,7 +296,7 @@ func CreateTripHandler(svc Service, usersClient *userclient.UsersClient, produce
 				UserName:  user.Name,
 				Title:     trip.Title,
 				CreatedAt: time.Now().UTC().Format(time.RFC3339),
-				TenantID:  tenantdb.GetTenantID(r.Context()),
+				TenantID:  tenantID,
 			}); err != nil {
 				log.Printf("warn: failed to publish trip.created for trip %s: %v", trip.ID, err)
 			}

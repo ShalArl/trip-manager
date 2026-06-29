@@ -124,7 +124,16 @@ resource "google_dns_record_set" "staging" {
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary.name
   project      = var.project_id
-  rrdatas      = [google_compute_global_address.staging.address]
+  rrdatas      = ["136.69.78.80"]
+}
+
+resource "google_dns_record_set" "www_staging" {
+  name         = "www.staging.${var.domain}."
+  type         = "A"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.primary.name
+  project      = var.project_id
+  rrdatas      = ["136.69.78.80"]
 }
 
 resource "google_dns_record_set" "api_staging" {
@@ -133,7 +142,7 @@ resource "google_dns_record_set" "api_staging" {
   ttl          = 300
   managed_zone = google_dns_managed_zone.primary.name
   project      = var.project_id
-  rrdatas      = [google_compute_global_address.staging.address]
+  rrdatas      = ["136.69.78.80"]
 }
 
 resource "google_certificate_manager_certificate" "staging" {
@@ -144,6 +153,7 @@ resource "google_certificate_manager_certificate" "staging" {
     domains = [
       "staging.${var.domain}",
       "api.staging.${var.domain}",
+      "www.staging.${var.domain}",
     ]
   }
 }
@@ -159,6 +169,14 @@ resource "google_certificate_manager_certificate_map_entry" "staging" {
   map          = google_certificate_manager_certificate_map.staging.name
   certificates = [google_certificate_manager_certificate.staging.id]
   hostname     = "staging.${var.domain}"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "www_staging" {
+  name         = "trip-manager-staging-cert-map-entry-www"
+  project      = var.project_id
+  map          = google_certificate_manager_certificate_map.staging.name
+  certificates = [google_certificate_manager_certificate.staging.id]
+  hostname     = "www.staging.${var.domain}"
 }
 
 resource "google_certificate_manager_certificate_map_entry" "api_staging" {
