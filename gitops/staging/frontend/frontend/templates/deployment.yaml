@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: frontend
     app.kubernetes.io/instance: frontend
-    app.kubernetes.io/version: "sha-cf77aaf9fcd3754ed01361633e92feda960f4f01"
+    app.kubernetes.io/version: "sha-285bcfc942bd5abf50238d55bd8231f5bb3eddf2"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -30,7 +30,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: frontend
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/frontend:sha-cf77aaf9fcd3754ed01361633e92feda960f4f01"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/frontend:sha-285bcfc942bd5abf50238d55bd8231f5bb3eddf2"
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
