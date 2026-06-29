@@ -36,12 +36,17 @@ func (p *PoolManager) GetDB(ctx context.Context, tenantID string) *sqlx.DB {
 		return p.defaultDB
 	}
 
+	log.Printf("[PoolManager] GetDB called for tenant: %s", tenantID)
+
 	p.mu.RLock()
 	if db, ok := p.pools[tenantID]; ok {
 		p.mu.RUnlock()
+		log.Printf("[PoolManager] returning cached pool for tenant: %s", tenantID)
 		return db
 	}
 	p.mu.RUnlock()
+
+	log.Printf("[PoolManager] fetching enterprise DB URL for tenant: %s", tenantID)
 
 	dbURL, err := p.fetchEnterpriseDBURL(ctx, tenantID)
 	if err != nil {
