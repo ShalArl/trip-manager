@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: social
     app.kubernetes.io/instance: social
-    app.kubernetes.io/version: "sha-88dee1a8b35822b2724fb84d565bcfff820d6968"
+    app.kubernetes.io/version: "sha-b8dec51646cd3ca68f416639f31bf5df3509c252"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -30,7 +30,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: social
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/social:sha-88dee1a8b35822b2724fb84d565bcfff820d6968"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/social:sha-b8dec51646cd3ca68f416639f31bf5df3509c252"
           imagePullPolicy: Always
           ports:
             - containerPort: 8081
