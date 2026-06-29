@@ -19,6 +19,7 @@ spec:
       containers:
         - name: trips-postgres
           image: "postgres:16-alpine"
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
           env:
             - name: POSTGRES_DB
               value: trips
@@ -32,14 +33,20 @@ spec:
           ports:
             - containerPort: 5432
           volumeMounts:
+            - name: config
+              mountPath: /etc/postgresql
             - name: data
               mountPath: /var/lib/postgresql/data
               subPath: postgres
+      volumes:
+        - name: config
+          configMap:
+            name: trips-postgres-config
   volumeClaimTemplates:
     - metadata:
         name: data
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: ["ReadWriteOnce"]
         storageClassName: premium-rwo
         resources:
           requests:

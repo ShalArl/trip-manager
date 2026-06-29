@@ -19,6 +19,7 @@ spec:
       containers:
         - name: users-postgres
           image: "postgres:16-alpine"
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
           env:
             - name: POSTGRES_DB
               value: users
@@ -32,9 +33,15 @@ spec:
           ports:
             - containerPort: 5432
           volumeMounts:
+            - name: config
+              mountPath: /etc/postgresql
             - name: data
               mountPath: /var/lib/postgresql/data
               subPath: postgres
+      volumes:
+        - name: config
+          configMap:
+            name: users-postgres-config
   volumeClaimTemplates:
     - metadata:
         name: data
