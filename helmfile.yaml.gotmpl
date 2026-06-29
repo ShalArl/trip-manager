@@ -79,9 +79,11 @@ releases:
   - name: neo4j
     namespace: trip-manager-{{ .Environment.Name }}
     chart: helm/infrastructure/neo4j
+    condition: neo4j.enabled
     values:
       - helm/infrastructure/neo4j/values.yaml
       - helm/infrastructure/neo4j/values/{{ .Environment.Name }}.yaml
+
 
   - name: minio
     namespace: trip-manager-{{ .Environment.Name }}
@@ -146,6 +148,7 @@ releases:
     namespace: trip-manager-{{ .Environment.Name }}
     createNamespace: true
     chart: ./helm/infrastructure/newsletter-postgres
+    condition: newsletter.enabled
     values:
       - helm/infrastructure/newsletter-postgres/values.yaml
       - helm/infrastructure/newsletter-postgres/values/{{ .Environment.Name }}.yaml
@@ -172,6 +175,7 @@ releases:
   - name: feed
     namespace: trip-manager-{{ .Environment.Name }}
     chart: helm/services/feed
+    condition: feed.enabled
     values:
       - helm/services/feed/values.yaml
       - helm/services/feed/values/{{ .Environment.Name }}.yaml
@@ -184,8 +188,8 @@ releases:
       {{- if eq .Environment.Name "prod" }}
       - external-secrets/external-secrets
       - trip-manager-{{ .Environment.Name }}/cluster-config
-      {{- end }}
       - trip-manager-{{ .Environment.Name }}/neo4j
+      {{- end }}
 
   - name: social
     namespace: trip-manager-{{ .Environment.Name }}
@@ -248,6 +252,7 @@ releases:
   - name: newsletter
     namespace: trip-manager-{{ .Environment.Name }}
     chart: ./helm/services/newsletter
+    condition: newsletter.enabled
     values:
       - helm/services/newsletter/values.yaml
       - helm/services/newsletter/values/{{ .Environment.Name }}.yaml
@@ -275,7 +280,9 @@ releases:
       - trip-manager-{{ .Environment.Name }}/trips
       - trip-manager-{{ .Environment.Name }}/social
       - trip-manager-{{ .Environment.Name }}/auth
-    installed: {{ eq .Environment.Name "prod" }}
+    installed: {{ ne .Environment.Name "dev" }}
+
+
 
 
 

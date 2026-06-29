@@ -1,7 +1,7 @@
 DO $$
     BEGIN
         IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'trips_app') THEN
-            EXECUTE format('CREATE USER trips_app WITH PASSWORD %L', current_setting('app.db_password', true));
+            EXECUTE format('CREATE USER trips_app WITH PASSWORD %L', '{{APP_DB_PASSWORD}}');
         END IF;
     END $$;
 

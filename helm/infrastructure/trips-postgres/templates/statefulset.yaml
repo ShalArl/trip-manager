@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   serviceName: trips-postgres
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: trips-postgres
@@ -17,6 +17,7 @@ spec:
       containers:
         - name: trips-postgres
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-c", "hba_file=/etc/postgresql/pg_hba.conf"]
           env:
             - name: POSTGRES_DB
               value: {{ .Values.postgres.db }}
@@ -33,25 +34,30 @@ spec:
               {{- end }}
           ports:
             - containerPort: 5432
-          {{- if .Values.persistence.enabled }}
           volumeMounts:
+            - name: config
+              mountPath: /etc/postgresql
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /var/lib/postgresql/data
               subPath: postgres
-          {{- end }}
-      {{- if not .Values.persistence.enabled }}
+            {{- end }}
       volumes:
+        - name: config
+          configMap:
+            name: trips-postgres-config
+        {{- if not .Values.persistence.enabled }}
         - name: data
-          emptyDir: { }
-      {{- end }}
+          emptyDir: {}
+        {{- end }}
   {{- if .Values.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: ["ReadWriteOnce"]
         storageClassName: {{ .Values.persistence.storageClass }}
         resources:
           requests:
             storage: {{ .Values.persistence.size }}
-      {{- end }}
+  {{- end }}

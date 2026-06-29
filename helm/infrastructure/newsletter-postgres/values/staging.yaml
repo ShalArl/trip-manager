@@ -3,8 +3,8 @@ image:
   tag: "16-alpine"
 replicaCount: 1
 postgres:
-  db: $(echo $svc | sed 's/-postgres//')
-  user: $(echo $svc | sed 's/-postgres//')
+  db: newsletter
+  user: newsletter
   password: placeholder
 service:
   port: 5432
@@ -12,3 +12,6 @@ persistence:
   enabled: false
 externalSecrets:
   enabled: true
+  secrets:
+    - secretKey: POSTGRES_PASSWORD
+      remoteKey: newsletter-database-password

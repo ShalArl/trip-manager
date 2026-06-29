@@ -2,16 +2,12 @@
 name: Deploy to GKE
 
 on:
-  workflow_run:
-    workflows: [ "Dynamic Microservice CI/CD" ]
-    types: [ completed ]
-    branches: [ main, dev ]
   workflow_dispatch:
     inputs:
       environment:
         description: 'Target environment'
         type: choice
-        options: [ prod, staging, dev ]
+        options: [ prod, staging ]
         default: prod
       image_tag:
         description: 'Image tag to deploy (leave empty for latest successful)'

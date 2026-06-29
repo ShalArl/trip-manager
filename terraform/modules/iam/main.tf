@@ -81,19 +81,48 @@ resource "google_service_account_iam_member" "workload_identity" {
   depends_on = [var.gke_cluster_id]
 }
 
+resource "google_service_account_iam_member" "workload_identity_staging" {
+  for_each = toset([
+    "auth", "social", "users", "trips", "newsletter", "otel-collector", "feed"
+  ])
+
+  service_account_id = google_service_account.services[each.key].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[trip-manager-staging/${each.key}]"
+  depends_on = [var.gke_cluster_id]
+}
+
 resource "google_service_account_iam_member" "external_secrets_workload_identity" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
   role               = "roles/iam.workloadIdentityUser"
   service_account_id = google_service_account.services["external-secrets"].name
 
   depends_on = [var.gke_cluster_id]
+
 }
 
 resource "google_artifact_registry_repository" "trip_manager" {
-  project       = var.project_id
+  repository_id = "trip-manager"
   format        = "DOCKER"
   location      = "europe-west1"
-  repository_id = "trip-manager"
+  project       = var.project_id
+
+  cleanup_policies {
+    id     = "keep-last-per-image"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count            = 3
+      package_name_prefixes = []
+    }
+  }
+
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      older_than = "7d"
+    }
+  }
 }
 
 # WIF Pool (GitHub)

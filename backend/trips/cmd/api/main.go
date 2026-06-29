@@ -49,18 +49,6 @@ func main() {
 	corsConfig.AllowedOrigins = allowedOrigins
 
 	// DB
-	db, err := database.Connect(ctx, cfg.DatabaseURL)
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-	defer func(db *sqlx.DB) {
-		err := db.Close()
-		if err != nil {
-			log.Fatalf("failed to close database connection: %v", err)
-		}
-	}(db)
-
-	// Migrations
 	migrationDB, err := sqlx.Connect("postgres", cfg.MigrationDBURL)
 	if err != nil {
 		log.Fatalf("failed to connect to migration db: %v", err)
@@ -72,11 +60,17 @@ func main() {
 	}
 	migrationDB.Close()
 
-	// Normaler Betrieb mit App-User
-	db, err = sqlx.Connect("postgres", cfg.DatabaseURL)
+	// Dann App-Verbindung mit _app User
+	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
+		log.Fatalf("failed to connect to database: %v", err)
 	}
+	defer func(db *sqlx.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database connection: %v", err)
+		}
+	}(db)
 
 	// PubSub Producer
 	var pubsubProducer *pubsub.Producer

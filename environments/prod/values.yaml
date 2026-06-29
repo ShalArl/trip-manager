@@ -2,4 +2,9 @@ imageRegistry: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-
 imagePrefix: "backend/"
 imageTag: "dev"
 projectId: "project-32c60644-299b-4b05-8cf"
-
+neo4j:
+  enabled: true
+feed:
+  enabled: true
+newsletter:
+  enabled: true
