@@ -126,7 +126,7 @@ func main() {
 		}
 	})
 
-	poolManager := dbpool.NewPoolManager(db, cfg.UsersServiceURL, cfg.InternalSecret)
+	poolManager := dbpool.NewPoolManager(db, cfg.UsersServiceURL, cfg.InternalSecret, cfg.AppDBPassword)
 	handler := tenantDBMiddleware(poolManager)(mux)
 
 	// Trips

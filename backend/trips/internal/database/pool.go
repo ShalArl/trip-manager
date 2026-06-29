@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
+	"github.com/ShalArl/trip-manager/backend/trips/database"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -17,23 +19,23 @@ type PoolManager struct {
 	defaultDB       *sqlx.DB
 	usersServiceURL string
 	internalSecret  string
+	appDBPassword   string
 }
 
-func NewPoolManager(defaultDB *sqlx.DB, usersServiceURL, internalSecret string) *PoolManager {
+func NewPoolManager(defaultDB *sqlx.DB, usersServiceURL, internalSecret, appDBPassword string) *PoolManager {
 	return &PoolManager{
 		pools:           make(map[string]*sqlx.DB),
 		defaultDB:       defaultDB,
 		usersServiceURL: usersServiceURL,
 		internalSecret:  internalSecret,
+		appDBPassword:   appDBPassword,
 	}
 }
-
 func (p *PoolManager) GetDB(ctx context.Context, tenantID string) *sqlx.DB {
 	if tenantID == "" || tenantID == "default" {
 		return p.defaultDB
 	}
 
-	// Cache prüfen
 	p.mu.RLock()
 	if db, ok := p.pools[tenantID]; ok {
 		p.mu.RUnlock()
@@ -41,15 +43,30 @@ func (p *PoolManager) GetDB(ctx context.Context, tenantID string) *sqlx.DB {
 	}
 	p.mu.RUnlock()
 
-	// Enterprise DB-URL vom users-Service holen
 	dbURL, err := p.fetchEnterpriseDBURL(ctx, tenantID)
 	if err != nil {
 		return p.defaultDB
 	}
 
-	// Neue Verbindung erstellen
+	// Superuser URL aus der App-URL ableiten
+
+	// Migration ausführen
+	migrationDB, err := sqlx.Connect("postgres", dbURL) // dbURL = trips_enterprise URL
+	if err != nil {
+		log.Printf("warn: failed to connect to enterprise migration db: %v", err)
+		return p.defaultDB
+	}
+	if err := database.RunMigrations(migrationDB, map[string]string{
+		"APP_DB_PASSWORD": p.appDBPassword,
+	}); err != nil {
+		log.Printf("warn: enterprise migration failed for tenant %s: %v", tenantID, err)
+	}
+	migrationDB.Close()
+
+	// App-Verbindung aufbauen
 	db, err := sqlx.Connect("postgres", dbURL)
 	if err != nil {
+		log.Printf("warn: failed to connect to enterprise db for tenant %s: %v", tenantID, err)
 		return p.defaultDB
 	}
 
