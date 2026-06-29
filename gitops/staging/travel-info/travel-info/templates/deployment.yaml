@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: travel-info
     app.kubernetes.io/instance: travel-info
-    app.kubernetes.io/version: "sha-1c732b765efda27b239e86af065970e8f7ae0348"
+    app.kubernetes.io/version: "sha-d99a30ce946ef0eb9e772c5d8a2149b23f24d135"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -30,7 +30,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: travel-info
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:sha-1c732b765efda27b239e86af065970e8f7ae0348"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/travel-info:sha-d99a30ce946ef0eb9e772c5d8a2149b23f24d135"
           imagePullPolicy: Always
           ports:
             - containerPort: 8087
