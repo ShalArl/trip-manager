@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: newsletter
     app.kubernetes.io/instance: newsletter
-    app.kubernetes.io/version: "sha-82cd5155a4b81a629987a93f30bc511c9d7a29c4"
+    app.kubernetes.io/version: "sha-0c73b0cabad0d8c0cc76fad0755216980e959532"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -31,7 +31,7 @@ metadata:
   labels:
     app.kubernetes.io/name: newsletter
     app.kubernetes.io/instance: newsletter
-    app.kubernetes.io/version: "sha-82cd5155a4b81a629987a93f30bc511c9d7a29c4"
+    app.kubernetes.io/version: "sha-0c73b0cabad0d8c0cc76fad0755216980e959532"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
