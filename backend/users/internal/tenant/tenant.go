@@ -54,6 +54,7 @@ type Repository interface {
 	GetOwnerEmail(ctx context.Context, tenantID string) (string, error)
 	SaveEnterpriseDBURL(ctx context.Context, tenantID, dbURL string) error
 	GetEnterpriseDBURL(ctx context.Context, tenantID string) (string, error)
+	DeleteEnterpriseDBURL(ctx context.Context, tenantID string) error
 }
 
 type repositoryImpl struct {
@@ -230,6 +231,13 @@ func (r *repositoryImpl) GetEnterpriseDBURL(ctx context.Context, tenantID string
 		return "", err
 	}
 	return dbURL, nil
+}
+
+func (r *repositoryImpl) DeleteEnterpriseDBURL(ctx context.Context, tenantID string) error {
+	_, err := r.db.ExecContext(ctx, `
+        DELETE FROM enterprise_tenants WHERE tenant_id = $1
+    `, tenantID)
+	return err
 }
 
 func (rec *tenantRecord) toDomain() *Tenant {

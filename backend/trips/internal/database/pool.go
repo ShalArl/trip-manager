@@ -50,6 +50,12 @@ func (p *PoolManager) GetDB(ctx context.Context, tenantID string) *sqlx.DB {
 
 	dbURL, err := p.fetchEnterpriseDBURL(ctx, tenantID)
 	if err != nil {
+		p.mu.Lock()
+		if db, ok := p.pools[tenantID]; ok {
+			db.Close()
+			delete(p.pools, tenantID)
+		}
+		p.mu.Unlock()
 		return p.defaultDB
 	}
 
