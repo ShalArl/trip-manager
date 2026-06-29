@@ -26,15 +26,13 @@ func respondError(w http.ResponseWriter, status int, msg string) {
 func CreateHandler(repo Repository, firebaseAuth *firebaseclient.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		role := authclient.GetUserRole(r)
-		if role != "platform_admin" && role != "tenant_owner" && role != "tenant_admin" {
-			respondError(w, http.StatusForbidden, "permission denied")
-			return
-		}
+		firebaseUID, _ := authclient.GetUserID(r)
 
+		// Platform/Tenant Admins können beliebige Advertiser anlegen
+		// Normale User können sich selbst als Advertiser registrieren
 		var req struct {
-			FirebaseUID string `json:"firebaseUid"`
-			Email       string `json:"email"`
-			Name        string `json:"name"`
+			Email string `json:"email"`
+			Name  string `json:"name"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, "invalid request body")
@@ -45,15 +43,23 @@ func CreateHandler(repo Repository, firebaseAuth *firebaseclient.Client) http.Ha
 			return
 		}
 
-		adv, err := repo.Create(r.Context(), req.FirebaseUID, req.Email, req.Name)
+		// Admins können für andere anlegen, normale User nur für sich selbst
+		if role != "platform_admin" && role != "tenant_owner" && role != "tenant_admin" {
+			// Self-registration: Firebase UID aus JWT
+			if firebaseUID == "" {
+				respondError(w, http.StatusForbidden, "permission denied")
+				return
+			}
+		}
+
+		adv, err := repo.Create(r.Context(), firebaseUID, req.Email, req.Name)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// Firebase Claims setzen falls FirebaseUID vorhanden
-		if firebaseAuth != nil && req.FirebaseUID != "" {
-			go firebaseAuth.SetCustomClaims(context.Background(), req.FirebaseUID, map[string]interface{}{
+		if firebaseAuth != nil && firebaseUID != "" {
+			go firebaseAuth.SetCustomClaims(context.Background(), firebaseUID, map[string]interface{}{
 				"role":          "advertiser",
 				"advertiser_id": adv.ID,
 			})
