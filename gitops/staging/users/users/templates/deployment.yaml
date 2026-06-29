@@ -8,7 +8,7 @@ metadata:
   labels:
     app.kubernetes.io/name: users
     app.kubernetes.io/instance: users
-    app.kubernetes.io/version: "sha-43de3fa9e7c38d251d3fb182c621561fc982d32a"
+    app.kubernetes.io/version: "sha-cf77aaf9fcd3754ed01361633e92feda960f4f01"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: trip-manager
 spec:
@@ -23,14 +23,14 @@ spec:
         app.kubernetes.io/name: users
         app.kubernetes.io/instance: users
       annotations:
-        checksum/config: 57a2c297f4d08ef9a7600685aa9aa09fda5c52adfa7b49b24a42ed457a9042e5
+        checksum/config: 251b8a7da9e58c8fd9f85a528682c2d2f77ce24212ae13a5dd2e47d149c961c1
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: users
-          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:sha-43de3fa9e7c38d251d3fb182c621561fc982d32a"
+          image: "europe-west1-docker.pkg.dev/project-32c60644-299b-4b05-8cf/trip-manager/backend/users:sha-cf77aaf9fcd3754ed01361633e92feda960f4f01"
           imagePullPolicy: Always
           ports:
             - containerPort: 8083
@@ -54,7 +54,7 @@ spec:
             - name: GITHUB_REPO
               value: ShalArl/trip-manager
             - name: GITHUB_BRANCH
-              value: gitops-staging
+              value: gitops-prod
             - name: BASE_URL
               value: https://staging.neatnode.xyz
           envFrom: 
