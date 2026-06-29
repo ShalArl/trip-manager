@@ -28,7 +28,7 @@ export default function LandingPage() {
                             <span className="text-6xl">🌍</span>
                         </div>
                         <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white mb-6">
-                            Trip Manager
+                            Drip Manager
                         </h1>
                         <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-12">
                             Die Plattform für Reisende, Reisebüros und Werbepartner.

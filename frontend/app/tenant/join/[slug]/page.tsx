@@ -39,10 +39,10 @@ export default function TenantJoinPage() {
         setJoining(true);
         try {
             const headers = await getAuthHeaders();
-            const res = await fetch(`${API_URL}/api/users/tenants/join-by-slug`, {
+            const res = await fetch(`${API_URL}/api/users/provision`, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ slug }),
+                body: JSON.stringify({ tenantId: tenant.tenantId }),
             });
             if (res.ok) {
                 // Token refreshen damit neue Claims geladen werden
