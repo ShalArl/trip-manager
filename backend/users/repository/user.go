@@ -116,6 +116,7 @@ type Repository interface {
 	Update(ctx context.Context, user *User) (*User, error)
 	ListByTenant(ctx context.Context) ([]*User, error)
 	RemoveFromTenant(ctx context.Context, userID string) error
+	ResetTenantUsers(ctx context.Context, tenantID string) error
 }
 
 type repositoryImpl struct {
@@ -253,4 +254,12 @@ func (r *repositoryImpl) RemoveFromTenant(ctx context.Context, userID string) er
 		)
 		return err
 	})
+}
+
+func (r *repositoryImpl) ResetTenantUsers(ctx context.Context, tenantID string) error {
+	_, err := r.db.ExecContext(ctx, `
+        UPDATE users SET tenant_id = 'default', role = 'tenant_member'
+        WHERE tenant_id = $1
+    `, tenantID)
+	return err
 }
